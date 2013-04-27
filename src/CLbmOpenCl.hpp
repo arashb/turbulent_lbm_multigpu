@@ -683,7 +683,7 @@ public:
 
 	float getVelocityChecksum()
 	{
-		float *velocity = new T[this->domain_cells.elements()*3];
+		T *velocity = new T[this->domain_cells.elements()*3];
 		int *flags = new int[this->domain_cells.elements()*3];
 
 		storeVelocity(velocity);
