@@ -14,10 +14,11 @@ class CLbmVisualizationVTK : virtual public ILbmVisualization<T>
 public:
 	CLbmVisualizationVTK(): ILbmVisualization<T>()
 	{
-
+		_file_name = "OUTPUT";
+		_timeStepNumber = -1;
 	}
 
-	void setup(CLbmOpenCl<T> &p_cLbmOpencl, std::string file_name = "OUTPUT", int timeStepNumber = -1) {
+	void setup(CLbmOpenCl<T> &p_cLbmOpencl, std::string file_name, int timeStepNumber = -1) {
 		ILbmVisualization<T>::setup(p_cLbmOpencl);
 		_file_name = file_name;
 		_timeStepNumber = timeStepNumber;
@@ -27,7 +28,7 @@ public:
 	{
 		// using the increment in VTK visualization as the time step value
 		_timeStepNumber = increment;
-		std::cout << " I am making vtk file" << std::endl;
+		std::cout << " I am making vtk file: " << _file_name << std::endl;
 
 		// load array from GPU
 		this->cLbmOpencl->storeVelocity(this->velocity);

@@ -37,7 +37,7 @@ template <typename T>
 class CMain
 {
 	bool reset;
-	ILbmVisualization<T>* cLbmVisualization;
+	CLbmVisualizationVTK<T>* cLbmVisualization;
 	int next_simulation_steps_count;
 	CLbmOpenCl<T> *cLbmPtr;
 
@@ -249,10 +249,11 @@ public:
 		CStopwatch cStopwatch;
 
 		// setting up the visualization
+		std::string outputfilename = "OUTPUT";
 		if (do_visualization)
 		{
 			cLbmVisualization = new CLbmVisualizationVTK<T>();
-			cLbmVisualization->setup(cLbm);
+			cLbmVisualization->setup(cLbm, outputfilename);
 		}
 
 		for (int i = 0; i < loops/10; i++)
