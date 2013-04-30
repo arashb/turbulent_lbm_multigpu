@@ -249,9 +249,10 @@ public:
 		CStopwatch cStopwatch;
 
 		// setting up the visualization
+		std::string outputfilename = "./vtkOutput/OUTPUT";
 		if (do_visualization)
 		{
-			cLbmVisualization = new CLbmVisualizationVTK<T>();
+			cLbmVisualization = new CLbmVisualizationVTK<T>(outputfilename);
 			cLbmVisualization->setup(cLbm);
 		}
 
@@ -260,8 +261,8 @@ public:
 			// simulation
 			cLbm.simulationStep();
 			std::cout << "." << std::flush;
-			if (do_visualization)
-				cLbmVisualization->render();
+//			if (do_visualization)
+//				cLbmVisualization->render();
 
 		}
 		std::cout << "|" << std::flush;
@@ -274,7 +275,7 @@ public:
 			cLbm.simulationStep();
 			std::cout << "." << std::flush;
 			if (do_visualization)
-				cLbmVisualization->render();
+				cLbmVisualization->render(i);
 		}
 		cLbm.wait();
 		cStopwatch.stop();

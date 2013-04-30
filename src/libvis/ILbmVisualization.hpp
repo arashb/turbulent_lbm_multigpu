@@ -12,7 +12,7 @@
 template <typename T>
 class ILbmVisualization
 {
-public:
+protected:
 	T *velocity;
 	T *density;
 	int *flags;
