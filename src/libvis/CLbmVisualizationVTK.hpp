@@ -3,7 +3,7 @@
 
 #include "ILbmVisualization.hpp"
 #include "../libmath/CVector.hpp"
-#include "visual.hpp"
+#include "VTK_Common.hpp"
 
 template <typename T>
 class CLbmVisualizationVTK : virtual public ILbmVisualization<T>
@@ -35,15 +35,16 @@ public:
 		this->cLbmOpencl->storeDensity(this->density);
 		this->cLbmOpencl->storeFlags(this->flags);
 
-		// number of cells in each dimension (don't confuse it with the number of points!)
-//		int imax = params->imax;
-//		int jmax = params->jmax;
-//		int kmax = params->kmax;
-//		double dx = params->dx;
-//		double dy = params->dy;
-//		double dz = params->dz;
-//
-		// TODO: implement the render function for VTK visualization
+		// number of grid cells in each dimension (don't confuse it with the number of grid points!)
+		int imax = this->cLbmOpencl->domain_cells[0];
+		int jmax = this->cLbmOpencl->domain_cells[1];
+		int kmax = this->cLbmOpencl->domain_cells[2];
+		int total_el = this->cLbmOpencl->domain_cells.elements();
+
+		T dx = this->cLbmOpencl->d_cell_length;
+		T dy = dx;
+		T dz = dx;
+
 		char szFileName[80];
 		FILE *fp = NULL;
 		sprintf( szFileName, "%s.%i.vtk", _file_name.c_str(), _timeStepNumber );
@@ -55,17 +56,40 @@ public:
 		}
 
 		write_vtkHeader( fp );
-//	    fprintf(fp,"DATASET STRUCTURED_GRID\n");
-//	    fprintf(fp,"DIMENSIONS  %i %i %i \n", imax+1, jmax+1, kmax+1);
-//	    fprintf(fp,"POINTS %i float\n", (imax+1)*(jmax+1)*(kmax+1) );
-//	    fprintf(fp,"\n");
-//		write_vtkPointCoordinates(fp, imax, jmax, kmax, dx, dy, dz);
-//
+	    fprintf(fp,"DATASET STRUCTURED_GRID\n");
+	    fprintf(fp,"DIMENSIONS  %i %i %i \n", imax+1, jmax+1, kmax+1);
+	    fprintf(fp,"POINTS %i float\n", (imax+1)*(jmax+1)*(kmax+1) );
+	    fprintf(fp,"\n");
+		write_vtkPointCoordinates<T>(fp, imax, jmax, kmax, dx, dy, dz);
+
+		T *velx = this->velocity;
+		T *vely = this->velocity+total_el;
+		T *velz = this->velocity+total_el*2;
 //		fprintf(fp,"POINT_DATA %i \n", (imax+1)*(jmax+1)*(kmax+1) );
-//
-//
-//	    fprintf(fp,"\n");
-//	    fprintf(fp,"CELL_DATA %i \n", ((imax)*(jmax)*(kmax)) );
+
+	    fprintf(fp,"\n");
+	    fprintf(fp,"CELL_DATA %i \n", ((imax)*(jmax)*(kmax)) );
+	    fprintf(fp, "SCALARS density float 1 \n");
+	    fprintf(fp, "LOOKUP_TABLE default \n");
+		for (int a = 0; a < total_el ; a++)
+		{
+			 fprintf(fp, "%f\n", this->density[a] );
+		}
+		fprintf(fp,"\n");
+		fprintf(fp, "SCALARS flag INT 1 \n");
+		fprintf(fp, "LOOKUP_TABLE default \n");
+		for (int a = 0; a < total_el ; a++)
+		{
+			fprintf(fp, "%i\n", this->flags[a] );
+		}
+
+		fprintf(fp,"\n");
+		fprintf(fp, "VECTORS velocity float\n");
+		for (int a = 0; a < total_el ; a++)
+		{
+			fprintf(fp, "%f %f %f\n", velx[a], vely[a], velz[a]);
+		}
+
 
 		if( fclose(fp) )
 		{
