@@ -6,9 +6,7 @@ void write_vtkHeader( FILE *fp )
 {
     if( fp == NULL )
     {
-        char szBuff[80];
-        sprintf( szBuff, "Null pointer in write_vtkHeader" );
-        ERROR( szBuff );
+        fprintf(stderr, "Null pointer in write_vtkHeader" );
         return;
     }
 

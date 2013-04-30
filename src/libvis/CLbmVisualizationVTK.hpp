@@ -3,7 +3,7 @@
 
 #include "ILbmVisualization.hpp"
 #include "../libmath/CVector.hpp"
-#include "visual.h"
+#include "visual.hpp"
 
 template <typename T>
 class CLbmVisualizationVTK : virtual public ILbmVisualization<T>
@@ -27,6 +27,7 @@ public:
 	{
 		// using the increment in VTK visualization as the time step value
 		_timeStepNumber = increment;
+		std::cout << " I am making vtk file" << std::endl;
 
 		// load array from GPU
 		this->cLbmOpencl->storeVelocity(this->velocity);
@@ -41,20 +42,18 @@ public:
 //		double dy = params->dy;
 //		double dz = params->dz;
 //
-//		// TODO: implement the render function for VTK visualization
-//		char szFileName[80];
-//		FILE *fp = NULL;
-//		sprintf( szFileName, "%s.%i.vtk", file_name.c_str(), timeStepNumber );
-//		fp = fopen( szFileName, "w");
-//		if( fp == NULL )
-//		{
-//			char szBuff[80];
-//			sprintf( szBuff, "Failed to open %s", szFileName );
-//			ERROR( szBuff );
-//			return;
-//		}
-//
-//		write_vtkHeader( fp );
+		// TODO: implement the render function for VTK visualization
+		char szFileName[80];
+		FILE *fp = NULL;
+		sprintf( szFileName, "%s.%i.vtk", _file_name.c_str(), _timeStepNumber );
+		fp = fopen( szFileName, "w");
+		if( fp == NULL )
+		{
+			fprintf(stderr, "Failed to open %s", szFileName );
+			return;
+		}
+
+		write_vtkHeader( fp );
 //	    fprintf(fp,"DATASET STRUCTURED_GRID\n");
 //	    fprintf(fp,"DIMENSIONS  %i %i %i \n", imax+1, jmax+1, kmax+1);
 //	    fprintf(fp,"POINTS %i float\n", (imax+1)*(jmax+1)*(kmax+1) );
@@ -67,7 +66,10 @@ public:
 //	    fprintf(fp,"\n");
 //	    fprintf(fp,"CELL_DATA %i \n", ((imax)*(jmax)*(kmax)) );
 
-
+		if( fclose(fp) )
+		{
+			fprintf(stderr, "Failed to close %s", szFileName);
+		}
 
 	}
 };
