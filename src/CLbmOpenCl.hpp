@@ -298,7 +298,8 @@ public:
 		cProgramDefinesPostfixString += charbuf;
 		cProgramDefinesPostfixString +=  ")";
 
-		cProgramCompileOptionsString = "-Werror -I./";
+		/*cProgramCompileOptionsString = "-Werror -I./";*/
+		cProgramCompileOptionsString = "-I./";
 		if (cKernelInit_MaxRegisters != 0)
 		{
 			/* TODO: check for cl_nv_compiler_options extension */
@@ -331,7 +332,8 @@ public:
 		cProgramDefinesPostfixString += charbuf;
 		cProgramDefinesPostfixString +=  ")";
 
-		cProgramCompileOptionsString = "-Werror -I./";
+		// cProgramCompileOptionsString = "-Werror -I./";
+		cProgramCompileOptionsString = "-I./";
 		if (cLbmKernelAlpha_MaxRegisters != 0)
 		{
 			/* TODO: check for cl_nv_compiler_options extension */

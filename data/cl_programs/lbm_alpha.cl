@@ -177,9 +177,9 @@ __kernel void lbm_kernel_alpha(
 	{
 		case FLAG_FLUID:	// this is the whole collision operator
 			vel2 = velocity_x*velocity_x + velocity_y*velocity_y + velocity_z*velocity_z;
-			dd_param = rho - (T)(3.0/2.0)*(vel2);
+			dd_param = rho - (T)(3.0f/2.0f)*(vel2);
 
-			tmp = gravitation_x*(T)(1.0/18.0)*rho;
+			tmp = gravitation_x*(T)(1.0f/18.0f)*rho;
 			vela2 = velocity_x*velocity_x;
 			dd1 += inv_tau*(eq_dd_a1(velocity_x, vela2, dd_param) - dd1);
 			dd1 -= tmp;
@@ -189,7 +189,7 @@ __kernel void lbm_kernel_alpha(
 			dd0 += tmp;
 			*current_dds = dd0;		current_dds += DOMAIN_CELLS;
 
-			tmp = gravitation_y*(T)(-1.0/18.0)*rho;
+			tmp = gravitation_y*(T)(-1.0f/18.0f)*rho;
 			vela2 = velocity_y*velocity_y;
 			dd3 += inv_tau*(eq_dd_a1(velocity_y, vela2, dd_param) - dd3);
 			dd3 -= tmp;
@@ -207,7 +207,7 @@ __kernel void lbm_kernel_alpha(
 			vela_velb = velocity_x+velocity_y;
 			vela_velb_2 = vela_velb*vela_velb;
 
-			tmp = (gravitation_x - gravitation_y)*(T)(1.0/36.0)*rho;
+			tmp = (gravitation_x - gravitation_y)*(T)(1.0f/36.0f)*rho;
 
 			dd5 += inv_tau*(eq_dd5(vela_velb, vela_velb_2, dd_param) - dd5);
 			dd5 -= tmp;
@@ -219,7 +219,7 @@ __kernel void lbm_kernel_alpha(
 
 			vela_velb = velocity_x-velocity_y;
 			vela_velb_2 = vela_velb*vela_velb;
-			tmp = (gravitation_x + gravitation_y)*(T)(1.0/36.0)*rho;
+			tmp = (gravitation_x + gravitation_y)*(T)(1.0f/36.0f)*rho;
 			dd7 += inv_tau*(eq_dd5(vela_velb, vela_velb_2, dd_param) - dd7);
 			dd7 -= tmp;
 			*current_dds = dd7;		current_dds += DOMAIN_CELLS;
@@ -233,7 +233,7 @@ __kernel void lbm_kernel_alpha(
 			 ***********************/
 			vela_velb = velocity_x+velocity_z;
 			vela_velb_2 = vela_velb*vela_velb;
-			tmp = (gravitation_x + gravitation_z)*(T)(1.0/36.0)*rho;
+			tmp = (gravitation_x + gravitation_z)*(T)(1.0f/36.0f)*rho;
 
 			dd9 += inv_tau*(eq_dd5(vela_velb, vela_velb_2, dd_param) - dd9);
 			dd9 -= tmp;
@@ -243,7 +243,7 @@ __kernel void lbm_kernel_alpha(
 			dd8 += tmp;
 			*current_dds = dd8;		current_dds += DOMAIN_CELLS;
 
-			tmp = (gravitation_x - gravitation_z)*(T)(1.0/36.0)*rho;
+			tmp = (gravitation_x - gravitation_z)*(T)(1.0f/36.0f)*rho;
 			vela_velb = velocity_x-velocity_z;
 			vela_velb_2 = vela_velb*vela_velb;
 			dd11 += inv_tau*(eq_dd5(vela_velb, vela_velb_2, dd_param) - dd11);
@@ -260,7 +260,7 @@ __kernel void lbm_kernel_alpha(
 			vela_velb = velocity_y+velocity_z;
 			vela_velb_2 = vela_velb*vela_velb;
 
-			tmp = (gravitation_z - gravitation_y)*(T)(1.0/36.0)*rho;
+			tmp = (gravitation_z - gravitation_y)*(T)(1.0f/36.0f)*rho;
 			dd13 += inv_tau*(eq_dd5(vela_velb, vela_velb_2, dd_param) - dd13);
 			dd13 -= tmp;
 			*current_dds = dd13;		current_dds += DOMAIN_CELLS;
@@ -271,7 +271,7 @@ __kernel void lbm_kernel_alpha(
 
 			vela_velb = velocity_y-velocity_z;
 			vela_velb_2 = vela_velb*vela_velb;
-			tmp = (gravitation_z + gravitation_y)*(T)(-1.0/36.0)*rho;
+			tmp = (gravitation_z + gravitation_y)*(T)(-1.0f/36.0f)*rho;
 
 			dd15 += inv_tau*(eq_dd5(vela_velb, vela_velb_2, dd_param) - dd15);
 			dd15 -= tmp;
@@ -287,7 +287,7 @@ __kernel void lbm_kernel_alpha(
 			 ***********************/
 			vela2 = velocity_z*velocity_z;
 
-			tmp = gravitation_z*(T)(1.0/18.0)*rho;
+			tmp = gravitation_z*(T)(1.0f/18.0f)*rho;
 			dd17 += inv_tau*(eq_dd_a1(velocity_z, vela2, dd_param) - dd17);
 			dd17 -= tmp;
 			*current_dds = dd17;		current_dds += DOMAIN_CELLS;
@@ -335,9 +335,9 @@ __kernel void lbm_kernel_alpha(
 #endif
 
 #if STORE_VELOCITY
-			velocity_x = 0.0;
-			velocity_y = 0.0;
-			velocity_z = 0.0;
+			velocity_x = 0.0f;
+			velocity_y = 0.0f;
+			velocity_z = 0.0f;
 #endif
 			break;
 
@@ -346,16 +346,16 @@ __kernel void lbm_kernel_alpha(
 			velocity_y = 0;
 			velocity_z = 0;
 
-			rho = 1.0;
+			rho = 1.0f;
 
 			vel2 = velocity_x*velocity_x + velocity_y*velocity_y + velocity_z*velocity_z;
-			dd_param = rho - (T)(3.0/2.0)*(vel2);
+			dd_param = rho - (T)(3.0f/2.0f)*(vel2);
 
 			/***********************
 			 * DD0
 			 ***********************/
 			vela2 = velocity_x*velocity_x;
-			tmp = gravitation_x*(T)(1.0/18.0)*rho;
+			tmp = gravitation_x*(T)(1.0f/18.0f)*rho;
 
 			dd1 = eq_dd_a1(velocity_x, vela2, dd_param);
 			dd1 -= tmp;
@@ -366,7 +366,7 @@ __kernel void lbm_kernel_alpha(
 			*current_dds = dd0;		current_dds += DOMAIN_CELLS;
 
 			vela2 = velocity_y*velocity_y;
-			tmp = gravitation_y*(T)(-1.0/18.0)*rho;
+			tmp = gravitation_y*(T)(-1.0f/18.0f)*rho;
 
 			dd3 = eq_dd_a1(velocity_y, vela2, dd_param);
 			dd3 -= tmp;
@@ -383,7 +383,7 @@ __kernel void lbm_kernel_alpha(
 			 ***********************/
 			vela_velb = velocity_x+velocity_y;
 			vela_velb_2 = vela_velb*vela_velb;
-			tmp = (gravitation_x - gravitation_y)*(T)(1.0/36.0)*rho;
+			tmp = (gravitation_x - gravitation_y)*(T)(1.0f/36.0f)*rho;
 
 			dd5 = eq_dd5(vela_velb, vela_velb_2, dd_param);
 			dd5 -= tmp;
@@ -395,7 +395,7 @@ __kernel void lbm_kernel_alpha(
 
 			vela_velb = velocity_x-velocity_y;
 			vela_velb_2 = vela_velb*vela_velb;
-			tmp = (gravitation_x + gravitation_y)*(T)(1.0/36.0)*rho;
+			tmp = (gravitation_x + gravitation_y)*(T)(1.0f/36.0f)*rho;
 
 			dd7 = eq_dd5(vela_velb, vela_velb_2, dd_param);
 			dd7 -= tmp;
@@ -410,7 +410,7 @@ __kernel void lbm_kernel_alpha(
 			 ***********************/
 			vela_velb = velocity_x+velocity_z;
 			vela_velb_2 = vela_velb*vela_velb;
-			tmp = (gravitation_x + gravitation_z)*(T)(1.0/36.0)*rho;
+			tmp = (gravitation_x + gravitation_z)*(T)(1.0f/36.0f)*rho;
 
 			dd9 = eq_dd5(vela_velb, vela_velb_2, dd_param);
 			dd9 -= tmp;
@@ -422,7 +422,7 @@ __kernel void lbm_kernel_alpha(
 
 			vela_velb = velocity_x-velocity_z;
 			vela_velb_2 = vela_velb*vela_velb;
-			tmp = (gravitation_x - gravitation_z)*(T)(1.0/36.0)*rho;
+			tmp = (gravitation_x - gravitation_z)*(T)(1.0f/36.0f)*rho;
 
 			dd11 = eq_dd5(vela_velb, vela_velb_2, dd_param);
 			dd11 -= tmp;
@@ -437,7 +437,7 @@ __kernel void lbm_kernel_alpha(
 			 ***********************/
 			vela_velb = velocity_y+velocity_z;
 			vela_velb_2 = vela_velb*vela_velb;
-			tmp = (gravitation_z - gravitation_y)*(T)(1.0/36.0)*rho;
+			tmp = (gravitation_z - gravitation_y)*(T)(1.0f/36.0f)*rho;
 
 			dd13 = eq_dd5(vela_velb, vela_velb_2, dd_param);
 			dd13 -= tmp;
@@ -449,7 +449,7 @@ __kernel void lbm_kernel_alpha(
 
 			vela_velb = velocity_y-velocity_z;
 			vela_velb_2 = vela_velb*vela_velb;
-			tmp = (gravitation_z + gravitation_y)*(T)(-1.0/36.0)*rho;
+			tmp = (gravitation_z + gravitation_y)*(T)(-1.0f/36.0f)*rho;
 
 			dd15 = eq_dd5(vela_velb, vela_velb_2, dd_param);
 			dd15 -= tmp;
@@ -465,7 +465,7 @@ __kernel void lbm_kernel_alpha(
 			 ***********************/
 			vela2 = velocity_z*velocity_z;
 
-			tmp = gravitation_z*(T)(1.0/18.0)*rho;
+			tmp = gravitation_z*(T)(1.0f/18.0f)*rho;
 			dd17 = eq_dd_a1(velocity_z, vela2, dd_param);
 			dd17 -= tmp;
 			*current_dds = dd17;		current_dds += DOMAIN_CELLS;

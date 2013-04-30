@@ -105,12 +105,12 @@ __kernel void init_kernel(
 	T dd_param;
 	T vela2;
 	T vela_velb;
-	T rho = 1.0;
+	T rho = 1.0f;
 
 	// compute and store velocity
 
 	vela2 = velocity_x*velocity_x;
-	dd_param = rho - (T)(3.0/2.0)*(vela2);
+	dd_param = rho - (T)(3.0f/2.0f)*(vela2);
 
 	dd0 = eq_dd_a0(velocity_x, vela2, dd_param);
 	*current_dds = dd0;		current_dds += DOMAIN_CELLS;

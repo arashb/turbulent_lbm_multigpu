@@ -65,8 +65,8 @@
  * we can reuse the following function because of its symmetry
  * f(1,0,0), f(-1,0,0),  f(0,1,0),  f(0,-1,0) f(0,0,1) f(0,0,-1)
  */
-#define eq_dd_a0(vela, vela2, rho_alpha)	((T)(1.0/18.0)*((rho_alpha) + (T)(3.0)*(vela) + (T)(9.0/2.0)*(vela2)))
-#define eq_dd_a1(vela, vela2, rho_alpha)	((T)(1.0/18.0)*((rho_alpha) + (T)(-3.0)*(vela) + (T)(9.0/2.0)*(vela2)))
+#define eq_dd_a0(vela, vela2, rho_alpha)	((T)(1.0f/18.0f)*((rho_alpha) + (T)(3.0f)*(vela) + (T)(9.0f/2.0f)*(vela2)))
+#define eq_dd_a1(vela, vela2, rho_alpha)	((T)(1.0f/18.0f)*((rho_alpha) + (T)(-3.0f)*(vela) + (T)(9.0f/2.0f)*(vela2)))
 
 /*
  * we can reuse the following functions because of the symmetry of the density distributions!
@@ -76,21 +76,21 @@
  * f(0,1,1), f(0,-1,-1), f(0,1,-1), f(0,-1,1)
  */
 #define eq_dd4(velx_add_vely, velx_add_vely_2, rho_alpha)		\
-			((T)(1.0/36.0)*((rho_alpha) + (T)(3.0)*(velx_add_vely) + (T)(9.0/2.0)*(velx_add_vely_2)))
+			((T)(1.0f/36.0f)*((rho_alpha) + (T)(3.0f)*(velx_add_vely) + (T)(9.0f/2.0f)*(velx_add_vely_2)))
 
 #define eq_dd5(velx_add_vely, velx_add_vely_2, rho_alpha)		\
-			((T)(1.0/36.0)*((rho_alpha) + (T)(-3.0)*(velx_add_vely) + (T)(9.0/2.0)*(velx_add_vely_2)))
+			((T)(1.0f/36.0f)*((rho_alpha) + (T)(-3.0f)*(velx_add_vely) + (T)(9.0f/2.0f)*(velx_add_vely_2)))
 
 #define eq_dd6(velx_sub_vely, velx_sub_vely_2, rho_alpha)		\
-			((T)(1.0/36.0)*((rho_alpha) + (T)(3.0)*(velx_sub_vely) + (T)(9.0/2.0)*(velx_sub_vely_2)))
+			((T)(1.0f/36.0f)*((rho_alpha) + (T)(3.0f)*(velx_sub_vely) + (T)(9.0f/2.0f)*(velx_sub_vely_2)))
 
 #define eq_dd7(velx_sub_vely, velx_sub_vely_2, rho_alpha)		\
-			((T)(1.0/36.0)*((rho_alpha) + (T)(-3.0)*(velx_sub_vely) + (T)(9.0/2.0)*(velx_sub_vely_2)))
+			((T)(1.0f/36.0f)*((rho_alpha) + (T)(-3.0f)*(velx_sub_vely) + (T)(9.0f/2.0f)*(velx_sub_vely_2)))
 
 /*
  * f(0,0,0)
  */
 #define eq_dd18(rho_alpha)				\
-			((T)(1.0/3.0)*(rho_alpha))
+			((T)(1.0f/3.0f)*(rho_alpha))
 
 

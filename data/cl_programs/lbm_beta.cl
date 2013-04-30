@@ -496,7 +496,7 @@ __kernel void lbm_kernel_beta(
 	{
 		case FLAG_FLUID:	// this is the whole collision operator
 			vel2 = velocity_x*velocity_x + velocity_y*velocity_y + velocity_z*velocity_z;
-			dd_param = rho - (T)(3.0/2.0)*(vel2);
+			dd_param = rho - (T)(3.0f/2.0f)*(vel2);
 
 			vela2 = velocity_x*velocity_x;
 			dd0 += inv_tau*(eq_dd_a0(velocity_x, vela2, dd_param) - dd0);
@@ -561,9 +561,9 @@ __kernel void lbm_kernel_beta(
 		case FLAG_OBSTACLE:	// in case of an obstacle, we bounce back the values
 			// set to zero velocity and no fluid density
 #if STORE_VELOCITY
-			velocity_x = 0.0;
-			velocity_y = 0.0;
-			velocity_z = 0.0;
+			velocity_x = 0.0f;
+			velocity_y = 0.0f;
+			velocity_z = 0.0f;
 #endif
 
 			// use simple bounce back
@@ -584,10 +584,10 @@ __kernel void lbm_kernel_beta(
 			velocity_y = 0;
 			velocity_z = 0;
 
-			rho = 1.0;
+			rho = 1.0f;
 
 			vel2 = velocity_x*velocity_x + velocity_y*velocity_y + velocity_z*velocity_z;
-			dd_param = rho - (T)(3.0/2.0)*(vel2);
+			dd_param = rho - (T)(3.0f/2.0f)*(vel2);
 
 			/***********************
 			 * DD0
@@ -663,35 +663,35 @@ __kernel void lbm_kernel_beta(
 #define tmp	vela2
 	if (flag != FLAG_OBSTACLE)
 	{
-		tmp = gravitation_x*(T)(1.0/18.0)*rho;
+		tmp = gravitation_x*(T)(1.0f/18.0f)*rho;
 		dd0 += tmp;
 		dd1 -= tmp;
-		tmp = gravitation_y*(T)(-1.0/18.0)*rho;
+		tmp = gravitation_y*(T)(-1.0f/18.0f)*rho;
 		dd2 += tmp;
 		dd3 -= tmp;
 
-		tmp = (gravitation_x - gravitation_y)*(T)(1.0/36.0)*rho;
+		tmp = (gravitation_x - gravitation_y)*(T)(1.0f/36.0f)*rho;
 		dd4 += tmp;
 		dd5 -= tmp;
-		tmp = (gravitation_x + gravitation_y)*(T)(1.0/36.0)*rho;
+		tmp = (gravitation_x + gravitation_y)*(T)(1.0f/36.0f)*rho;
 		dd6 += tmp;
 		dd7 -= tmp;
 
-		tmp = (gravitation_x + gravitation_z)*(T)(1.0/36.0)*rho;
+		tmp = (gravitation_x + gravitation_z)*(T)(1.0f/36.0f)*rho;
 		dd8 += tmp;
 		dd9 -= tmp;
-		tmp = (gravitation_x - gravitation_z)*(T)(1.0/36.0)*rho;
+		tmp = (gravitation_x - gravitation_z)*(T)(1.0f/36.0f)*rho;
 		dd10 += tmp;
 		dd11 -= tmp;
 
-		tmp = (gravitation_z - gravitation_y)*(T)(1.0/36.0)*rho;
+		tmp = (gravitation_z - gravitation_y)*(T)(1.0f/36.0f)*rho;
 		dd12 += tmp;
 		dd13 -= tmp;
-		tmp = (gravitation_z + gravitation_y)*(T)(-1.0/36.0)*rho;
+		tmp = (gravitation_z + gravitation_y)*(T)(-1.0f/36.0f)*rho;
 		dd14 += tmp;
 		dd15 -= tmp;
 
-		tmp = gravitation_z*(T)(1.0/18.0)*rho;
+		tmp = gravitation_z*(T)(1.0f/18.0f)*rho;
 		dd16 += tmp;
 		dd17 -= tmp;
 	}
