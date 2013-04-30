@@ -14,7 +14,7 @@ class CLbmVisualizationVTK : virtual public ILbmVisualization<T>
 public:
 	CLbmVisualizationVTK(): ILbmVisualization<T>()
 	{
-		_file_name = "OUTPUT";
+		_file_name = "./vtkOuputs/OUTPUT";
 		_timeStepNumber = -1;
 	}
 

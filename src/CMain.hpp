@@ -249,11 +249,11 @@ public:
 		CStopwatch cStopwatch;
 
 		// setting up the visualization
-		std::string outputfilename = "OUTPUT";
+		std::string outputfilename = "./vtkOutput/OUTPUT";
 		if (do_visualization)
 		{
 			cLbmVisualization = new CLbmVisualizationVTK<T>();
-			cLbmVisualization->setup(cLbm, outputfilename);
+			cLbmVisualization->setup(cLbm,outputfilename);
 		}
 
 		for (int i = 0; i < loops/10; i++)
