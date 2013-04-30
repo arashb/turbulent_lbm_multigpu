@@ -12,16 +12,14 @@ class CLbmVisualizationVTK : virtual public ILbmVisualization<T>
 	int _timeStepNumber;
 
 public:
-	CLbmVisualizationVTK(): ILbmVisualization<T>()
+	CLbmVisualizationVTK(std::string file_name): ILbmVisualization<T>()
 	{
-		_file_name = "./vtkOuputs/OUTPUT";
+		_file_name = file_name;
 		_timeStepNumber = -1;
 	}
 
-	void setup(CLbmOpenCl<T> &p_cLbmOpencl, std::string file_name, int timeStepNumber = -1) {
+	void setup(CLbmOpenCl<T> &p_cLbmOpencl) {
 		ILbmVisualization<T>::setup(p_cLbmOpencl);
-		_file_name = file_name;
-		_timeStepNumber = timeStepNumber;
 	}
 
 	void render(int increment = -1)

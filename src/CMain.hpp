@@ -37,7 +37,7 @@ template <typename T>
 class CMain
 {
 	bool reset;
-	CLbmVisualizationVTK<T>* cLbmVisualization;
+	ILbmVisualization<T>* cLbmVisualization;
 	int next_simulation_steps_count;
 	CLbmOpenCl<T> *cLbmPtr;
 
@@ -252,8 +252,8 @@ public:
 		std::string outputfilename = "./vtkOutput/OUTPUT";
 		if (do_visualization)
 		{
-			cLbmVisualization = new CLbmVisualizationVTK<T>();
-			cLbmVisualization->setup(cLbm,outputfilename);
+			cLbmVisualization = new CLbmVisualizationVTK<T>(outputfilename);
+			cLbmVisualization->setup(cLbm);
 		}
 
 		for (int i = 0; i < loops/10; i++)
