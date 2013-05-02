@@ -26,7 +26,6 @@ public:
 	{
 		// using the increment in VTK visualization as the time step value
 		_timeStepNumber = increment;
-		std::cout << " I am making vtk file: " << _file_name << std::endl;
 
 		// load array from GPU
 		this->cLbmOpencl->storeVelocity(this->velocity);
