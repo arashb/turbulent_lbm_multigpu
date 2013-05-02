@@ -21,6 +21,7 @@
 #include "CMain.hpp"
 #include <list>
 #include <string>
+#include <UnitTest++.h>
 
 // simulation type
 typedef float T;
@@ -63,7 +64,7 @@ int main(int argc, char** argv)
 	bool gui = false;
 	bool pause = false;
 	bool take_frame_screenshots = false;
-
+  bool unit_test = false;
 	size_t computation_kernel_count = 128;
 
 	std::string number_of_registers_string;	///< string storing the number of registers for opencl threads separated with comma
@@ -142,6 +143,9 @@ int main(int argc, char** argv)
 				take_frame_screenshots = true;
 				break;
 
+      case 'u':
+        unit_test = true;
+        break;
 			default:
 				goto parameter_error;
 		}
@@ -168,6 +172,7 @@ parameter_error:
 	std::cout << std::endl;
 	std::cout << "		[-t timestep]	(default: -1 for automatic detection)" << std::endl;
 	std::cout << "		[-s]	(take a screenshot every frame - default: disabled)" << std::endl;
+  std::cout << "    [-u] run unit tests" << std::endl;
 	return -1;
 
 parameter_error_ok:
@@ -183,7 +188,7 @@ parameter_error_ok:
 	if (!number_of_registers_string.empty())
 		extract_comma_separated_integers(lbm_opencl_number_of_registers_list, number_of_registers_string);
 
-	return lbmain.run(	debug,
+	lbmain.run(	debug,
 						domain_size,
 						gravitation,
 						viscosity,
@@ -198,5 +203,9 @@ parameter_error_ok:
 						lbm_opencl_number_of_threads_list,
 						lbm_opencl_number_of_registers_list
 			);
+
+  if (unit_test) {
+    return UnitTest::RunAllTests();
+  }
 }
 
