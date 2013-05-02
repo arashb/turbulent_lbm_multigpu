@@ -73,7 +73,7 @@ int main(int argc, char** argv)
 	int device_nr = 0;
 
 	char optchar;
-	while ((optchar = getopt(argc, argv, "x:y:z:d:vr:k:gG:pt:sl:R:T:X:")) > 0)
+	while ((optchar = getopt(argc, argv, "x:y:z:d:vr:k:gG:pt:sl:R:T:X:u")) > 0)
 	{
 		switch(optchar)
 		{
