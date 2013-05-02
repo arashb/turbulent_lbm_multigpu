@@ -1,0 +1,9 @@
+Import('env')
+
+for i in env.Glob('*.cpp'):
+	env.src_files.append(env.Object(i))
+
+# for i in env.Glob('lib/*.cpp'):
+# 	env.src_files.append(env.Object(i))
+
+Export('env')
