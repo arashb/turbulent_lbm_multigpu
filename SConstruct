@@ -92,6 +92,7 @@ hostname = commands.getoutput('uname -n')
 if re.match("atsccs.*", hostname):
 	env.Append(LIBPATH=['/usr/lib/nvidia-current/'])
 
+env.Append(LIBPATH=['./libs/'])
 
 #env.Append(LIBPATH=[os.environ['HOME']+'/local/lib'])
 #env.Append(LIBS=['GL'])
@@ -100,6 +101,8 @@ if env ['PLATFORM'] == "darwin":
 else:
         env.Append(LIBS=['OpenCL'])
 
+# linking to the unit test library
+env.Append(LIBS=['UnitTest++'])
 
 #
 # SDL
@@ -185,7 +188,15 @@ else:
 ###################################################################
 
 # also include the 'src' directory to search for dependencies
-env.Append(CPPPATH = ['.', 'src/'])
+#env.Append(CPPPATH = ['.', 'src/'])
+
+# include the third party softwares like unit testing, ...
+includePaths = [
+        '#/include/UnitTest++',
+        '.',
+        'src/'
+]
+env.Append(CPPPATH=includePaths)
 
 ######################
 # INCLUDE PATH
@@ -214,6 +225,7 @@ program_name += '_'+env['mode']
 env.src_files = []
 
 Export('env')
+SConscript('tests/SConscript', variant_dir='build/build_tests_'+program_name, duplicate=0)
 SConscript('src/SConscript', variant_dir='build/build_'+program_name, duplicate=0)
 Import('env')
 
