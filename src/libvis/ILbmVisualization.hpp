@@ -19,6 +19,13 @@ protected:
 	CLbmOpenCl<T> *cLbmOpencl;
 
 public:
+	ILbmVisualization()
+		: velocity(NULL),
+		  density(NULL),
+		  flags(NULL)
+	{
+	}
+
     virtual ~ILbmVisualization() {
 		if (velocity)
 			delete velocity;
