@@ -5,7 +5,7 @@
 
 #define USE_SHARED_MEMORY	1
 
-#include "data/cl_programs/lbm_header.h"
+#include "src/cl_programs/lbm_header.h"
 
 /**
  * COLLISION AND PROPAGATION KERNEL - BETA type

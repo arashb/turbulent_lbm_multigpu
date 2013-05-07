@@ -27,7 +27,7 @@
  *
  */
 
-#include "data/cl_programs/lbm_defaults.h"
+#include "src/cl_programs/lbm_defaults.h"
 
 #define USE_SWIZZLING	0
 
@@ -50,7 +50,7 @@
 #define DELTA_POS_Z		(DOMAIN_SLICE_CELLS)
 #define DELTA_NEG_Z		(DOMAIN_CELLS-DOMAIN_SLICE_CELLS)
 
-#include "data/cl_programs/wrap.h"
+#include "src/cl_programs/wrap.h"
 
 /**
  * equilibrium distributions f_eq for incompressible fluids

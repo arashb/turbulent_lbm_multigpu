@@ -312,7 +312,7 @@ public:
 			cKernelInit_GlobalWorkGroupSize = (cKernelInit_GlobalWorkGroupSize / cKernelInit_WorkGroupSize + 1) * cKernelInit_WorkGroupSize;
 
 		CCL::CProgram cProgramInit;
-		cProgramInit.load(cContext, cl_program_defines.str()+cProgramDefinesPostfixString, "data/cl_programs/lbm_init.cl");
+		cProgramInit.load(cContext, cl_program_defines.str()+cProgramDefinesPostfixString, "src/cl_programs/lbm_init.cl");
 		cProgramInit.build(cDevice, cProgramCompileOptionsString.c_str());
 		if (cProgramInit.error())
 		{
@@ -346,7 +346,7 @@ public:
 			cLbmKernelAlpha_GlobalWorkGroupSize = (cKernelInit_GlobalWorkGroupSize / cLbmKernelAlpha_WorkGroupSize + 1) * cLbmKernelAlpha_WorkGroupSize;
 
 		CCL::CProgram cProgramAlpha;
-		cProgramAlpha.load(cContext, cl_program_defines.str()+cProgramDefinesPostfixString, "data/cl_programs/lbm_alpha.cl");
+		cProgramAlpha.load(cContext, cl_program_defines.str()+cProgramDefinesPostfixString, "src/cl_programs/lbm_alpha.cl");
 		cProgramAlpha.build(cDevice, cProgramCompileOptionsString.c_str());
 		if (cProgramAlpha.error())
 		{
@@ -378,7 +378,7 @@ public:
 			cLbmKernelBeta_GlobalWorkGroupSize = (cKernelInit_GlobalWorkGroupSize / cLbmKernelBeta_WorkGroupSize + 1) * cLbmKernelBeta_WorkGroupSize;
 
 		CCL::CProgram cProgramBeta;
-		cProgramBeta.load(cContext, cl_program_defines.str()+cProgramDefinesPostfixString, "data/cl_programs/lbm_beta.cl");
+		cProgramBeta.load(cContext, cl_program_defines.str()+cProgramDefinesPostfixString, "src/cl_programs/lbm_beta.cl");
 		cProgramBeta.build(cDevice, cProgramCompileOptionsString.c_str());
 		if (cProgramBeta.error())
 		{

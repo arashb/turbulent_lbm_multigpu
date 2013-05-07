@@ -1,4 +1,4 @@
-#include "data/cl_programs/lbm_header.h"
+#include "src/cl_programs/lbm_header.h"
 
 #define GRAVITATION	0
 
