@@ -518,6 +518,43 @@ public:
 	void storeDensityDistribution(T *dst, CVector<3,int> &origin, CVector<3,int> &size)
 	{
 		// TODO
+		const int NUM_CELLS_X = this->domain_cells[0];
+		const int NUM_CELLS_Y = this->domain_cells[1];
+		const int total_el = this->domain_cells_count;
+		const int total_block_el = size.elements();
+
+		// cube position -> linear position
+		// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
+
+		const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
+		int dst_offset = 0;
+		size_t byte_size = size[0]*sizeof(T);
+		size_t current_offset_byte;
+		for (int k = 0 ; k < size[2]; k++ ) {
+			for (int j = 0; j < size[1]; j++ )
+			{
+				current_offset_byte = (origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ) * sizeof(T);
+				std::vector<CCL::CEvent*> events;
+
+				for (int i = 0; i < SIZE_DD_HOST; i++) {
+					events.push_back(new CCL::CEvent());
+					// reading fi components
+					cCommandQueue.enqueueReadBuffer(cMemDensityDistributions,
+													CL_FALSE, // sync reading
+													current_offset_byte + i * total_el * sizeof(T),
+													byte_size,
+													(dst + i * total_block_el),
+													0,
+													NULL,
+													*events[i]);
+				}
+
+				for (int i = 0; i < SIZE_DD_HOST; i++) {
+					events[i]->waitAndRelease();
+				}
+				dst += size[0];
+			}
+		}
 	}
 
 	/**

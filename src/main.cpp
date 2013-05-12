@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 	bool gui = false;
 	bool pause = false;
 	bool take_frame_screenshots = false;
-  bool unit_test = false;
+	bool unit_test = false;
 	size_t computation_kernel_count = 128;
 
 	std::string number_of_registers_string;	///< string storing the number of registers for opencl threads separated with comma
@@ -188,24 +188,24 @@ parameter_error_ok:
 	if (!number_of_registers_string.empty())
 		extract_comma_separated_integers(lbm_opencl_number_of_registers_list, number_of_registers_string);
 
-	lbmain.run(	debug,
-						domain_size,
-						gravitation,
-						viscosity,
-						computation_kernel_count,
-						device_nr,
-						gui,
-						pause,
-						timestep,
-						take_frame_screenshots,
-						steps,
+	  if (unit_test) {
+	    return UnitTest::RunAllTests();
+	  } else {
+		lbmain.run(	debug,
+							domain_size,
+							gravitation,
+							viscosity,
+							computation_kernel_count,
+							device_nr,
+							gui,
+							pause,
+							timestep,
+							take_frame_screenshots,
+							steps,
 
-						lbm_opencl_number_of_threads_list,
-						lbm_opencl_number_of_registers_list
-			);
-
-  if (unit_test) {
-    return UnitTest::RunAllTests();
-  }
+							lbm_opencl_number_of_threads_list,
+							lbm_opencl_number_of_registers_list
+				);
+	  }
 }
 
