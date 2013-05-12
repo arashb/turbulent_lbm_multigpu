@@ -172,7 +172,7 @@ parameter_error:
 	std::cout << std::endl;
 	std::cout << "		[-t timestep]	(default: -1 for automatic detection)" << std::endl;
 	std::cout << "		[-s]	(take a screenshot every frame - default: disabled)" << std::endl;
-  std::cout << "    [-u] run unit tests" << std::endl;
+	std::cout << "    	[-u] run unit tests" << std::endl;
 	return -1;
 
 parameter_error_ok:

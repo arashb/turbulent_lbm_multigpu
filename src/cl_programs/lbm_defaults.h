@@ -18,6 +18,6 @@
 	#define SIZE_DD_HOST_BYTES	(19*sizeof(T))
 
 	#define STORE_VELOCITY	1
-	#define STORE_DENSITY	0
+	#define STORE_DENSITY	1
 
 #endif

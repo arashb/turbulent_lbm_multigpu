@@ -228,7 +228,7 @@ public:
 				computation_kernel_count,
 				debug_mode,
 				do_visualization || debug_mode,
-				false,
+				do_visualization || debug_mode,
 				timestep,
 
 				p_lbm_opencl_number_of_work_items_list,

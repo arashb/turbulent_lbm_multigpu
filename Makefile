@@ -4,4 +4,4 @@ all:
 
 
 clean:
-	rm -rf build/*
+	rm -rf build/* vtkOutput/*

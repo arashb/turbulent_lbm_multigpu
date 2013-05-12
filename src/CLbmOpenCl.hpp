@@ -502,6 +502,25 @@ public:
 	}
 
 	/**
+	 * store density distribution values to host memory
+	 */
+	void storeDensityDistribution(T *dst)
+	{
+		size_t byte_size = cMemDensityDistributions.getSize();
+
+		cCommandQueue.enqueueReadBuffer(	cMemDensityDistributions,
+							CL_TRUE,	// sync reading
+							0,
+							byte_size,
+							dst);
+	}
+
+	void storeDensityDistribution(T *dst, CVector<3,int> &origin, CVector<3,int> &size)
+	{
+		// TODO
+	}
+
+	/**
 	 * store velocity and density values to host memory
 	 * this is useful for a host memory based visualization
 	 */
@@ -516,6 +535,74 @@ public:
 							dst);
 	}
 
+	/**
+	 * Store a block of velocity data from device to host
+	 *
+	 * @param dst The buffer that will contain the return values
+	 * @param origin The origin point of data block
+	 * @param size The size of data block
+	 */
+	void storeVelocity(T* dst, CVector<3,int> &origin, CVector<3,int> &size ) {
+
+		const int NUM_CELLS_X = this->domain_cells[0];
+		const int NUM_CELLS_Y = this->domain_cells[1];
+		const int total_el = this->domain_cells_count;
+		const int total_block_el = size.elements();
+
+		// cube position -> linear position
+		// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
+
+		const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
+		int dst_offset = 0;
+		size_t byte_size = size[0]*sizeof(T);
+		size_t current_offset_byte;
+		for (int k = 0 ; k < size[2]; k++ ) {
+			for (int j = 0; j < size[1]; j++ )
+			{
+				// TODO: check the indices
+				current_offset_byte = (origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ) * sizeof(T);
+				CCL::CEvent eventx;
+				CCL::CEvent eventy;
+				CCL::CEvent eventz;
+
+				// reading x components
+				cCommandQueue.enqueueReadBuffer(	cMemVelocity,
+									CL_FALSE,	// sync reading
+									current_offset_byte,
+									byte_size,
+									(dst),
+									0,
+									NULL,
+									eventx);
+
+				// reading y components
+				cCommandQueue.enqueueReadBuffer(	cMemVelocity,
+									CL_FALSE,	// sync reading
+									(current_offset_byte + total_el*sizeof(T)) ,
+									byte_size,
+									(dst + total_block_el),
+									0,
+									NULL,
+									eventy);
+
+				// reading z components
+				cCommandQueue.enqueueReadBuffer(	cMemVelocity,
+									CL_FALSE,	// sync reading
+									(current_offset_byte + 2*total_el*sizeof(T)) ,
+									byte_size,
+									(dst + 2*total_block_el),
+									0,
+									NULL,
+									eventz);
+				eventx.waitAndRelease();
+				eventy.waitAndRelease();
+				eventz.waitAndRelease();
+				dst += size[0];
+			}
+		}
+
+	}
+
 	void storeDensity(T *dst)
 	{
 		size_t byte_size = cMemDensity.getSize();
@@ -527,6 +614,40 @@ public:
 							dst);
 	}
 
+	/**
+	 * Store a block of velocity data from device to host
+	 *
+	 * @param dst The buffer that will contain the return values
+	 * @param origin The origin point of data block
+	 * @param size The size of data block
+	 */
+	void storeDensity(T *dst, CVector<3,int> &origin, CVector<3,int> &size) {
+
+		const int NUM_CELLS_X = this->domain_cells[0];
+		const int NUM_CELLS_Y = this->domain_cells[1];
+
+		// cube position -> linear position
+		// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
+
+		const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
+		int dst_offset = 0;
+		size_t byte_size = size[0]*sizeof(T);
+		size_t current_offset_byte;
+		for (int k = 0 ; k < size[2]; k++ ) {
+			for (int j = 0; j < size[1]; j++ )
+			{
+				// TODO: check the indices
+				current_offset_byte = (origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ) * sizeof(T);
+				cCommandQueue.enqueueReadBuffer(	cMemDensity,
+									CL_TRUE,	// sync reading
+									current_offset_byte,
+									byte_size,
+									dst);
+				dst += size[0];
+			}
+		}
+	}
+
 	void storeFlags(int *dst)
 	{
 		size_t byte_size = cMemDensity.getSize();
@@ -536,6 +657,33 @@ public:
 							0,
 							byte_size,
 							dst);
+	}
+
+	void storeFlags(int *dst, CVector<3,int> &origin, CVector<3,int> &size ) {
+
+		const int NUM_CELLS_X = this->domain_cells[0];
+		const int NUM_CELLS_Y = this->domain_cells[1];
+
+		// cube position -> linear position
+		// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
+
+		const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
+		int dst_offset = 0;
+		size_t byte_size = size[0]*sizeof(T);
+		size_t current_offset_byte;
+		for (int k = 0 ; k < size[2]; k++ ) {
+			for (int j = 0; j < size[1]; j++ )
+			{
+				// TODO: check the indices
+				current_offset_byte = (origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ) * sizeof(T);
+				cCommandQueue.enqueueReadBuffer(	cMemCellFlags,
+									CL_TRUE,	// sync reading
+									current_offset_byte,
+									byte_size,
+									dst);
+				dst += size[0];
+			}
+		}
 	}
 
 private:

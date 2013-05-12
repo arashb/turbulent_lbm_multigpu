@@ -27,16 +27,32 @@ public:
 		// using the increment in VTK visualization as the time step value
 		_timeStepNumber = increment;
 
-		// load array from GPU
-		this->cLbmOpencl->storeVelocity(this->velocity);
-		this->cLbmOpencl->storeDensity(this->density);
-		this->cLbmOpencl->storeFlags(this->flags);
-
 		// number of grid cells in each dimension (don't confuse it with the number of grid points!)
 		int imax = this->cLbmOpencl->domain_cells[0];
 		int jmax = this->cLbmOpencl->domain_cells[1];
 		int kmax = this->cLbmOpencl->domain_cells[2];
-		int total_el = this->cLbmOpencl->domain_cells.elements();
+
+		// TODO: remove this part after debugging
+//		imax = 16;
+//		jmax = 16;
+//		kmax = 16;
+
+
+		int total_el = imax*jmax*kmax;
+
+		// load array from GPU
+		// TODO: remove this part after debugging
+		CVector<3,int> origin(16,16,16);
+		CVector<3,int> size(imax, jmax, kmax);
+
+		// TODO: remove this part after debugging
+//		this->cLbmOpencl->storeVelocity(this->velocity, origin, size);
+//		this->cLbmOpencl->storeDensity(this->density, origin, size);
+//		this->cLbmOpencl->storeFlags(this->flags, origin, size);
+
+		this->cLbmOpencl->storeVelocity(this->velocity);
+		this->cLbmOpencl->storeDensity(this->density);
+		this->cLbmOpencl->storeFlags(this->flags);
 
 		T dx = this->cLbmOpencl->d_cell_length;
 		T dy = dx;
