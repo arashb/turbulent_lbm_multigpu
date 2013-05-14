@@ -1509,7 +1509,31 @@ public:
 					));
 		}
 
-
+		/**
+		 * copy buffer to buffer on device
+		 */
+		inline void enqueueCopyBuffer(	CMem &cSrcMem,		///< source memory object
+										CMem &cDstMem,		///< destination memory object
+										size_t src_offset,	///< offset in source memory
+										size_t dst_offset,	///< offset in destination memory
+										size_t cb,			///< number of bytes to be copied
+										cl_uint num_events_in_wait_list,	///< number of events in waiting list
+										const cl_event *event_wait_list,	///< list of events
+										CEvent &event			///< event for enqueueWriteBuffer
+		)
+		{
+			CL_CHECK_ERROR(	clEnqueueCopyBuffer(
+								command_queue,
+								cSrcMem.memobj,
+								cDstMem.memobj,
+								src_offset,
+								dst_offset,
+								cb,
+								num_events_in_wait_list,
+								event_wait_list,
+								&event.event
+					));
+		}
 		/**
 		 * copy buffer to buffer on device
 		 */

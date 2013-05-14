@@ -583,6 +583,9 @@ public:
 	 */
 	void storeVelocity(T* dst, CVector<3,int> &origin, CVector<3,int> &size ) {
 
+		CCL::CMem cBuffer;
+		cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(T)*size.elements()*3, NULL);
+
 		const int NUM_CELLS_X = this->domain_cells[0];
 		const int NUM_CELLS_Y = this->domain_cells[1];
 		const int total_el = this->domain_cells_count;
@@ -594,51 +597,87 @@ public:
 		const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
 		int dst_offset = 0;
 		size_t byte_size = size[0]*sizeof(T);
-		size_t current_offset_byte;
+		size_t current_src_offset;
+		size_t current_dst_offset = 0;
 		for (int k = 0 ; k < size[2]; k++ ) {
 			for (int j = 0; j < size[1]; j++ )
 			{
-				// TODO: check the indices
-				current_offset_byte = (origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ) * sizeof(T);
+				//current_offset_byte = (origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ) * sizeof(T);
+				current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
+
 				CCL::CEvent eventx;
 				CCL::CEvent eventy;
 				CCL::CEvent eventz;
 
 				// reading x components
-				cCommandQueue.enqueueReadBuffer(	cMemVelocity,
-									CL_FALSE,	// sync reading
-									current_offset_byte,
-									byte_size,
-									(dst),
-									0,
-									NULL,
-									eventx);
+				cCommandQueue.enqueueCopyBuffer(cMemVelocity,
+												cBuffer,
+												current_src_offset,
+												current_dst_offset,
+												byte_size,
+												0,
+												NULL,
+												eventx
+												);
+
+//				cCommandQueue.enqueueReadBuffer(	cMemVelocity,
+//									CL_FALSE,	// sync reading
+//									current_offset_byte,
+//									byte_size,
+//									(dst),
+//									0,
+//									NULL,
+//									eventx);
 
 				// reading y components
-				cCommandQueue.enqueueReadBuffer(	cMemVelocity,
-									CL_FALSE,	// sync reading
-									(current_offset_byte + total_el*sizeof(T)) ,
-									byte_size,
-									(dst + total_block_el),
-									0,
-									NULL,
-									eventy);
+				cCommandQueue.enqueueCopyBuffer(cMemVelocity,
+												cBuffer,
+												current_src_offset + total_el,
+												current_dst_offset + total_block_el,
+												byte_size,
+												0,
+												NULL,
+												eventy
+												);
+//				cCommandQueue.enqueueReadBuffer(	cMemVelocity,
+//									CL_FALSE,	// sync reading
+//									(current_offset_byte + total_el*sizeof(T)) ,
+//									byte_size,
+//									(dst + total_block_el),
+//									0,
+//									NULL,
+//									eventy);
 
 				// reading z components
-				cCommandQueue.enqueueReadBuffer(	cMemVelocity,
-									CL_FALSE,	// sync reading
-									(current_offset_byte + 2*total_el*sizeof(T)) ,
-									byte_size,
-									(dst + 2*total_block_el),
-									0,
-									NULL,
-									eventz);
+				cCommandQueue.enqueueCopyBuffer(cMemVelocity,
+												cBuffer,
+												current_src_offset + 2*total_el,
+												current_dst_offset + 2*total_block_el,
+												byte_size,
+												0,
+												NULL,
+												eventz
+												);
+//				cCommandQueue.enqueueReadBuffer(	cMemVelocity,
+//									CL_FALSE,	// sync reading
+//									(current_offset_byte + 2*total_el*sizeof(T)) ,
+//									byte_size,
+//									(dst + 2*total_block_el),
+//									0,
+//									NULL,
+//									eventz);
 				eventx.waitAndRelease();
 				eventy.waitAndRelease();
 				eventz.waitAndRelease();
-				dst += size[0];
+				current_dst_offset += size[0];
+				//dst += size[0];
 			}
 		}
+		cCommandQueue.enqueueReadBuffer(	cBuffer,
+							CL_TRUE,	// sync reading
+							0,
+							cBuffer.getSize(),
+							dst);
 
 	}
 
@@ -667,6 +706,9 @@ public:
 	 */
 	void storeDensity(T *dst, CVector<3,int> &origin, CVector<3,int> &size) {
 
+		CCL::CMem cBuffer;
+		cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(T)*size.elements(), NULL);
+
 		const int NUM_CELLS_X = this->domain_cells[0];
 		const int NUM_CELLS_Y = this->domain_cells[1];
 
@@ -674,22 +716,29 @@ public:
 		// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
 
 		const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-		int dst_offset = 0;
+
 		size_t byte_size = size[0]*sizeof(T);
-		size_t current_offset_byte;
+		size_t current_src_offset;
+		size_t current_dst_offset = 0;
 		for (int k = 0 ; k < size[2]; k++ ) {
 			for (int j = 0; j < size[1]; j++ )
 			{
-				// TODO: check the indices
-				current_offset_byte = (origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ) * sizeof(T);
-				cCommandQueue.enqueueReadBuffer(	cMemDensity,
-									CL_TRUE,	// sync reading
-									current_offset_byte,
-									byte_size,
-									dst);
-				dst += size[0];
+				current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
+				cCommandQueue.enqueueCopyBuffer(cMemDensity,
+												cBuffer,
+												current_src_offset,
+												current_dst_offset,
+												byte_size);
+
+				current_dst_offset += size[0];
 			}
 		}
+
+		cCommandQueue.enqueueReadBuffer(	cBuffer,
+							CL_TRUE,	// sync reading
+							0,
+							cBuffer.getSize(),
+							dst);
 	}
 
 	void storeFlags(int *dst)
@@ -705,29 +754,34 @@ public:
 
 	void storeFlags(int *dst, CVector<3,int> &origin, CVector<3,int> &size ) {
 
+		CCL::CMem cBuffer;
+		cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(T)*size.elements(), NULL);
+
 		const int NUM_CELLS_X = this->domain_cells[0];
 		const int NUM_CELLS_Y = this->domain_cells[1];
-
-		// cube position -> linear position
-		// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-
 		const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-		int dst_offset = 0;
 		size_t byte_size = size[0]*sizeof(T);
-		size_t current_offset_byte;
+		size_t current_src_offset;
+		size_t current_dst_offset = 0;
 		for (int k = 0 ; k < size[2]; k++ ) {
 			for (int j = 0; j < size[1]; j++ )
 			{
-				// TODO: check the indices
-				current_offset_byte = (origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ) * sizeof(T);
-				cCommandQueue.enqueueReadBuffer(	cMemCellFlags,
-									CL_TRUE,	// sync reading
-									current_offset_byte,
-									byte_size,
-									dst);
-				dst += size[0];
+				// cube position -> linear position
+				// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
+				current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
+				cCommandQueue.enqueueCopyBuffer(cMemCellFlags,
+												cBuffer,
+												current_src_offset,
+												current_dst_offset,
+												byte_size);
+				current_dst_offset += size[0];
 			}
 		}
+		cCommandQueue.enqueueReadBuffer(	cBuffer,
+							CL_TRUE,	// sync reading
+							0,
+							cBuffer.getSize(),
+							dst);
 	}
 
 private:
