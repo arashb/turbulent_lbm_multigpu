@@ -560,6 +560,8 @@ public:
 	/**
 	 * store velocity and density values to host memory
 	 * this is useful for a host memory based visualization
+	 *
+	 * @param dst The buffer that will contain the return values
 	 */
 	void storeVelocity(T *dst)
 	{
@@ -640,6 +642,11 @@ public:
 
 	}
 
+	/**
+	 * Store velocity data from device to host
+	 *
+	 * @param dst The buffer that will contain the return values
+	 */
 	void storeDensity(T *dst)
 	{
 		size_t byte_size = cMemDensity.getSize();
