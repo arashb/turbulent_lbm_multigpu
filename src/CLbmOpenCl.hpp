@@ -518,7 +518,7 @@ public:
 	void storeDensityDistribution(T *dst, CVector<3,int> &origin, CVector<3,int> &size)
 	{
 		CCL::CMem cBuffer;
-		cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(T)*size.elements()*3, NULL);
+		cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(T)*size.elements()*SIZE_DD_HOST, NULL);
 
 		const int NUM_CELLS_X = this->domain_cells[0];
 		const int NUM_CELLS_Y = this->domain_cells[1];
@@ -556,6 +556,41 @@ public:
 							dst);
 	}
 
+	void setDensityDistribution(T *src, CVector<3,int> &origin, CVector<3,int> &size)
+	{
+		CCL::CMem cBuffer;
+		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(T)*size.elements()*SIZE_DD_HOST, src);
+
+		const int NUM_CELLS_X = this->domain_cells[0];
+		const int NUM_CELLS_Y = this->domain_cells[1];
+		const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
+
+		const int total_el = this->domain_cells_count;
+		const int total_block_el = size.elements();
+
+		size_t byte_size = size[0]*sizeof(T);
+		size_t current_src_offset;
+		size_t current_dst_offset = 0;
+		for (int k = 0 ; k < size[2]; k++ ) {
+			for (int j = 0; j < size[1]; j++ )
+			{
+				// cube position -> linear position
+				// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
+				current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
+				for (int i = 0; i < SIZE_DD_HOST; i++) {
+					// copying fi components
+					cCommandQueue.enqueueCopyBuffer(cBuffer,
+													cMemDensityDistributions,
+													(current_dst_offset + i * total_block_el)*sizeof(T),
+													(current_src_offset + i * total_el)*sizeof(T),
+													byte_size
+													);
+				}
+				current_dst_offset += size[0];
+			}
+		}
+		clEnqueueBarrier(cCommandQueue.command_queue);
+	}
 	/**
 	 * store velocity and density values to host memory
 	 * this is useful for a host memory based visualization
@@ -636,6 +671,63 @@ public:
 	}
 
 	/**
+	 * Set a block of velocity data from host to device
+	 *
+	 * @param src The buffer that contain the input values
+	 * @param origin The origin point of data block
+	 * @param size The size of data block
+	 */
+	void setVelocity(T* src, CVector<3,int> &origin, CVector<3,int> &size ) {
+
+		CCL::CMem cBuffer;
+		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(T)*size.elements()*3, src);
+		//cCommandQueue.enqueueWriteBuffer(cBuffer, CL_TRUE, 0, sizeof(T)*size.elements()*3, src);
+		//clEnqueueBarrier(cCommandQueue.command_queue);
+
+		const int NUM_CELLS_X = this->domain_cells[0];
+		const int NUM_CELLS_Y = this->domain_cells[1];
+		const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
+
+		const int total_el = this->domain_cells_count;
+		const int total_block_el = size.elements();
+
+		int dst_offset = 0;
+		size_t byte_size = size[0]*sizeof(T);
+		size_t current_src_offset;
+		size_t current_dst_offset = 0;
+		for (int k = 0 ; k < size[2]; k++ ) {
+			for (int j = 0; j < size[1]; j++ )
+			{
+				// cube position -> linear position
+				// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
+				current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
+				// reading x components
+				cCommandQueue.enqueueCopyBuffer(cBuffer,
+												cMemVelocity,
+												current_dst_offset*sizeof(T),
+												current_src_offset*sizeof(T),
+												byte_size
+												);
+				// reading y components
+				cCommandQueue.enqueueCopyBuffer(cBuffer,
+												cMemVelocity,
+												(current_dst_offset + total_block_el)*sizeof(T),
+												(current_src_offset + total_el)*sizeof(T),
+												byte_size
+												);
+				// reading z components
+				cCommandQueue.enqueueCopyBuffer(cBuffer,
+												cMemVelocity,
+												(current_dst_offset + 2*total_block_el)*sizeof(T),
+												(current_src_offset + 2*total_el)*sizeof(T),
+												byte_size
+												);
+				current_dst_offset += size[0];
+			}
+		}
+		clEnqueueBarrier(cCommandQueue.command_queue);
+	}
+	/**
 	 * Store velocity data from device to host
 	 *
 	 * @param dst The buffer that will contain the return values
@@ -652,7 +744,7 @@ public:
 	}
 
 	/**
-	 * Store a block of velocity data from device to host
+	 * Store a block of density data from device to host
 	 *
 	 * @param dst The buffer that will contain the return values
 	 * @param origin The origin point of data block
@@ -695,6 +787,45 @@ public:
 							dst);
 	}
 
+	/**
+	 * Set a block of density data from host to device
+	 *
+	 * @param src The buffer that will contain the source values
+	 * @param origin The origin point of data block
+	 * @param size The size of data block
+	 */
+	void setDensity(T *src, CVector<3,int> &origin, CVector<3,int> &size) {
+
+		CCL::CMem cBuffer;
+		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR ,sizeof(T)*size.elements(), src);
+		//cCommandQueue.enqueueWriteBuffer(cBuffer, CL_TRUE, 0, sizeof(T)*size.elements(), src);
+
+		const int NUM_CELLS_X = this->domain_cells[0];
+		const int NUM_CELLS_Y = this->domain_cells[1];
+		const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
+
+		// cube position -> linear position
+		// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
+
+		size_t byte_size = size[0]*sizeof(T);
+		size_t current_src_offset;
+		size_t current_dst_offset = 0;
+		for (int k = 0 ; k < size[2]; k++ ) {
+			for (int j = 0; j < size[1]; j++ )
+			{
+				current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
+				cCommandQueue.enqueueCopyBuffer(cBuffer,
+												cMemDensity,
+												current_dst_offset*sizeof(T),
+												current_src_offset*sizeof(T),
+												byte_size);
+
+				current_dst_offset += size[0];
+			}
+		}
+		clEnqueueBarrier(cCommandQueue.command_queue);
+
+	}
 	void storeFlags(int *dst)
 	{
 		size_t byte_size = cMemDensity.getSize();
@@ -709,12 +840,12 @@ public:
 	void storeFlags(int *dst, CVector<3,int> &origin, CVector<3,int> &size ) {
 
 		CCL::CMem cBuffer;
-		cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(T)*size.elements(), NULL);
+		cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(int)*size.elements(), NULL);
 
 		const int NUM_CELLS_X = this->domain_cells[0];
 		const int NUM_CELLS_Y = this->domain_cells[1];
 		const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-		size_t byte_size = size[0]*sizeof(T);
+		size_t byte_size = size[0]*sizeof(int);
 		size_t current_src_offset;
 		size_t current_dst_offset = 0;
 		for (int k = 0 ; k < size[2]; k++ ) {
@@ -725,8 +856,8 @@ public:
 				current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
 				cCommandQueue.enqueueCopyBuffer(cMemCellFlags,
 												cBuffer,
-												current_src_offset*sizeof(T),
-												current_dst_offset*sizeof(T),
+												current_src_offset*sizeof(int),
+												current_dst_offset*sizeof(int),
 												byte_size);
 				current_dst_offset += size[0];
 			}
@@ -738,6 +869,34 @@ public:
 							cBuffer.getSize(),
 							dst);
 	}
+
+	void setFlags(int *src, CVector<3,int> &origin, CVector<3,int> &size ) {
+
+			CCL::CMem cBuffer;
+			cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(int)*size.elements(), src);
+
+			const int NUM_CELLS_X = this->domain_cells[0];
+			const int NUM_CELLS_Y = this->domain_cells[1];
+			const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
+			size_t byte_size = size[0]*sizeof(int);
+			size_t current_src_offset;
+			size_t current_dst_offset = 0;
+			for (int k = 0 ; k < size[2]; k++ ) {
+				for (int j = 0; j < size[1]; j++ )
+				{
+					// cube position -> linear position
+					// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
+					current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
+					cCommandQueue.enqueueCopyBuffer(cBuffer,
+													cMemCellFlags,
+													current_dst_offset*sizeof(int),
+													current_src_offset*sizeof(int),
+													byte_size);
+					current_dst_offset += size[0];
+				}
+			}
+			clEnqueueBarrier(cCommandQueue.command_queue);
+		}
 
 private:
 	void debugChar(CCL::CMem &cMem, size_t wrap_size = 20)
