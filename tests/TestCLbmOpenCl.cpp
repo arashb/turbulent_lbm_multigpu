@@ -14,7 +14,6 @@ struct CLbmOpenCLFixture
 {
 
 	CLbmOpenCLFixture() {
-		bool debug = false;
 
 		domain_size[0] = 16;
 		domain_size[1] = 16;
@@ -39,7 +38,7 @@ struct CLbmOpenCLFixture
 		if (loops < 0)
 			loops = 100;
 
-		bool debug_mode = true;
+		bool debug_mode = false;
 
 		if (debug_mode)
 			std::cout << "domain size: " << domain_size << std::endl;
@@ -183,6 +182,7 @@ struct CLbmOpenCLFixture
 			std::cout << "." << std::flush;
 		}
 		std::cout << std::endl;
+		cLbm->wait();
 
 		CVector<3,int> origin(0,0,0);
 		velocity = new T[domain_size.elements()*3];
