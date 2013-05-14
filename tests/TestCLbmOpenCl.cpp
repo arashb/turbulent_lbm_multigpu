@@ -16,9 +16,9 @@ struct CLbmOpenCLFixture
 	CLbmOpenCLFixture() {
 		bool debug = false;
 
-		domain_size[0] = 32;
-		domain_size[1] = 32;
-		domain_size[2] = 32;
+		domain_size[0] = 16;
+		domain_size[1] = 16;
+		domain_size[2] = 16;
 
 		CVector<3, T> gravitation(0, -9.81, 0);
 		T viscosity = 0.001308;
@@ -182,6 +182,7 @@ struct CLbmOpenCLFixture
 			cLbm->simulationStep();
 			std::cout << "." << std::flush;
 		}
+		std::cout << std::endl;
 
 		CVector<3,int> origin(0,0,0);
 		velocity = new T[domain_size.elements()*3];
@@ -196,20 +197,35 @@ struct CLbmOpenCLFixture
 		cLbm->storeDensity(density);
 		cLbm->storeDensity(density_blockwise, origin, domain_size);
 
+		dd = new T[domain_size.elements()*SIZE_DD_HOST];
+		dd_blockwise = new T[domain_size.elements()*SIZE_DD_HOST];
+
+		cLbm->storeDensity(dd);
+		cLbm->storeDensity(dd_blockwise, origin, domain_size);
 	}
 
 	~CLbmOpenCLFixture() {
 		delete cLbm;
 		delete velocity;
 		delete velocity_blockwise;
+		delete density;
+		delete density_blockwise;
+		delete dd;
+		delete dd_blockwise;
 	}
 
+	static const size_t SIZE_DD_HOST = 19;
 	CVector<3, int> domain_size;
 	CLbmOpenCl<T> *cLbm;
-	T* velocity_blockwise;
+
 	T* velocity;
+	T* velocity_blockwise;
+
 	T* density;
 	T* density_blockwise;
+
+	T* dd;
+	T* dd_blockwise;
 
 };
 
@@ -224,10 +240,17 @@ TEST_FIXTURE(CLbmOpenCLFixture, StoreVelociyBlockwise) {
 }
 
 TEST_FIXTURE(CLbmOpenCLFixture, StoreDensityBlockwise) {
-	CLbmOpenCl<T> *lbmMock = cLbm;
 
 	T* tmpdensity = density;
 	T* tmpdensity_blockwise = density_blockwise;
 
 	CHECK_ARRAY_EQUAL(tmpdensity, tmpdensity_blockwise, domain_size.elements()); // succeeds
+}
+
+TEST_FIXTURE(CLbmOpenCLFixture, StoreDensityDistributionBlockwise) {
+
+	T* tmpdd = dd;
+	T* tmpdd_blockwise = dd_blockwise;
+
+	CHECK_ARRAY_EQUAL(tmpdd, tmpdd_blockwise, domain_size.elements()); // succeeds
 }
