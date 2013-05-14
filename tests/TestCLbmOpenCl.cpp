@@ -200,11 +200,14 @@ struct CLbmOpenCLFixture
 		dd = new T[domain_size.elements()*SIZE_DD_HOST];
 		dd_blockwise = new T[domain_size.elements()*SIZE_DD_HOST];
 
-		cLbm->storeDensity(dd);
-		cLbm->storeDensity(dd_blockwise, origin, domain_size);
+		cLbm->storeDensityDistribution(dd);
+		cLbm->storeDensityDistribution(dd_blockwise, origin, domain_size);
 
-		flags = new T[domain_size.elements()];;
-		flags_blockwise = new T[domain_size.elements()];;
+		flags = new int[domain_size.elements()];
+		flags_blockwise = new int[domain_size.elements()];
+
+		cLbm->storeFlags(flags);
+		cLbm->storeFlags(flags_blockwise, origin, domain_size);
 
 	}
 
@@ -233,10 +236,11 @@ struct CLbmOpenCLFixture
 	T* dd;
 	T* dd_blockwise;
 
-	T* flags;
-	T* flags_blockwise;
+	int* flags;
+	int* flags_blockwise;
 
 };
+
 
 
 TEST_FIXTURE(CLbmOpenCLFixture, StoreVelociyBlockwise) {
