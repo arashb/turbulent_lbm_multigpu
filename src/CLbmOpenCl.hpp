@@ -725,8 +725,8 @@ public:
 				current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
 				cCommandQueue.enqueueCopyBuffer(cMemCellFlags,
 												cBuffer,
-												current_src_offset,
-												current_dst_offset,
+												current_src_offset*sizeof(T),
+												current_dst_offset*sizeof(T),
 												byte_size);
 				current_dst_offset += size[0];
 			}
