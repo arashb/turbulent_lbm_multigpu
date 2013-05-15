@@ -15,13 +15,18 @@
  */
 
 
-
+// standard
 #include <stdlib.h>
 #include <iostream>
-#include "CController.hpp"
 #include <list>
 #include <string>
+
+// externals
 #include <UnitTest++.h>
+#include "mpi.h"
+
+// internals
+#include "CController.hpp"
 
 // simulation type
 typedef float T;
@@ -177,6 +182,11 @@ parameter_error:
 
 parameter_error_ok:
 
+	int my_rank, num_procs;
+	MPI_Init(&argc, &argv);    /// Start MPI
+	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
+	MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
+
 	CController<T> lbmController;
 
 	std::list<int> lbm_opencl_number_of_registers_list;
@@ -207,5 +217,7 @@ parameter_error_ok:
 							lbm_opencl_number_of_registers_list
 				);
 	  }
+
+	  MPI_Finalize();    /// Cleanup MPI
 }
 

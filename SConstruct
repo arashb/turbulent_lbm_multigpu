@@ -58,8 +58,8 @@ AddOption(	'--compiler',
 
 env['compiler'] = GetOption('compiler')
 
-if (env['compiler'] == None or (env['compiler'] not in ['gnu', 'intel', 'open64'])):
-	env['compiler'] = 'gnu'
+if (env['compiler'] == None or (env['compiler'] not in ['gnu', 'intel', 'open64', 'openmpic++' ])):
+	env['compiler'] = 'openmpic++'
 
 
 
@@ -155,6 +155,13 @@ if env['compiler'] == 'intel':
 
 	# activate intel C++ compiler
 	env.Replace(CXX = 'icpc')
+
+if env['compiler'] == 'openmpic++':
+	# eclipse specific flag
+	env.Append(CXXFLAGS=' -fmessage-length=0')
+
+	# activate OpenMPI C++ compiler
+	env.Replace(CXX = 'openmpic++')
 
 
 
