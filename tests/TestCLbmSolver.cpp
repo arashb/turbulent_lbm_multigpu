@@ -6,14 +6,14 @@
 #include <unistd.h>
 #include "libcl/CCL.hpp"
 #include "libtools/CStopwatch.hpp"
-#include "CLbmOpenCl.hpp"
+#include "CLbmSolver.hpp"
 
 typedef float T;
 
-struct CLbmOpenCLFixture
+struct CLbmSolverFixture
 {
 
-	CLbmOpenCLFixture() {
+	CLbmSolverFixture() {
 
 		domain_size[0] = 16;
 		domain_size[1] = 16;
@@ -156,7 +156,7 @@ struct CLbmOpenCLFixture
 		T domain_length = 0.05;
 
 		// INIT LATTICE BOLTZMANN!
-		 cLbm = new CLbmOpenCl<T>(	cCommandQueue,
+		 cLbm = new CLbmSolver<T>(	cCommandQueue,
 							cContext,
 							cDevice,
 							domain_size, // domain size
@@ -211,7 +211,7 @@ struct CLbmOpenCLFixture
 
 	}
 
-	~CLbmOpenCLFixture() {
+	~CLbmSolverFixture() {
 		delete cLbm;
 		delete velocity;
 		delete velocity_blockwise;
@@ -225,7 +225,7 @@ struct CLbmOpenCLFixture
 
 	static const size_t SIZE_DD_HOST = 19;
 	CVector<3, int> domain_size;
-	CLbmOpenCl<T> *cLbm;
+	CLbmSolver<T> *cLbm;
 
 	T* velocity;
 	T* velocity_blockwise;
@@ -243,8 +243,8 @@ struct CLbmOpenCLFixture
 
 
 
-TEST_FIXTURE(CLbmOpenCLFixture, StoreVelociyBlockwise) {
-	CLbmOpenCl<T> *lbmMock = cLbm;
+TEST_FIXTURE(CLbmSolverFixture, StoreVelociyBlockwise) {
+	CLbmSolver<T> *lbmMock = cLbm;
 
 	T* tmpvelocity = velocity;
 	T* tmpvelocity_blockwise = velocity_blockwise;
@@ -252,7 +252,7 @@ TEST_FIXTURE(CLbmOpenCLFixture, StoreVelociyBlockwise) {
 	CHECK_ARRAY_EQUAL(tmpvelocity, tmpvelocity_blockwise, domain_size.elements()*3); // succeeds
 }
 
-TEST_FIXTURE(CLbmOpenCLFixture, StoreDensityBlockwise) {
+TEST_FIXTURE(CLbmSolverFixture, StoreDensityBlockwise) {
 
 	T* tmpdensity = density;
 	T* tmpdensity_blockwise = density_blockwise;
@@ -260,7 +260,7 @@ TEST_FIXTURE(CLbmOpenCLFixture, StoreDensityBlockwise) {
 	CHECK_ARRAY_EQUAL(tmpdensity, tmpdensity_blockwise, domain_size.elements()); // succeeds
 }
 
-TEST_FIXTURE(CLbmOpenCLFixture, StoreDensityDistributionBlockwise) {
+TEST_FIXTURE(CLbmSolverFixture, StoreDensityDistributionBlockwise) {
 
 	T* tmpdd = dd;
 	T* tmpdd_blockwise = dd_blockwise;
@@ -268,7 +268,7 @@ TEST_FIXTURE(CLbmOpenCLFixture, StoreDensityDistributionBlockwise) {
 	CHECK_ARRAY_EQUAL(tmpdd, tmpdd_blockwise, domain_size.elements()*SIZE_DD_HOST); // succeeds
 }
 
-TEST_FIXTURE(CLbmOpenCLFixture, StoreFlagsBlockwise) {
+TEST_FIXTURE(CLbmSolverFixture, StoreFlagsBlockwise) {
 
 	int* tmpflags = flags;
 	int
@@ -278,9 +278,9 @@ TEST_FIXTURE(CLbmOpenCLFixture, StoreFlagsBlockwise) {
 }
 
 
-struct CLbmOpenCLFixtureWrite {
+struct CLbmSolverFixtureWrite {
 
-	CLbmOpenCLFixtureWrite(){
+	CLbmSolverFixtureWrite(){
 		domain_size[0] = 16;
 		domain_size[1] = 16;
 		domain_size[2] = 16;
@@ -422,7 +422,7 @@ struct CLbmOpenCLFixtureWrite {
 		T domain_length = 0.05;
 
 		// INIT LATTICE BOLTZMANN!
-		 cLbm = new CLbmOpenCl<T>(	cCommandQueue,
+		 cLbm = new CLbmSolver<T>(	cCommandQueue,
 							cContext,
 							cDevice,
 							domain_size, // domain size
@@ -498,7 +498,7 @@ struct CLbmOpenCLFixtureWrite {
 
 	}
 
-	~CLbmOpenCLFixtureWrite(){
+	~CLbmSolverFixtureWrite(){
 		delete cLbm;
 		delete wdensity;
 		delete wdensity_blockwise;
@@ -507,7 +507,7 @@ struct CLbmOpenCLFixtureWrite {
 	}
 	static const size_t SIZE_DD_HOST = 19;
 	CVector<3, int> domain_size;
-	CLbmOpenCl<T> *cLbm;
+	CLbmSolver<T> *cLbm;
 
 	T* wdensity;
 	T* wdensity_blockwise;
@@ -522,7 +522,7 @@ struct CLbmOpenCLFixtureWrite {
 	int* wflags_blockwise;
 };
 
-TEST_FIXTURE(CLbmOpenCLFixtureWrite, SetDensityBlockwise) {
+TEST_FIXTURE(CLbmSolverFixtureWrite, SetDensityBlockwise) {
 
 	T* tmpdensity = wdensity;
 	T* tmpdensity_blockwise = wdensity_blockwise;
@@ -530,7 +530,7 @@ TEST_FIXTURE(CLbmOpenCLFixtureWrite, SetDensityBlockwise) {
 	CHECK_ARRAY_EQUAL(tmpdensity, tmpdensity_blockwise, domain_size.elements()); // succeeds
 }
 
-TEST_FIXTURE(CLbmOpenCLFixtureWrite, SetVelocityBlockwise) {
+TEST_FIXTURE(CLbmSolverFixtureWrite, SetVelocityBlockwise) {
 
 	T* tmpwvelociy = wvelocity;
 	T* tmpwvelocity_blockwise = wvelocity_blockwise;
@@ -538,7 +538,7 @@ TEST_FIXTURE(CLbmOpenCLFixtureWrite, SetVelocityBlockwise) {
 	CHECK_ARRAY_EQUAL(tmpwvelociy, tmpwvelocity_blockwise, domain_size.elements()*3); // succeeds
 }
 
-TEST_FIXTURE(CLbmOpenCLFixtureWrite, SetDensityDistributionBlockwise) {
+TEST_FIXTURE(CLbmSolverFixtureWrite, SetDensityDistributionBlockwise) {
 
 	T* tmpdd = wdd;
 	T* tmpdd_blockwise = wdd_blockwise;
@@ -546,7 +546,7 @@ TEST_FIXTURE(CLbmOpenCLFixtureWrite, SetDensityDistributionBlockwise) {
 	CHECK_ARRAY_EQUAL(tmpdd, tmpdd_blockwise, domain_size.elements()*SIZE_DD_HOST); // succeeds
 }
 
-TEST_FIXTURE(CLbmOpenCLFixtureWrite, SetFlagsBlockwise) {
+TEST_FIXTURE(CLbmSolverFixtureWrite, SetFlagsBlockwise) {
 
 	int* tmpwflags = wflags;
 	int* tmpwflags_blockwise = wflags_blockwise;

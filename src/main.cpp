@@ -18,7 +18,7 @@
 
 #include <stdlib.h>
 #include <iostream>
-#include "CMain.hpp"
+#include "CController.hpp"
 #include <list>
 #include <string>
 #include <UnitTest++.h>
@@ -177,7 +177,7 @@ parameter_error:
 
 parameter_error_ok:
 
-	CMain<T> lbmain;
+	CController<T> lbmController;
 
 	std::list<int> lbm_opencl_number_of_registers_list;
 	std::list<int> lbm_opencl_number_of_threads_list;
@@ -191,7 +191,7 @@ parameter_error_ok:
 	  if (unit_test) {
 	    return UnitTest::RunAllTests();
 	  } else {
-		lbmain.run(	debug,
+		lbmController.run(	debug,
 							domain_size,
 							gravitation,
 							viscosity,

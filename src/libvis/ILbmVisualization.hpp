@@ -3,7 +3,7 @@
 #ifndef CVISUALIZER_HPP
 #define CVISUALIZER_HPP
 
-#include "../CLbmOpenCl.hpp"
+#include "../CLbmSolver.hpp"
 #include "../libmath/CVector.hpp"
 
 /**
@@ -16,7 +16,7 @@ protected:
 	T *velocity;
 	T *density;
 	int *flags;
-	CLbmOpenCl<T> *cLbmOpencl;
+	CLbmSolver<T> *cLbmOpencl;
 
 public:
 	ILbmVisualization()
@@ -37,7 +37,7 @@ public:
 			delete flags;
     };
 
-	virtual void setup(CLbmOpenCl<T> &p_cLbmOpencl) {
+	virtual void setup(CLbmSolver<T> &p_cLbmOpencl) {
 		cLbmOpencl = &p_cLbmOpencl;
 
 		CVector<3,int> domain_cells = p_cLbmOpencl.domain_cells;

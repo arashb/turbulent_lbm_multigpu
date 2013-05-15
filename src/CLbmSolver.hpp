@@ -63,7 +63,7 @@
  */
 
 template <typename T>
-class CLbmOpenCl
+class CLbmSolver
 	:	public CLbmSkeleton<T>
 {
 public:
@@ -124,7 +124,7 @@ public:
 	// viscosity parameters:
 	// http://en.wikipedia.org/wiki/Viscosity
 	//
-	CLbmOpenCl(	CCL::CCommandQueue &p_cCommandQueue,
+	CLbmSolver(	CCL::CCommandQueue &p_cCommandQueue,
 				CCL::CContext &p_cContext,
 				CCL::CDevice &p_cDevice,
 

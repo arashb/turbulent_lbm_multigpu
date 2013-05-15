@@ -23,7 +23,7 @@
 #include <unistd.h>
 #include "libcl/CCL.hpp"
 #include "libtools/CStopwatch.hpp"
-#include "CLbmOpenCl.hpp"
+#include "CLbmSolver.hpp"
 #include "libvis/ILbmVisualization.hpp"
 #include "libvis/CLbmVisualizationVTK.hpp"
 
@@ -33,13 +33,17 @@
 typedef float T;
 //typedef double T;
 
+/*
+ * Class CConroller is responsible for controlling and managing of simulation and visualization
+ * of a subdomain from the whole grid.
+ *
+ */
 template <typename T>
-class CMain
+class CController
 {
-	bool reset;
 	ILbmVisualization<T>* cLbmVisualization;
 	int next_simulation_steps_count;
-	CLbmOpenCl<T> *cLbmPtr;
+	CLbmSolver<T> *cLbmPtr;
 
 	T vector_checksum;
 
@@ -62,16 +66,19 @@ class CMain
 
 public:
 
-	CMain()	:
+	CController()	:
 		next_simulation_steps_count(-1),
 		cLbmVisualization(NULL)
 	{
 	}
-
+/*
+ * This function starts the simulation for the particular subdomain corresponded to
+ * this class.
+ */
 	int run(
-			bool p_debug_mode,
-			CVector<3,int> domain_size,
-			CVector<3,T> gravitation,
+			bool p_debug_mode, 				///< Set this variable to true to have a verbose output of simulation process.
+			CVector<3,int> domain_size, 	///< Specify the size of the domain
+			CVector<3,T> gravitation,		///< Specify the gravitation vector
 			T viscosity,
 			size_t computation_kernel_count,
 			int device_nr,
@@ -81,8 +88,8 @@ public:
 			bool take_frame_screenshots,
 			int loops,
 
-			std::list<int> &p_lbm_opencl_number_of_work_items_list,		///< list with number of threads for each successively created kernel
-			std::list<int> &p_lbm_opencl_number_of_registers_list		///< list with number of registers for each thread threads for each successively created kernel
+			std::list<int> &p_lbm_opencl_number_of_work_items_list,		///< List with number of threads for each successively created kernel
+			std::list<int> &p_lbm_opencl_number_of_registers_list		///< List with number of registers for each thread threads for each successively created kernel
 	)		
 	{
 		if (loops < 0)
@@ -217,10 +224,8 @@ public:
 		if (do_visualization || debug_mode)
 			floats_per_cell += 3;
 
-		reset = true;
-
 		// INIT LATTICE BOLTZMANN!
-		CLbmOpenCl<T> cLbm(	cCommandQueue, cContext, cDevice,
+		CLbmSolver<T> cLbm(	cCommandQueue, cContext, cDevice,
 				domain_size,		// domain size
 				domain_length,		// length of domain size in x direction
 				gravitation,	// gravitation vector
@@ -230,7 +235,6 @@ public:
 				do_visualization || debug_mode,
 				do_visualization || debug_mode,
 				timestep,
-
 				p_lbm_opencl_number_of_work_items_list,
 				p_lbm_opencl_number_of_registers_list
 		);
