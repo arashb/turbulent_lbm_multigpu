@@ -27,6 +27,7 @@
 
 // internals
 #include "CController.hpp"
+#include "CDomain.hpp"
 
 // simulation type
 typedef float T;
@@ -59,8 +60,8 @@ void extract_comma_separated_integers(std::list<int> &int_list, std::string &int
 int main(int argc, char** argv)
 {
 	bool debug = false;
-	CVector<3,int> domain_size(32,32,32);
 
+	CVector<3,int> domain_size(64,32,32);
 	CVector<3,T> gravitation(0,-9.81,0);
 	T viscosity = 0.001308;
 	T timestep = -1.0;
@@ -182,42 +183,72 @@ parameter_error:
 
 parameter_error_ok:
 
-	int my_rank, num_procs;
-	MPI_Init(&argc, &argv);    /// Start MPI
-	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
-	MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
-
-	CController<T> lbmController;
-
-	std::list<int> lbm_opencl_number_of_registers_list;
-	std::list<int> lbm_opencl_number_of_threads_list;
-
-	if (!number_of_threads_string.empty())
-		extract_comma_separated_integers(lbm_opencl_number_of_threads_list, number_of_threads_string);
-
-	if (!number_of_registers_string.empty())
-		extract_comma_separated_integers(lbm_opencl_number_of_registers_list, number_of_registers_string);
 
 	  if (unit_test) {
 	    return UnitTest::RunAllTests();
 	  } else {
-		lbmController.run(	debug,
-							domain_size,
-							gravitation,
-							viscosity,
-							computation_kernel_count,
-							device_nr,
-							gui,
-							pause,
-							timestep,
-							take_frame_screenshots,
-							steps,
 
-							lbm_opencl_number_of_threads_list,
-							lbm_opencl_number_of_registers_list
-				);
+		  CVector<3,int> domain_size_1(32,32,32);
+		  CVector<3,int> domain_size_2(32,32,32);
+		  CVector<3,int> origin_1(0,0,0);
+		  CVector<3,int> origin_2(32,0,0);
+
+		  CVector<3,T> length(0.05,0.05,0.05);
+		  CDomain<T> domain_1(0, domain_size_1, origin_1, length);
+		  CDomain<T> domain_2(1, domain_size_2, origin_2, length);
+
+		  CController<T> lbmController1(0);
+		  CController<T> lbmController2(1);
+
+		  std::list<int> lbm_opencl_number_of_registers_list;
+		  std::list<int> lbm_opencl_number_of_threads_list;
+
+		  if (!number_of_threads_string.empty())
+			  extract_comma_separated_integers(lbm_opencl_number_of_threads_list, number_of_threads_string);
+
+		  if (!number_of_registers_string.empty())
+			  extract_comma_separated_integers(lbm_opencl_number_of_registers_list, number_of_registers_string);
+		  int my_rank, num_procs;
+		  MPI_Init(&argc, &argv);    /// Start MPI
+		  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
+		  MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
+
+		  if ( my_rank == 0)
+		  lbmController1.run(	debug,
+				  domain_1,
+				  gravitation,
+				  viscosity,
+				  computation_kernel_count,
+				  device_nr,
+				  gui,
+				  pause,
+				  timestep,
+				  take_frame_screenshots,
+				  steps,
+
+				  lbm_opencl_number_of_threads_list,
+				  lbm_opencl_number_of_registers_list
+		  );
+
+		  if ( my_rank == 1 )
+		  lbmController2.run(	debug,
+				  domain_2,
+				  gravitation,
+				  viscosity,
+				  computation_kernel_count,
+				  device_nr,
+				  gui,
+				  pause,
+				  timestep,
+				  take_frame_screenshots,
+				  steps,
+
+				  lbm_opencl_number_of_threads_list,
+				  lbm_opencl_number_of_registers_list
+		  );
+		  MPI_Finalize();    /// Cleanup MPI
 	  }
 
-	  MPI_Finalize();    /// Cleanup MPI
+
 }
 

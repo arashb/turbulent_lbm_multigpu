@@ -36,11 +36,11 @@ void write_vtkHeader( FILE *fp )
  */
 template<typename T>
 void write_vtkPointCoordinates( FILE *fp, int imax, int jmax, int kmax,
-                      T dx, T dy, T dz)
+                      T dx, T dy, T dz, CVector<3,int> origin_cell)
 {
-	T originX = 0.0;
-	T originY = 0.0;
-	T originZ = 0.0;
+	T originX = origin_cell[0]*dx;
+	T originY = origin_cell[1]*dy;
+	T originZ = origin_cell[2]*dz;
 
 	for (int k = 0; k < kmax + 1; k++) {
 		for (int j = 0; j < jmax + 1; j++) {

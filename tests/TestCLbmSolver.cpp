@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include "libcl/CCL.hpp"
 #include "libtools/CStopwatch.hpp"
+
+#include "CDomain.hpp"
 #include "CLbmSolver.hpp"
 
 typedef float T;
@@ -18,6 +20,10 @@ struct CLbmSolverFixture
 		domain_size[0] = 16;
 		domain_size[1] = 16;
 		domain_size[2] = 16;
+
+		CVector<3,int> origin_1(0,0,0);
+		CVector<3,T> length(0.05,0.05,0.05);
+		CDomain<T> domain(0, domain_size, origin_1, length);
 
 		CVector<3, T> gravitation(0, -9.81, 0);
 		T viscosity = 0.001308;
@@ -159,8 +165,9 @@ struct CLbmSolverFixture
 		 cLbm = new CLbmSolver<T>(	cCommandQueue,
 							cContext,
 							cDevice,
-							domain_size, // domain size
-							domain_length, // length of domain size in x direction
+							domain,
+							//domain_size, // domain size
+							//domain_length, // length of domain size in x direction
 							gravitation, // gravitation vector
 							viscosity,
 							computation_kernel_count,
@@ -285,6 +292,10 @@ struct CLbmSolverFixtureWrite {
 		domain_size[1] = 16;
 		domain_size[2] = 16;
 
+		CVector<3,int> origin_1(0,0,0);
+		CVector<3,T> length(0.05,0.05,0.05);
+		CDomain<T> domain(0, domain_size, origin_1, length);
+
 		CVector<3, T> gravitation(0, -9.81, 0);
 		T viscosity = 0.001308;
 		T timestep = -1.0;
@@ -425,8 +436,9 @@ struct CLbmSolverFixtureWrite {
 		 cLbm = new CLbmSolver<T>(	cCommandQueue,
 							cContext,
 							cDevice,
-							domain_size, // domain size
-							domain_length, // length of domain size in x direction
+							domain,
+							//domain_size, // domain size
+							//domain_length, // length of domain size in x direction
 							gravitation, // gravitation vector
 							viscosity,
 							computation_kernel_count,

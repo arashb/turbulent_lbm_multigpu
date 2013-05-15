@@ -23,6 +23,8 @@
 #include <unistd.h>
 #include "libcl/CCL.hpp"
 #include "libtools/CStopwatch.hpp"
+
+#include "CDomain.hpp"
 #include "CLbmSolver.hpp"
 #include "libvis/ILbmVisualization.hpp"
 #include "libvis/CLbmVisualizationVTK.hpp"
@@ -41,6 +43,7 @@ typedef float T;
 template <typename T>
 class CController
 {
+	int _UID;
 	ILbmVisualization<T>* cLbmVisualization;
 	int next_simulation_steps_count;
 	CLbmSolver<T> *cLbmPtr;
@@ -66,9 +69,10 @@ class CController
 
 public:
 
-	CController()	:
+	CController(int UID)	:
 		next_simulation_steps_count(-1),
-		cLbmVisualization(NULL)
+		cLbmVisualization(NULL),
+		_UID(UID)
 	{
 	}
 /*
@@ -77,7 +81,7 @@ public:
  */
 	int run(
 			bool p_debug_mode, 				///< Set this variable to true to have a verbose output of simulation process.
-			CVector<3,int> domain_size, 	///< Specify the size of the domain
+			CDomain<T> domain, 				///< Specify domain properties
 			CVector<3,T> gravitation,		///< Specify the gravitation vector
 			T viscosity,
 			size_t computation_kernel_count,
@@ -92,6 +96,9 @@ public:
 			std::list<int> &p_lbm_opencl_number_of_registers_list		///< List with number of registers for each thread threads for each successively created kernel
 	)		
 	{
+		CVector<3,int> domain_size = domain.getSize();
+		T domain_length = domain.getLength()[0];
+
 		if (loops < 0)
 			loops = 100;
 
@@ -206,9 +213,6 @@ public:
 		if (debug_mode)	std::cout << "creating command queue" << std::endl;
 		CCL::CCommandQueue cCommandQueue(cContext, cDevice);
 
-		T domain_length = 0.05;
-
-
 		vector_checksum = 0;
 
 		// approximate bandwidth
@@ -226,8 +230,9 @@ public:
 
 		// INIT LATTICE BOLTZMANN!
 		CLbmSolver<T> cLbm(	cCommandQueue, cContext, cDevice,
-				domain_size,		// domain size
-				domain_length,		// length of domain size in x direction
+				//domain_size,		// domain size
+				//domain_length,		// length of domain size in x direction
+				domain,
 				gravitation,	// gravitation vector
 				viscosity,
 				computation_kernel_count,
@@ -256,7 +261,7 @@ public:
 		std::string outputfilename = "./vtkOutput/OUTPUT";
 		if (do_visualization)
 		{
-			cLbmVisualization = new CLbmVisualizationVTK<T>(outputfilename);
+			cLbmVisualization = new CLbmVisualizationVTK<T>(_UID,outputfilename);
 			cLbmVisualization->setup(cLbm);
 		}
 

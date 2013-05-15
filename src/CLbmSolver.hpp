@@ -128,8 +128,9 @@ public:
 				CCL::CContext &p_cContext,
 				CCL::CDevice &p_cDevice,
 
-				CVector<3,int> &p_domain_cells,
-				T p_d_domain_x_length,
+//				CVector<3,int> &p_domain_cells,
+//				T p_d_domain_x_length,
+				CDomain<T> &domain,
 				CVector<3,T> &p_d_gravitation,
 				T p_d_viscosity,
 				size_t p_computation_kernel_count,
@@ -140,7 +141,7 @@ public:
 
 				std::list<int> &p_lbm_opencl_number_of_work_items_list,		///< list with number of threads for each successively created kernel
 				std::list<int> &p_lbm_opencl_number_of_registers_list		///< list with number of registers for each thread threads for each successively created kernel
-		) :
+		) :CLbmSkeleton<T>(domain),
 		drivenCavityVelocity(100.0, 0, 0, 1),
 
 		cCommandQueue(p_cCommandQueue),
@@ -151,7 +152,8 @@ public:
 		lbm_opencl_number_of_work_items_list(p_lbm_opencl_number_of_work_items_list),
 		lbm_opencl_number_of_registers_list(p_lbm_opencl_number_of_registers_list)
 	{
-		CLbmSkeleton<T>::init(p_domain_cells, p_d_domain_x_length, p_d_gravitation, p_d_viscosity, 1.0);
+		CLbmSkeleton<T>::init(
+				p_d_gravitation, p_d_viscosity, 1.0);
 
 		if (CLbmSkeleton<T>::error())
 			error << CLbmSkeleton<T>::error.getString();

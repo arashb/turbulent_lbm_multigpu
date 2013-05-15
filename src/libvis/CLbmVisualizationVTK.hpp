@@ -8,12 +8,14 @@
 template <typename T>
 class CLbmVisualizationVTK : virtual public ILbmVisualization<T>
 {
+	int _UID;
 	std::string  _file_name;
 	int _timeStepNumber;
 
 public:
-	CLbmVisualizationVTK(std::string file_name): ILbmVisualization<T>()
+	CLbmVisualizationVTK(int UID,std::string file_name): ILbmVisualization<T>()
 	{
+		_UID = UID;
 		_file_name = file_name;
 		_timeStepNumber = -1;
 	}
@@ -57,10 +59,10 @@ public:
 		T dx = this->cLbmOpencl->d_cell_length;
 		T dy = dx;
 		T dz = dx;
-
+		CDomain<T> domain = this->cLbmOpencl->domain;
 		char szFileName[80];
 		FILE *fp = NULL;
-		sprintf( szFileName, "%s.%i.vtk", _file_name.c_str(), _timeStepNumber );
+		sprintf( szFileName, "%s.%i.%i.vtk",  _file_name.c_str(), _UID,_timeStepNumber );
 		fp = fopen( szFileName, "w");
 		if( fp == NULL )
 		{
@@ -73,7 +75,7 @@ public:
 	    fprintf(fp,"DIMENSIONS  %i %i %i \n", imax+1, jmax+1, kmax+1);
 	    fprintf(fp,"POINTS %i float\n", (imax+1)*(jmax+1)*(kmax+1) );
 	    fprintf(fp,"\n");
-		write_vtkPointCoordinates<T>(fp, imax, jmax, kmax, dx, dy, dz);
+		write_vtkPointCoordinates<T>(fp, imax, jmax, kmax, dx, dy, dz, domain.getOrigin() );
 
 		T *velx = this->velocity;
 		T *vely = this->velocity+total_el;

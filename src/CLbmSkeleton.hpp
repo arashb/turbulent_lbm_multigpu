@@ -30,6 +30,7 @@
 #include "libmath/CMath.hpp"
 #include "libmath/CVector.hpp"
 #include "lib/CError.hpp"
+#include "CDomain.hpp"
 
 /**
  * \brief skeleton for lattice boltzmann simulation to handle parameters and to do the parametrization
@@ -41,6 +42,7 @@ public:
 	CError error;		///< error hanlder
 	bool debug;			///< true, if debug mode is on
 
+	CDomain<T> domain;
 	CVector<3,int> domain_cells;	///< available simulation cells in each dimension
 	int domain_cells_count;			///< overall number of simulation cells
 
@@ -125,8 +127,9 @@ public:
 	/**
 	 * initialize skeleton
 	 */
-	void init(	CVector<3,int> &p_domain_cells,
-				T p_d_domain_x_length,
+	void init(	//CVector<3,int> &p_domain_cells,
+				//T p_d_domain_x_length,
+				//CDomain<T> &domain,
 				CVector<3,T> &p_d_gravitation,
 				T p_d_viscosity,
 				T p_mass_exchange_factor,
@@ -137,8 +140,8 @@ public:
 				T p_tau = (T)0.953575
 	    )
 	{
-		domain_cells = p_domain_cells;
-		d_domain_x_length = p_d_domain_x_length;
+		domain_cells = domain.getSize();//p_domain_cells;
+		d_domain_x_length = domain.getLength()[0];//p_d_domain_x_length;
 
 		d_gravitation = p_d_gravitation;
 
@@ -148,7 +151,7 @@ public:
 		mass_exchange_factor = p_mass_exchange_factor;
 
 		// compute sidelength of a lattice cell
-		d_cell_length = d_domain_x_length / (T)p_domain_cells[0];
+		d_cell_length = d_domain_x_length / (T)domain_cells[0];
 
 		max_sim_gravitation_length = p_max_sim_gravitation_length;
 		tau = p_tau;
@@ -181,7 +184,7 @@ public:
 	/**
 	 * default constructor: initialize only debug variable, use init(...) for further initialization
 	 */
-	CLbmSkeleton(bool p_debug = false)
+	CLbmSkeleton(CDomain<T> _domain, bool p_debug = false): domain(_domain)
 	{
 		debug = p_debug;
 	}
