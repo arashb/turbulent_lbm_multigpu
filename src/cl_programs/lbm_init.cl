@@ -34,6 +34,7 @@ __kernel void init_kernel(
 			__global int *flags,	// flags
 			__global T *velocity_array,	// velocity array (first all x components, then all y components, then z...)
 			__global T *density,	// densities
+			__global int *bc, 		///< boundary conditions
 			T drivenCavityVelocity			// velocity parameters for modification of density distributions
 		)
 {

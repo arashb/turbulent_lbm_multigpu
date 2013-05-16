@@ -28,6 +28,7 @@
 #include "CLbmSolver.hpp"
 #include "libvis/ILbmVisualization.hpp"
 #include "libvis/CLbmVisualizationVTK.hpp"
+//#include "cl_programs/lbm_defaults.h"
 
 #include <list>
 
@@ -43,10 +44,11 @@ typedef float T;
 template <typename T>
 class CController
 {
-	int _UID;
-	ILbmVisualization<T>* cLbmVisualization;
-	int next_simulation_steps_count;
+	int _UID;						///< Unique ID of each controller
+	CDomain<T> _domain;				///< Domain data
+	ILbmVisualization<T>* cLbmVisualization; ///< Visualization class
 	CLbmSolver<T> *cLbmPtr;
+	int _BC[3][2]; 		///< Boundary conditions. First index specifies the dimension and second the upper or the lower boundary.
 
 	T vector_checksum;
 
@@ -69,10 +71,10 @@ class CController
 
 public:
 
-	CController(int UID)	:
-		next_simulation_steps_count(-1),
+	CController(int UID, CDomain<T> domain)	:
 		cLbmVisualization(NULL),
-		_UID(UID)
+		_UID(UID),
+		_domain(domain)
 	{
 	}
 /*
@@ -81,7 +83,7 @@ public:
  */
 	int run(
 			bool p_debug_mode, 				///< Set this variable to true to have a verbose output of simulation process.
-			CDomain<T> domain, 				///< Specify domain properties
+			//CDomain<T> domain, 				///< Specify domain properties
 			CVector<3,T> gravitation,		///< Specify the gravitation vector
 			T viscosity,
 			size_t computation_kernel_count,
@@ -96,8 +98,8 @@ public:
 			std::list<int> &p_lbm_opencl_number_of_registers_list		///< List with number of registers for each thread threads for each successively created kernel
 	)		
 	{
-		CVector<3,int> domain_size = domain.getSize();
-		T domain_length = domain.getLength()[0];
+		CVector<3,int> domain_size = _domain.getSize();
+		T domain_length = _domain.getLength()[0];
 
 		if (loops < 0)
 			loops = 100;
@@ -106,9 +108,6 @@ public:
 
 		if (debug_mode)
 			std::cout << "domain size: " << domain_size << std::endl;
-
-		if (pause)
-			next_simulation_steps_count = 0;
 
 		// load platform information
 		if (debug_mode)	std::cout << "loading platforms" << std::endl;
@@ -230,9 +229,8 @@ public:
 
 		// INIT LATTICE BOLTZMANN!
 		CLbmSolver<T> cLbm(	cCommandQueue, cContext, cDevice,
-				//domain_size,		// domain size
-				//domain_length,		// length of domain size in x direction
-				domain,
+				_BC,
+				_domain,
 				gravitation,	// gravitation vector
 				viscosity,
 				computation_kernel_count,
@@ -244,6 +242,7 @@ public:
 				p_lbm_opencl_number_of_registers_list
 		);
 
+
 		if (cLbm.error())
 		{
 			std::cout << cLbm.error.getString();
@@ -251,7 +250,6 @@ public:
 		}
 
 		cLbm.wait();
-
 
 		cLbmPtr = &cLbm;
 
@@ -270,8 +268,8 @@ public:
 			// simulation
 			cLbm.simulationStep();
 			std::cout << "." << std::flush;
-//			if (do_visualization)
-//				cLbmVisualization->render();
+			if (do_visualization)
+				cLbmVisualization->render();
 
 		}
 		std::cout << "|" << std::flush;
@@ -283,8 +281,8 @@ public:
 			// simulation
 			cLbm.simulationStep();
 			std::cout << "." << std::flush;
-			if (do_visualization)
-				cLbmVisualization->render(i);
+//			if (do_visualization)
+//				cLbmVisualization->render(i);
 		}
 		cLbm.wait();
 		cStopwatch.stop();
@@ -325,6 +323,12 @@ public:
 		std::cout << "exit" << std::endl;
 
 		return EXIT_SUCCESS;
+	}
+
+	void setBC(int ** BC) {
+		for(int i = 0; i < 3; i++)
+			for (int j = 0; j < 2; j++)
+				_BC[i][j] = BC[i][j];
 	}
 };
 

@@ -71,7 +71,7 @@ public:
 private:
 	static const size_t SIZE_DD_HOST = 19;
 	static const size_t SIZE_DD_HOST_BYTES = SIZE_DD_HOST*sizeof(T);
-
+	int _BC[3][2]; 		///< Boundary conditions. First index specifys the dimension and second the upper or the lower boundary.
 	// opencl handlers
 	CCL::CCommandQueue &cCommandQueue;
 	CCL::CContext &cContext;
@@ -100,6 +100,7 @@ private:
 
 	// flags giving e.g. obstacles, (maybe gas) or other properties
 	CCL::CMem cMemCellFlags;
+	CCL::CMem cMemBC;
 
 	// Velocity (3 components) and Density (1 component) of cell
 	CCL::CMem cMemVelocity;
@@ -127,9 +128,7 @@ public:
 	CLbmSolver(	CCL::CCommandQueue &p_cCommandQueue,
 				CCL::CContext &p_cContext,
 				CCL::CDevice &p_cDevice,
-
-//				CVector<3,int> &p_domain_cells,
-//				T p_d_domain_x_length,
+				int BC[3][2],
 				CDomain<T> &domain,
 				CVector<3,T> &p_d_gravitation,
 				T p_d_viscosity,
@@ -161,6 +160,11 @@ public:
 		store_velocity = p_store_velocity;
 		store_density = p_store_density;
 		debug = p_debug;
+
+		// setting the boundary conditions
+		for(int i = 0; i < 3; i++)
+			for (int j = 0; j < 2; j++)
+				_BC[i][j] = BC[i][j];
 
 		reload();
 	}
@@ -279,7 +283,11 @@ public:
 		cMemVelocity.create(cContext, CL_MEM_READ_WRITE, sizeof(T)*domain_cells_count*3, NULL);
 		cMemDensity.create(cContext, CL_MEM_READ_WRITE, sizeof(T)*domain_cells_count, NULL);
 
-
+		int bc_linear[6];
+		for(int i = 0; i < 3; i++)
+			for(int j = 0; j < 2; j++)
+				bc_linear[i*2+j] = _BC[i][j];
+		cMemBC.create(cContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR , sizeof(cl_int)*6, bc_linear);
 
 		/**
 		 * prepare INIT KERNEL DATA
@@ -414,7 +422,8 @@ public:
 		cKernelInit.setArg(1, cMemCellFlags);
 		cKernelInit.setArg(2, cMemVelocity);
 		cKernelInit.setArg(3, cMemDensity);
-		cKernelInit.setArg(4, paramDrivenCavityVelocity[0]);
+		cKernelInit.setArg(4, cMemBC);
+		cKernelInit.setArg(5, paramDrivenCavityVelocity[0]);
 
 		// collision and propagation kernels (alpha and beta)
 		cLbmKernelAlpha.create(cProgramAlpha, "lbm_kernel_alpha");

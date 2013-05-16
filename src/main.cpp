@@ -197,8 +197,8 @@ parameter_error_ok:
 		  CDomain<T> domain_1(0, domain_size_1, origin_1, length);
 		  CDomain<T> domain_2(1, domain_size_2, origin_2, length);
 
-		  CController<T> lbmController1(0);
-		  CController<T> lbmController2(1);
+		  CController<T> lbmController1(0,domain_1);
+		  CController<T> lbmController2(1,domain_2);
 
 		  std::list<int> lbm_opencl_number_of_registers_list;
 		  std::list<int> lbm_opencl_number_of_threads_list;
@@ -215,7 +215,7 @@ parameter_error_ok:
 
 		  if ( my_rank == 0)
 		  lbmController1.run(	debug,
-				  domain_1,
+				  //domain_1,
 				  gravitation,
 				  viscosity,
 				  computation_kernel_count,
@@ -232,7 +232,6 @@ parameter_error_ok:
 
 		  if ( my_rank == 1 )
 		  lbmController2.run(	debug,
-				  domain_2,
 				  gravitation,
 				  viscosity,
 				  computation_kernel_count,

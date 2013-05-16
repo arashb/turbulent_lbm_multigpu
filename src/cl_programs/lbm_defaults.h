@@ -14,6 +14,7 @@
 	#define FLAG_OBSTACLE	(1 << 0)
 	#define FLAG_FLUID	(1 << 1)
 	#define FLAG_VELOCITY_INJECTION	(1 << 2)
+	#define FLAG_GHOST_LAYER (1 << 3)
 
 	#define SIZE_DD_HOST_BYTES	(19*sizeof(T))
 

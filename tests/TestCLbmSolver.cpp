@@ -160,11 +160,12 @@ struct CLbmSolverFixture
 		CCL::CCommandQueue cCommandQueue(cContext, cDevice);
 
 		T domain_length = 0.05;
-
+		int BC[3][2];
 		// INIT LATTICE BOLTZMANN!
 		 cLbm = new CLbmSolver<T>(	cCommandQueue,
 							cContext,
 							cDevice,
+							BC,
 							domain,
 							//domain_size, // domain size
 							//domain_length, // length of domain size in x direction
@@ -431,11 +432,12 @@ struct CLbmSolverFixtureWrite {
 		CCL::CCommandQueue cCommandQueue(cContext, cDevice);
 
 		T domain_length = 0.05;
-
+		int BC[3][2];
 		// INIT LATTICE BOLTZMANN!
 		 cLbm = new CLbmSolver<T>(	cCommandQueue,
 							cContext,
 							cDevice,
+							BC,
 							domain,
 							//domain_size, // domain size
 							//domain_length, // length of domain size in x direction
