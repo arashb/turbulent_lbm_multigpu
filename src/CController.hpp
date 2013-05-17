@@ -28,13 +28,16 @@
 #include "CLbmSolver.hpp"
 #include "libvis/ILbmVisualization.hpp"
 #include "libvis/CLbmVisualizationVTK.hpp"
-//#include "cl_programs/lbm_defaults.h"
+#include "common.h"
 
 #include <list>
 
 // simulation type
 typedef float T;
 //typedef double T;
+
+#define MPI_TAG_ALPHA_SYNC 0
+#define MPI_TAG_BETA_SYNC 1
 
 /*
  * Class CConroller is responsible for controlling and managing of simulation and visualization
@@ -76,6 +79,135 @@ public:
 		_UID(UID),
 		_domain(domain)
 	{
+		// default boundary conditions is obstacle
+		for(int i = 0; i < 3; i++)
+			for (int j = 0; j < 2; j++)
+				_BC[i][j] = FLAG_OBSTACLE;
+	}
+
+	void syncAlpha() {
+
+		// TODO: the data related to communication is hardcoded here.
+		// This should change in a way to get this data from a Communication Type Object
+		CVector<3,int> send_size(1,_domain.getSize()[1],_domain.getSize()[2]);
+		CVector<3,int> recv_size(1,_domain.getSize()[1],_domain.getSize()[2]);
+		CVector<3,int> send_origin;
+		CVector<3,int> recv_origin;
+		if (_UID == 0) {
+			send_origin[0] = _domain.getSize()[0] - 2;
+			send_origin[1] = 0;
+			send_origin[2] = 0;
+			recv_origin[0] = _domain.getSize()[0] - 1;
+			recv_origin[1] = 0;
+			recv_origin[2] = 0;
+		}else if ( _UID == 1) {
+			send_origin[0] = 1;
+			send_origin[1] = 0;
+			send_origin[2] = 0;
+			recv_origin[0] = 0;
+			recv_origin[1] = 0;
+			recv_origin[2] = 0;
+		}
+
+		// send buffer
+		int send_buffer_size = send_size.elements()*cLbmPtr->SIZE_DD_HOST;
+		int recv_buffer_size = recv_size.elements()*cLbmPtr->SIZE_DD_HOST;
+		T* send_buffer = new T[send_buffer_size];
+		T* recv_buffer = new T[recv_buffer_size];
+
+		MPI_Request req[2];
+		MPI_Status status[2];
+
+		// Download data from device to host
+		cLbmPtr->storeDensityDistribution(send_buffer, send_origin, send_size);
+		//cLbmPtr->wait();
+		int my_rank, num_procs;
+		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
+		MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
+
+		int dst_rank;
+		if (my_rank == 0) {
+			dst_rank = 1;
+		} else if ( my_rank == 1)
+			dst_rank = 0;
+
+		// TODO: check the MPI_TYPE
+		MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[0]);
+		MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[1]);
+		MPI_Waitall(2, req, status );
+
+		cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size);
+		cLbmPtr->wait();
+
+		delete send_buffer;
+		delete recv_buffer;
+	}
+
+	void syncBeta() {
+
+		// TODO: the data related to communication is hardcoded here.
+		// This should change in a way to get this data from a Communication Type Object
+		CVector<3,int> send_size(1,_domain.getSize()[1],_domain.getSize()[2]);
+		CVector<3,int> recv_size(1,_domain.getSize()[1],_domain.getSize()[2]);
+		CVector<3,int> send_origin;
+		CVector<3,int> recv_origin;
+		if (_UID == 0) {
+			send_origin[0] = _domain.getSize()[0] - 2;
+			send_origin[1] = 0;
+			send_origin[2] = 0;
+			recv_origin[0] = _domain.getSize()[0] - 1;
+			recv_origin[1] = 0;
+			recv_origin[2] = 0;
+		}else if ( _UID == 1) {
+			send_origin[0] = 1;
+			send_origin[1] = 0;
+			send_origin[2] = 0;
+			recv_origin[0] = 0;
+			recv_origin[1] = 0;
+			recv_origin[2] = 0;
+		}
+
+		// send buffer
+		int send_buffer_size = send_size.elements()*cLbmPtr->SIZE_DD_HOST;
+		int recv_buffer_size = recv_size.elements()*cLbmPtr->SIZE_DD_HOST;
+		T* send_buffer = new T[send_buffer_size];
+		T* recv_buffer = new T[recv_buffer_size];
+
+		MPI_Request req[2];
+		MPI_Status status[2];
+
+		// Download data from device to host
+		cLbmPtr->storeDensityDistribution(send_buffer, send_origin, send_size);
+		//cLbmPtr->wait();
+		int my_rank, num_procs;
+		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
+		MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
+
+		int dst_rank;
+		if (my_rank == 0) {
+			dst_rank = 1;
+		} else if ( my_rank == 1)
+			dst_rank = 0;
+
+		// TODO: check the MPI_TYPE
+		MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[0]);
+		MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[1]);
+		MPI_Waitall(2, req, status );
+
+		// TODO: OPTI: you need to wait only for receiving to execute following command
+		cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size);
+		cLbmPtr->wait();
+
+		delete send_buffer;
+		delete recv_buffer;
+	}
+
+	void computeNextStep(){
+		cLbmPtr->simulationStep();
+		if (cLbmPtr->simulation_step_counter & 1)
+			syncBeta();
+		else
+			syncAlpha();
 	}
 /*
  * This function starts the simulation for the particular subdomain corresponded to
@@ -263,26 +395,26 @@ public:
 			cLbmVisualization->setup(cLbm);
 		}
 
-		for (int i = 0; i < loops/10; i++)
-		{
-			// simulation
-			cLbm.simulationStep();
-			std::cout << "." << std::flush;
-			if (do_visualization)
-				cLbmVisualization->render();
-
-		}
-		std::cout << "|" << std::flush;
-		cLbm.wait();
+//		for (int i = 0; i < loops/10; i++)
+//		{
+//			// simulation
+//			computeNextStep();
+//			std::cout << "." << std::flush;
+//			if (do_visualization)
+//				cLbmVisualization->render(i);
+//
+//		}
+//		std::cout << "|" << std::flush;
+//		cLbm.wait();
 
 		cStopwatch.start();
 		for (int i = 0; i < loops; i++)
 		{
 			// simulation
-			cLbm.simulationStep();
+			computeNextStep();
 			std::cout << "." << std::flush;
-//			if (do_visualization)
-//				cLbmVisualization->render(i);
+			if (do_visualization)
+				cLbmVisualization->render(i);
 		}
 		cLbm.wait();
 		cStopwatch.stop();
@@ -325,7 +457,7 @@ public:
 		return EXIT_SUCCESS;
 	}
 
-	void setBC(int ** BC) {
+	void setBC(int BC[3][2]) {
 		for(int i = 0; i < 3; i++)
 			for (int j = 0; j < 2; j++)
 				_BC[i][j] = BC[i][j];

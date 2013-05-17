@@ -52,6 +52,25 @@ __kernel void init_kernel(
 
 	int flag = FLAG_FLUID;
 
+	if( pos.x == 0)
+		flag = bc[0];
+	else if( pos.x == DOMAIN_CELLS_X-1 )
+		flag = bc[1];
+
+	else if( pos.y == 0)
+		flag = bc[2];
+	else if( pos.y == DOMAIN_CELLS_Y-1 )
+		flag = bc[3];
+
+	else if( pos.z == 0)
+		flag = bc[4];
+	else if( pos.z == DOMAIN_CELLS_Z-1 )
+		flag = bc[5];
+
+	else if (pos.y == DOMAIN_CELLS_Y-2)
+		flag = FLAG_VELOCITY_INJECTION;
+
+#if 0
 	if (	pos.x == 0 || pos.y == 0 || pos.z == 0 ||
 		pos.x == DOMAIN_CELLS_X-1 || pos.y == DOMAIN_CELLS_Y-1 || pos.z == DOMAIN_CELLS_Z-1
 	)
@@ -98,7 +117,7 @@ __kernel void init_kernel(
 		}
 #endif
 	}
-
+#endif
 
 	// density distributions
 	T dd0, dd1, dd2, dd3, dd4, dd5, dd6, dd7, dd8, dd9, dd10, dd11, dd12, dd13, dd14, dd15, dd16, dd17, dd18;

@@ -200,6 +200,17 @@ parameter_error_ok:
 		  CController<T> lbmController1(0,domain_1);
 		  CController<T> lbmController2(1,domain_2);
 
+		  int BC1[3][2] = { /* x BC */FLAG_OBSTACLE,FLAG_GHOST_LAYER,
+				  	  	  	/* y BC */FLAG_OBSTACLE,FLAG_OBSTACLE,
+				  	  	  	/* z BC */FLAG_OBSTACLE,FLAG_OBSTACLE};
+
+		  int BC2[3][2] = { /* x BC */FLAG_GHOST_LAYER, FLAG_OBSTACLE,
+				  	  	  	/* y BC */FLAG_OBSTACLE,FLAG_OBSTACLE,
+				  	  	  	/* z BC */FLAG_OBSTACLE,FLAG_OBSTACLE};
+
+		  lbmController1.setBC(BC1);
+		  lbmController2.setBC(BC2);
+
 		  std::list<int> lbm_opencl_number_of_registers_list;
 		  std::list<int> lbm_opencl_number_of_threads_list;
 

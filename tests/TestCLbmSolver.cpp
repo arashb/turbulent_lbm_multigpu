@@ -217,6 +217,14 @@ struct CLbmSolverFixture
 		cLbm->storeFlags(flags);
 		cLbm->storeFlags(flags_blockwise, origin, domain_size);
 
+
+		part_size[0] = 10;
+		part_size[1] = 1;
+		part_size[2] = 1;
+		dd_part_blockwise = new T[part_size.elements()*SIZE_DD_HOST];
+
+		cLbm->storeDensityDistribution(dd_part_blockwise, origin, part_size);
+
 	}
 
 	~CLbmSolverFixture() {
@@ -233,6 +241,7 @@ struct CLbmSolverFixture
 
 	static const size_t SIZE_DD_HOST = 19;
 	CVector<3, int> domain_size;
+	CVector<3, int> part_size;
 	CLbmSolver<T> *cLbm;
 
 	T* velocity;
@@ -246,6 +255,9 @@ struct CLbmSolverFixture
 
 	int* flags;
 	int* flags_blockwise;
+
+	T* dd_part;
+	T* dd_part_blockwise;
 
 };
 
@@ -276,11 +288,18 @@ TEST_FIXTURE(CLbmSolverFixture, StoreDensityDistributionBlockwise) {
 	CHECK_ARRAY_EQUAL(tmpdd, tmpdd_blockwise, domain_size.elements()*SIZE_DD_HOST); // succeeds
 }
 
+TEST_FIXTURE(CLbmSolverFixture, StoreDensityDistributionPartBlockwise) {
+
+	T* tmpdd = dd;
+	T* tmpdd_blockwise = dd_part_blockwise;
+
+	CHECK_ARRAY_EQUAL(tmpdd, tmpdd_blockwise, part_size[0]); // succeeds
+}
+
 TEST_FIXTURE(CLbmSolverFixture, StoreFlagsBlockwise) {
 
 	int* tmpflags = flags;
-	int
-	* tmpflags_blockwise = flags_blockwise;
+	int* tmpflags_blockwise = flags_blockwise;
 
 	CHECK_ARRAY_EQUAL(tmpflags, tmpflags_blockwise, domain_size.elements()); // succeeds
 }

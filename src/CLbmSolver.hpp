@@ -29,6 +29,7 @@
 #define LBM_FLAG_OBSTACLE			(1<<0)
 #define LBM_FLAG_FLUID				(1<<1)
 #define LBM_FLAG_VELOCITY_INJECTION	(1<<2)
+#define LBM_FLAG_GHOST_LAYER	(1<<3)
 
 /**
  * the density distributions are packed cell wise to optimize the collision operation and stored
@@ -68,8 +69,9 @@ class CLbmSolver
 {
 public:
 	CVector<4,T> drivenCavityVelocity;
-private:
 	static const size_t SIZE_DD_HOST = 19;
+private:
+
 	static const size_t SIZE_DD_HOST_BYTES = SIZE_DD_HOST*sizeof(T);
 	int _BC[3][2]; 		///< Boundary conditions. First index specifys the dimension and second the upper or the lower boundary.
 	// opencl handlers
@@ -264,6 +266,7 @@ public:
 		cl_program_defines << "#define FLAG_OBSTACLE	(" << LBM_FLAG_OBSTACLE << ")" << std::endl;
 		cl_program_defines << "#define FLAG_FLUID	(" << LBM_FLAG_FLUID << ")" << std::endl;
 		cl_program_defines << "#define FLAG_VELOCITY_INJECTION	(" << LBM_FLAG_VELOCITY_INJECTION << ")" << std::endl;
+		cl_program_defines << "#define FLAG_GHOST_LAYER	(" << LBM_FLAG_GHOST_LAYER << ")" << std::endl;
 
 		if (store_velocity)
 			cl_program_defines << "#define STORE_VELOCITY 1" << std::endl;
@@ -287,6 +290,12 @@ public:
 		for(int i = 0; i < 3; i++)
 			for(int j = 0; j < 2; j++)
 				bc_linear[i*2+j] = _BC[i][j];
+		if (debug) {
+			std::cout << "BOUNDARY CONDITION: "<< std::endl;
+			for(int i = 0; i < 6; i++)
+				std::cout << " " << bc_linear[i];
+			std::cout << std::endl;
+		}
 		cMemBC.create(cContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR , sizeof(cl_int)*6, bc_linear);
 
 		/**

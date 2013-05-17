@@ -7,5 +7,8 @@ doc:
 cleandoc:
 	rm -rf ./docs/html ./docs/latex
 
+cleanvtk:
+	rm -rf vtkOutput/*
+
 clean:
 	rm -rf build/* vtkOutput/*
