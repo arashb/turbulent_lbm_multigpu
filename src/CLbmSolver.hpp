@@ -26,6 +26,8 @@
 #include <iomanip>
 #include <list>
 
+#include "common.h"
+
 #define LBM_FLAG_OBSTACLE			(1<<0)
 #define LBM_FLAG_FLUID				(1<<1)
 #define LBM_FLAG_VELOCITY_INJECTION	(1<<2)
@@ -492,6 +494,8 @@ public:
 
 		if (simulation_step_counter & 1)
 		{
+			if ( debug)
+				std::cout << "computing alpha" << std::endl;
 			cCommandQueue.enqueueNDRangeKernel(	cLbmKernelAlpha,	// kernel
 												1,						// dimensions
 												NULL,					// global work offset
@@ -501,6 +505,8 @@ public:
 		}
 		else
 		{
+			if ( debug)
+				std::cout << "computing beta" << std::endl;
 			cCommandQueue.enqueueNDRangeKernel(	cLbmKernelBeta,	// kernel
 												1,						// dimensions
 												NULL,					// global work offset
@@ -605,6 +611,45 @@ public:
 													(current_src_offset + i * total_el)*sizeof(T),
 													byte_size
 													);
+				}
+				current_dst_offset += size[0];
+			}
+		}
+		clEnqueueBarrier(cCommandQueue.command_queue);
+	}
+
+	void setDensityDistribution(T *src, CVector<3,int> &origin, CVector<3,int> &size, CVector<3,int> norm)
+	{
+		//TODO: implement with the norm
+		CCL::CMem cBuffer;
+		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(T)*size.elements()*SIZE_DD_HOST, src);
+
+		const int NUM_CELLS_X = this->domain_cells[0];
+		const int NUM_CELLS_Y = this->domain_cells[1];
+		const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
+
+		const int total_el = this->domain_cells_count;
+		const int total_block_el = size.elements();
+
+		size_t byte_size = size[0]*sizeof(T);
+		size_t current_src_offset;
+		size_t current_dst_offset = 0;
+		for (int k = 0 ; k < size[2]; k++ ) {
+			for (int j = 0; j < size[1]; j++ )
+			{
+				// cube position -> linear position
+				// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
+				current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
+				for (int i = 0; i < SIZE_DD_HOST; i++) {
+					// copying fi components
+					if( norm.dotProd(lbm_units[i]) != 0 ) {
+					cCommandQueue.enqueueCopyBuffer(cBuffer,
+							cMemDensityDistributions,
+							(current_dst_offset + i * total_block_el)*sizeof(T),
+							(current_src_offset + i * total_el)*sizeof(T),
+							byte_size
+					);
+					}
 				}
 				current_dst_offset += size[0];
 			}

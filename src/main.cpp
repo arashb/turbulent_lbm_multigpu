@@ -23,11 +23,44 @@
 
 // externals
 #include <UnitTest++.h>
+#include "TestReporterStdout.h"
+
 #include "mpi.h"
 
 // internals
-#include "CController.hpp"
 #include "CDomain.hpp"
+#include "CController.hpp"
+#include "common.h"
+
+CVector<3,int> E0(1,0,0) 	;
+CVector<3,int> E1(-1,0,0)	;
+CVector<3,int> E2(0,1,0)	;
+CVector<3,int> E3(0,-1,0)	;
+
+CVector<3,int> E4(1,1,0)	;
+CVector<3,int> E5(-1,-1,0)	;
+CVector<3,int> E6(1,-1,0)	;
+CVector<3,int> E7(-1,1,0)	;
+
+CVector<3,int> E8(1,0,1)	;
+CVector<3,int> E9(-1,0,-1)	;
+CVector<3,int> E10(1,0,-1)	;
+CVector<3,int> E11(-1,0,1)	;
+
+CVector<3,int> E12(0,1,1)	;
+CVector<3,int> E13(0,-1,-1)	;
+CVector<3,int> E14(0,1,-1)	;
+CVector<3,int> E15(0,-1,1)	;
+
+CVector<3,int> E16(0,0,1)	;
+CVector<3,int> E17(0,0,-1)	;
+CVector<3,int> E18(0,0,0)	;
+CVector<3,int> lbm_units[] = {	E0,E1,E2,E3,
+		E4,E5,E6,E7,
+		E8,E9,E10,E11,
+		E12,E13,E14,E15,
+		E16,E17,E18
+};
 
 // simulation type
 typedef float T;
@@ -75,11 +108,12 @@ int main(int argc, char** argv)
 
 	std::string number_of_registers_string;	///< string storing the number of registers for opencl threads separated with comma
 	std::string number_of_threads_string;		///< string storing the number of threads for opencl separated with comma
+	std::string test_suite;
 
 	int device_nr = 0;
 
 	char optchar;
-	while ((optchar = getopt(argc, argv, "x:y:z:d:vr:k:gG:pt:sl:R:T:X:u")) > 0)
+	while ((optchar = getopt(argc, argv, "x:y:z:d:vr:k:gG:pt:sl:R:T:X:u:")) > 0)
 	{
 		switch(optchar)
 		{
@@ -149,9 +183,10 @@ int main(int argc, char** argv)
 				take_frame_screenshots = true;
 				break;
 
-      case 'u':
-        unit_test = true;
-        break;
+			case 'u':
+				unit_test = true;
+				test_suite = optarg;
+				break;
 			default:
 				goto parameter_error;
 		}
@@ -185,7 +220,34 @@ parameter_error_ok:
 
 
 	  if (unit_test) {
-	    return UnitTest::RunAllTests();
+
+		  if ( strcmp(  "all", test_suite.c_str() ) == 0 ) {
+			  if( debug)
+				  std::cout << "running all test." << std::endl;
+			  return UnitTest::RunAllTests();
+		  }
+
+		  else {
+			  const UnitTest::TestList& allTests( UnitTest::Test::GetTestList() );
+			  UnitTest::TestList selectedTests;
+			  UnitTest::Test* p = allTests.GetHead();
+			  while( p )
+			  {
+				  //			  for( int i = 1 ; i < argc ; ++i )
+				  if( strcmp(  p->m_details.suiteName , test_suite.c_str() ) == 0 ) {
+					  selectedTests.Add( p );
+					  if( debug)
+						  std::cout << "Added test " << p->m_details.testName << "from suite " <<  p->m_details.suiteName << " to tes list." << std::endl;
+				  }
+				  p = p->next;
+			  }
+
+			  //run selected test(s) only
+			  UnitTest::TestReporterStdout reporter;
+			  UnitTest::TestRunner runner( reporter );
+			  return runner.RunTestsIf( selectedTests, 0, UnitTest::True(), 0 );
+		  }
+
 	  } else {
 
 		  CVector<3,int> domain_size_1(32,32,32);

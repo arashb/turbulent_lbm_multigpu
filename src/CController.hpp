@@ -86,7 +86,8 @@ public:
 	}
 
 	void syncAlpha() {
-
+		if(debug_mode)
+			std::cout << "sync alpha." << std::endl;
 		// TODO: the data related to communication is hardcoded here.
 		// This should change in a way to get this data from a Communication Type Object
 		CVector<3,int> send_size(1,_domain.getSize()[1],_domain.getSize()[2]);
@@ -144,28 +145,36 @@ public:
 	}
 
 	void syncBeta() {
+		if(debug_mode)
+			std::cout << "sync beta." << std::endl;
 
-		// TODO: the data related to communication is hardcoded here.
+		// TODO: the data related to communication is hard coded here.
 		// This should change in a way to get this data from a Communication Type Object
 		CVector<3,int> send_size(1,_domain.getSize()[1],_domain.getSize()[2]);
 		CVector<3,int> recv_size(1,_domain.getSize()[1],_domain.getSize()[2]);
 		CVector<3,int> send_origin;
 		CVector<3,int> recv_origin;
 		if (_UID == 0) {
-			send_origin[0] = _domain.getSize()[0] - 2;
+			send_origin[0] = _domain.getSize()[0] - 1;
 			send_origin[1] = 0;
 			send_origin[2] = 0;
-			recv_origin[0] = _domain.getSize()[0] - 1;
+			recv_origin[0] = _domain.getSize()[0] - 2;
 			recv_origin[1] = 0;
 			recv_origin[2] = 0;
 		}else if ( _UID == 1) {
-			send_origin[0] = 1;
+			send_origin[0] = 0;
 			send_origin[1] = 0;
 			send_origin[2] = 0;
-			recv_origin[0] = 0;
+			recv_origin[0] = 1;
 			recv_origin[1] = 0;
 			recv_origin[2] = 0;
 		}
+
+		CVector<3,int> normal;
+		if (_UID == 0)
+			normal[0] = -1; // (-1, 0, 0)
+		else if (_UID == 1)
+			normal[0] = 1;  // (1, 0, 0)
 
 		// send buffer
 		int send_buffer_size = send_size.elements()*cLbmPtr->SIZE_DD_HOST;
@@ -186,7 +195,7 @@ public:
 		int dst_rank;
 		if (my_rank == 0) {
 			dst_rank = 1;
-		} else if ( my_rank == 1)
+		} else if (my_rank == 1)
 			dst_rank = 0;
 
 		// TODO: check the MPI_TYPE
@@ -195,7 +204,7 @@ public:
 		MPI_Waitall(2, req, status );
 
 		// TODO: OPTI: you need to wait only for receiving to execute following command
-		cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size);
+		cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size, normal);
 		cLbmPtr->wait();
 
 		delete send_buffer;
@@ -203,11 +212,11 @@ public:
 	}
 
 	void computeNextStep(){
-		cLbmPtr->simulationStep();
 		if (cLbmPtr->simulation_step_counter & 1)
 			syncBeta();
 		else
 			syncAlpha();
+		cLbmPtr->simulationStep();
 	}
 /*
  * This function starts the simulation for the particular subdomain corresponded to
@@ -411,10 +420,11 @@ public:
 		for (int i = 0; i < loops; i++)
 		{
 			// simulation
-			computeNextStep();
-			std::cout << "." << std::flush;
 			if (do_visualization)
 				cLbmVisualization->render(i);
+			computeNextStep();
+			std::cout << "." << std::flush;
+
 		}
 		cLbm.wait();
 		cStopwatch.stop();

@@ -261,50 +261,6 @@ struct CLbmSolverFixture
 
 };
 
-
-
-TEST_FIXTURE(CLbmSolverFixture, StoreVelociyBlockwise) {
-	CLbmSolver<T> *lbmMock = cLbm;
-
-	T* tmpvelocity = velocity;
-	T* tmpvelocity_blockwise = velocity_blockwise;
-
-	CHECK_ARRAY_EQUAL(tmpvelocity, tmpvelocity_blockwise, domain_size.elements()*3); // succeeds
-}
-
-TEST_FIXTURE(CLbmSolverFixture, StoreDensityBlockwise) {
-
-	T* tmpdensity = density;
-	T* tmpdensity_blockwise = density_blockwise;
-
-	CHECK_ARRAY_EQUAL(tmpdensity, tmpdensity_blockwise, domain_size.elements()); // succeeds
-}
-
-TEST_FIXTURE(CLbmSolverFixture, StoreDensityDistributionBlockwise) {
-
-	T* tmpdd = dd;
-	T* tmpdd_blockwise = dd_blockwise;
-
-	CHECK_ARRAY_EQUAL(tmpdd, tmpdd_blockwise, domain_size.elements()*SIZE_DD_HOST); // succeeds
-}
-
-TEST_FIXTURE(CLbmSolverFixture, StoreDensityDistributionPartBlockwise) {
-
-	T* tmpdd = dd;
-	T* tmpdd_blockwise = dd_part_blockwise;
-
-	CHECK_ARRAY_EQUAL(tmpdd, tmpdd_blockwise, part_size[0]); // succeeds
-}
-
-TEST_FIXTURE(CLbmSolverFixture, StoreFlagsBlockwise) {
-
-	int* tmpflags = flags;
-	int* tmpflags_blockwise = flags_blockwise;
-
-	CHECK_ARRAY_EQUAL(tmpflags, tmpflags_blockwise, domain_size.elements()); // succeeds
-}
-
-
 struct CLbmSolverFixtureWrite {
 
 	CLbmSolverFixtureWrite(){
@@ -555,6 +511,55 @@ struct CLbmSolverFixtureWrite {
 	int* wflags_blockwise;
 };
 
+
+
+SUITE(CLBMSolverSuite)
+{
+
+TEST_FIXTURE(CLbmSolverFixture, StoreVelociyBlockwise) {
+	CLbmSolver<T> *lbmMock = cLbm;
+
+	T* tmpvelocity = velocity;
+	T* tmpvelocity_blockwise = velocity_blockwise;
+
+	CHECK_ARRAY_EQUAL(tmpvelocity, tmpvelocity_blockwise, domain_size.elements()*3); // succeeds
+}
+
+TEST_FIXTURE(CLbmSolverFixture, StoreDensityBlockwise) {
+
+	T* tmpdensity = density;
+	T* tmpdensity_blockwise = density_blockwise;
+
+	CHECK_ARRAY_EQUAL(tmpdensity, tmpdensity_blockwise, domain_size.elements()); // succeeds
+}
+
+TEST_FIXTURE(CLbmSolverFixture, StoreDensityDistributionBlockwise) {
+
+	T* tmpdd = dd;
+	T* tmpdd_blockwise = dd_blockwise;
+
+	CHECK_ARRAY_EQUAL(tmpdd, tmpdd_blockwise, domain_size.elements()*SIZE_DD_HOST); // succeeds
+}
+
+TEST_FIXTURE(CLbmSolverFixture, StoreDensityDistributionPartBlockwise) {
+
+	T* tmpdd = dd;
+	T* tmpdd_blockwise = dd_part_blockwise;
+
+	CHECK_ARRAY_EQUAL(tmpdd, tmpdd_blockwise, part_size[0]); // succeeds
+}
+
+TEST_FIXTURE(CLbmSolverFixture, StoreFlagsBlockwise) {
+
+	int* tmpflags = flags;
+	int* tmpflags_blockwise = flags_blockwise;
+
+	CHECK_ARRAY_EQUAL(tmpflags, tmpflags_blockwise, domain_size.elements()); // succeeds
+}
+
+
+
+
 TEST_FIXTURE(CLbmSolverFixtureWrite, SetDensityBlockwise) {
 
 	T* tmpdensity = wdensity;
@@ -585,4 +590,5 @@ TEST_FIXTURE(CLbmSolverFixtureWrite, SetFlagsBlockwise) {
 	int* tmpwflags_blockwise = wflags_blockwise;
 
 	CHECK_ARRAY_EQUAL(tmpwflags, tmpwflags_blockwise, domain_size.elements()); // succeeds
+}
 }

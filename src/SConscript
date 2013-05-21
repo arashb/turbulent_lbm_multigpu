@@ -6,4 +6,7 @@ for i in env.Glob('*.cpp'):
 for i in env.Glob('lib/*.cpp'):
 	env.src_files.append(env.Object(i))
 
+for i in env.Glob('libvis/*.cpp'):
+	env.src_files.append(env.Object(i))
+
 Export('env')

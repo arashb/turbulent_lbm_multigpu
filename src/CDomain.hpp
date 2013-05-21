@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 #include <iostream>
+#include "libmath/CVector.hpp"
+
 // simulation type
 typedef float T;
 //typedef double T;
