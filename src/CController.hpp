@@ -212,11 +212,11 @@ public:
 	}
 
 	void computeNextStep(){
+		cLbmPtr->simulationStep();
 		if (cLbmPtr->simulation_step_counter & 1)
 			syncBeta();
 		else
 			syncAlpha();
-		cLbmPtr->simulationStep();
 	}
 /*
  * This function starts the simulation for the particular subdomain corresponded to
@@ -419,13 +419,32 @@ public:
 		cStopwatch.start();
 		for (int i = 0; i < loops; i++)
 		{
-			// simulation
+			//simulation
 			if (do_visualization)
 				cLbmVisualization->render(i);
 			computeNextStep();
-			std::cout << "." << std::flush;
 
 		}
+
+//		if (do_visualization)
+//			cLbmVisualization->render(0);
+//		syncAlpha();
+//		if (do_visualization)
+//			cLbmVisualization->render(1);
+//		cLbmPtr->simulationStepBeta();
+//		if (do_visualization)
+//			cLbmVisualization->render(2);
+//		syncBeta();
+//		if (do_visualization)
+//			cLbmVisualization->render(3);
+//		cLbmPtr->simulationStepAlpha();
+//		if (do_visualization)
+//			cLbmVisualization->render(4);
+//		syncAlpha();
+//		if (do_visualization)
+//			cLbmVisualization->render(5);
+//		std::cout << "." << std::flush;
+
 		cLbm.wait();
 		cStopwatch.stop();
 

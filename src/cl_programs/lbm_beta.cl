@@ -3,7 +3,7 @@
 
 #define CACHED_ACCESS		0
 
-#define USE_SHARED_MEMORY	1
+#define USE_SHARED_MEMORY	0
 
 #include "src/cl_programs/lbm_header.h"
 
@@ -29,7 +29,8 @@ __kernel void lbm_kernel_beta(
 
 	// load cell type flag
 	const int flag = flag_array[gid];
-
+	if ( flag == FLAG_GHOST_LAYER)
+		return;
 	/**
 	 * we use a pointer instead of accessing the array directly
 	 * first this reduces the number of use registers (according to profiling information)

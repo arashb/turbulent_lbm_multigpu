@@ -386,7 +386,8 @@ public:
 		cProgramDefinesPostfixString += charbuf;
 		cProgramDefinesPostfixString +=  ")";
 
-		cProgramCompileOptionsString = "-Werror -I./";
+		//cProgramCompileOptionsString = "-Werror -I./";
+		cProgramCompileOptionsString = "-I./";
 		if (cLbmKernelBeta_MaxRegisters != 0)
 		{
 			/* TODO: check for cl_nv_compiler_options extension */
@@ -483,6 +484,28 @@ public:
 			std::cout << "OK" << std::endl;
 	}
 
+	void simulationStepAlpha() {
+		if ( debug)
+			std::cout << "computing alpha" << std::endl;
+		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelAlpha,	// kernel
+				1,						// dimensions
+				NULL,					// global work offset
+				&cLbmKernelAlpha_GlobalWorkGroupSize,
+				&cLbmKernelAlpha_WorkGroupSize
+		);
+	}
+
+	void simulationStepBeta() {
+		if ( debug)
+			std::cout << "computing beta" << std::endl;
+		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelBeta,	// kernel
+				1,						// dimensions
+				NULL,					// global work offset
+				&cLbmKernelBeta_GlobalWorkGroupSize,
+				&cLbmKernelBeta_WorkGroupSize
+		);
+	}
+
 	/**
 	 * start one simulation step (enqueue kernels)
 	 */
@@ -491,28 +514,13 @@ public:
 		/*
 		 * collision kernels are inserted as 1d kernels because they work cell wise without neighboring information
 		 */
-
 		if (simulation_step_counter & 1)
 		{
-			if ( debug)
-				std::cout << "computing alpha" << std::endl;
-			cCommandQueue.enqueueNDRangeKernel(	cLbmKernelAlpha,	// kernel
-												1,						// dimensions
-												NULL,					// global work offset
-												&cLbmKernelAlpha_GlobalWorkGroupSize,
-												&cLbmKernelAlpha_WorkGroupSize
-							);
+			simulationStepAlpha();
 		}
 		else
 		{
-			if ( debug)
-				std::cout << "computing beta" << std::endl;
-			cCommandQueue.enqueueNDRangeKernel(	cLbmKernelBeta,	// kernel
-												1,						// dimensions
-												NULL,					// global work offset
-												&cLbmKernelBeta_GlobalWorkGroupSize,
-												&cLbmKernelBeta_WorkGroupSize
-							);
+			simulationStepBeta();
 		}
 		cCommandQueue.enqueueBarrier();
 
