@@ -642,7 +642,7 @@ public:
 				current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
 				for (int i = 0; i < SIZE_DD_HOST; i++) {
 					// copying fi components
-					if( norm.dotProd(lbm_units[i]) != 0 ) {
+					if( norm.dotProd(lbm_units[i]) > 0 ) {
 					cCommandQueue.enqueueCopyBuffer(cBuffer,
 							cMemDensityDistributions,
 							(current_dst_offset + i * total_block_el)*sizeof(T),
