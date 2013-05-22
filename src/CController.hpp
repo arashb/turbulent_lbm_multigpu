@@ -28,10 +28,11 @@
 #include "CLbmSolver.hpp"
 #include "libvis/ILbmVisualization.hpp"
 #include "libvis/CLbmVisualizationVTK.hpp"
+#include "CComm.hpp"
 #include "common.h"
 
 #include <list>
-
+#include <vector>
 // simulation type
 typedef float T;
 //typedef double T;
@@ -52,6 +53,7 @@ class CController
 	ILbmVisualization<T>* cLbmVisualization; ///< Visualization class
 	CLbmSolver<T> *cLbmPtr;
 	int _BC[3][2]; 		///< Boundary conditions. First index specifies the dimension and second the upper or the lower boundary.
+	std::vector< CComm<T>* > _comm_list;
 
 	T vector_checksum;
 
@@ -90,58 +92,63 @@ public:
 			std::cout << "sync alpha." << std::endl;
 		// TODO: the data related to communication is hardcoded here.
 		// This should change in a way to get this data from a Communication Type Object
-		CVector<3,int> send_size(1,_domain.getSize()[1],_domain.getSize()[2]);
-		CVector<3,int> recv_size(1,_domain.getSize()[1],_domain.getSize()[2]);
-		CVector<3,int> send_origin;
-		CVector<3,int> recv_origin;
-		if (_UID == 0) {
-			send_origin[0] = _domain.getSize()[0] - 2;
-			send_origin[1] = 0;
-			send_origin[2] = 0;
-			recv_origin[0] = _domain.getSize()[0] - 1;
-			recv_origin[1] = 0;
-			recv_origin[2] = 0;
-		}else if ( _UID == 1) {
-			send_origin[0] = 1;
-			send_origin[1] = 0;
-			send_origin[2] = 0;
-			recv_origin[0] = 0;
-			recv_origin[1] = 0;
-			recv_origin[2] = 0;
+//		CVector<3,int> send_size(1,_domain.getSize()[1],_domain.getSize()[2]);
+//		CVector<3,int> recv_size(1,_domain.getSize()[1],_domain.getSize()[2]);
+//		CVector<3,int> send_origin;
+//		CVector<3,int> recv_origin;
+//		if (_UID == 0) {
+//			send_origin[0] = _domain.getSize()[0] - 2;
+//			send_origin[1] = 0;
+//			send_origin[2] = 0;
+//			recv_origin[0] = _domain.getSize()[0] - 1;
+//			recv_origin[1] = 0;
+//			recv_origin[2] = 0;
+//		}else if ( _UID == 1) {
+//			send_origin[0] = 1;
+//			send_origin[1] = 0;
+//			send_origin[2] = 0;
+//			recv_origin[0] = 0;
+//			recv_origin[1] = 0;
+//			recv_origin[2] = 0;
+//		}
+
+		typename std::vector< CComm<T>* >::iterator it = _comm_list.begin();
+		for( ;it != _comm_list.end(); it++){
+			CVector<3,int> send_size = (*it)->getSendSize();
+			CVector<3,int> recv_size = (*it)->getRecvSize();
+			CVector<3,int> send_origin = (*it)->getSendOrigin();
+			CVector<3,int> recv_origin = (*it)->getRecvOrigin();
+			int dst_rank = (*it)->getDstId();
+
+			// send buffer
+			int send_buffer_size = send_size.elements()*cLbmPtr->SIZE_DD_HOST;
+			int recv_buffer_size = recv_size.elements()*cLbmPtr->SIZE_DD_HOST;
+			T* send_buffer = new T[send_buffer_size];
+			T* recv_buffer = new T[recv_buffer_size];
+
+			MPI_Request req[2];
+			MPI_Status status[2];
+
+			// Download data from device to host
+			cLbmPtr->storeDensityDistribution(send_buffer, send_origin, send_size);
+			//cLbmPtr->wait();
+			int my_rank, num_procs;
+			MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
+			MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
+
+
+
+			// TODO: check the MPI_TYPE
+			MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[0]);
+			MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[1]);
+			MPI_Waitall(2, req, status );
+
+			cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size);
+			cLbmPtr->wait();
+
+			delete send_buffer;
+			delete recv_buffer;
 		}
-
-		// send buffer
-		int send_buffer_size = send_size.elements()*cLbmPtr->SIZE_DD_HOST;
-		int recv_buffer_size = recv_size.elements()*cLbmPtr->SIZE_DD_HOST;
-		T* send_buffer = new T[send_buffer_size];
-		T* recv_buffer = new T[recv_buffer_size];
-
-		MPI_Request req[2];
-		MPI_Status status[2];
-
-		// Download data from device to host
-		cLbmPtr->storeDensityDistribution(send_buffer, send_origin, send_size);
-		//cLbmPtr->wait();
-		int my_rank, num_procs;
-		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
-		MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
-
-		int dst_rank;
-		if (my_rank == 0) {
-			dst_rank = 1;
-		} else if ( my_rank == 1)
-			dst_rank = 0;
-
-		// TODO: check the MPI_TYPE
-		MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[0]);
-		MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[1]);
-		MPI_Waitall(2, req, status );
-
-		cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size);
-		cLbmPtr->wait();
-
-		delete send_buffer;
-		delete recv_buffer;
 	}
 
 	void syncBeta() {
@@ -150,65 +157,72 @@ public:
 
 		// TODO: the data related to communication is hard coded here.
 		// This should change in a way to get this data from a Communication Type Object
-		CVector<3,int> send_size(1,_domain.getSize()[1],_domain.getSize()[2]);
-		CVector<3,int> recv_size(1,_domain.getSize()[1],_domain.getSize()[2]);
-		CVector<3,int> send_origin;
-		CVector<3,int> recv_origin;
-		if (_UID == 0) {
-			send_origin[0] = _domain.getSize()[0] - 1;
-			send_origin[1] = 0;
-			send_origin[2] = 0;
-			recv_origin[0] = _domain.getSize()[0] - 2;
-			recv_origin[1] = 0;
-			recv_origin[2] = 0;
-		}else if ( _UID == 1) {
-			send_origin[0] = 0;
-			send_origin[1] = 0;
-			send_origin[2] = 0;
-			recv_origin[0] = 1;
-			recv_origin[1] = 0;
-			recv_origin[2] = 0;
+//		CVector<3,int> send_size(1,_domain.getSize()[1],_domain.getSize()[2]);
+//		CVector<3,int> recv_size(1,_domain.getSize()[1],_domain.getSize()[2]);
+//		CVector<3,int> send_origin;
+//		CVector<3,int> recv_origin;
+//		if (_UID == 0) {
+//			send_origin[0] = _domain.getSize()[0] - 1;
+//			send_origin[1] = 0;
+//			send_origin[2] = 0;
+//			recv_origin[0] = _domain.getSize()[0] - 2;
+//			recv_origin[1] = 0;
+//			recv_origin[2] = 0;
+//		}else if ( _UID == 1) {
+//			send_origin[0] = 0;
+//			send_origin[1] = 0;
+//			send_origin[2] = 0;
+//			recv_origin[0] = 1;
+//			recv_origin[1] = 0;
+//			recv_origin[2] = 0;
+//		}
+
+//		CVector<3,int> normal;
+//		if (_UID == 0)
+//			normal[0] = -1; // (-1, 0, 0)
+//		else if (_UID == 1)
+//			normal[0] = 1;  // (1, 0, 0)
+
+		typename std::vector< CComm<T>* >::iterator it = _comm_list.begin();
+		for( ;it != _comm_list.end(); it++) {
+			// the send and receive values in beta sync is the opposite values of
+			// Comm instance related to current communication, since the ghost layer data
+			// will be sent back to their origin
+			CVector<3,int> send_size = (*it)->getRecvSize();
+			CVector<3,int> recv_size = (*it)->getSendSize();;
+			CVector<3,int> send_origin = (*it)->getRecvOrigin();
+			CVector<3,int> recv_origin = (*it)->getSendOrigin();
+			CVector<3,int> normal = (*it)->getNormal();
+			int dst_rank = (*it)->getDstId();
+
+			// send buffer
+			int send_buffer_size = send_size.elements()*cLbmPtr->SIZE_DD_HOST;
+			int recv_buffer_size = recv_size.elements()*cLbmPtr->SIZE_DD_HOST;
+			T* send_buffer = new T[send_buffer_size];
+			T* recv_buffer = new T[recv_buffer_size];
+
+			MPI_Request req[2];
+			MPI_Status status[2];
+
+			// Download data from device to host
+			cLbmPtr->storeDensityDistribution(send_buffer, send_origin, send_size);
+			//cLbmPtr->wait();
+			int my_rank, num_procs;
+			MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
+			MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
+
+			// TODO: check the MPI_TYPE
+			MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[0]);
+			MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[1]);
+			MPI_Waitall(2, req, status );
+
+			// TODO: OPTI: you need to wait only for receiving to execute following command
+			cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size, normal);
+			cLbmPtr->wait();
+
+			delete send_buffer;
+			delete recv_buffer;
 		}
-
-		CVector<3,int> normal;
-		if (_UID == 0)
-			normal[0] = -1; // (-1, 0, 0)
-		else if (_UID == 1)
-			normal[0] = 1;  // (1, 0, 0)
-
-		// send buffer
-		int send_buffer_size = send_size.elements()*cLbmPtr->SIZE_DD_HOST;
-		int recv_buffer_size = recv_size.elements()*cLbmPtr->SIZE_DD_HOST;
-		T* send_buffer = new T[send_buffer_size];
-		T* recv_buffer = new T[recv_buffer_size];
-
-		MPI_Request req[2];
-		MPI_Status status[2];
-
-		// Download data from device to host
-		cLbmPtr->storeDensityDistribution(send_buffer, send_origin, send_size);
-		//cLbmPtr->wait();
-		int my_rank, num_procs;
-		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
-		MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
-
-		int dst_rank;
-		if (my_rank == 0) {
-			dst_rank = 1;
-		} else if (my_rank == 1)
-			dst_rank = 0;
-
-		// TODO: check the MPI_TYPE
-		MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[0]);
-		MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[1]);
-		MPI_Waitall(2, req, status );
-
-		// TODO: OPTI: you need to wait only for receiving to execute following command
-		cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size, normal);
-		cLbmPtr->wait();
-
-		delete send_buffer;
-		delete recv_buffer;
 	}
 
 	void computeNextStep(){
