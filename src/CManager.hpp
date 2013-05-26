@@ -90,10 +90,6 @@ public:
 
 
 	void initSimulation(int my_rank) {
-//
-//		if(!_domain || !_subdomain_nums)
-//			throw "CManager: no domain or number of subdomains are specified!";
-
 		// initialize the boundary condition
 		int BC[3][2] = { /* x BC */FLAG_GHOST_LAYER,FLAG_GHOST_LAYER,
 				/* y BC */FLAG_GHOST_LAYER,FLAG_GHOST_LAYER,
@@ -101,8 +97,8 @@ public:
 
 		int id = 0;
 		// TODO: OPTIMIZATION: for huge number of subdomains three nested loops is slow.
-		for( int nz = 0; nz < _subdomain_nums[2]; )
-			for ( int ny = 0; ny < _subdomain_nums[1]; ny++ )
+		for( int nz = 0; nz < _subdomain_nums[2]; nz++) {
+			for ( int ny = 0; ny < _subdomain_nums[1]; ny++ ) {
 				for( int nx = 0; nx < _subdomain_nums[0]; nx++)
 				{
 					if ( id == my_rank)
@@ -112,30 +108,86 @@ public:
 						CDomain<T> *subdomain = new CDomain<T>(id, _subdomain_size, origin, _subdomain_length);
 						//_subdomains_container[id] = subdomain;
 
+						// Setting the boundary conditions for the current Controller
 						if ( nx == 0 )
 							BC[0][0] = FLAG_OBSTACLE;
-						else if (nx == ( _subdomain_nums[0] - 1 ))
+						if (nx == ( _subdomain_nums[0] - 1 ))
 							BC[0][1] = FLAG_OBSTACLE;
 
 						if ( ny == 0 )
 							BC[1][0] = FLAG_OBSTACLE;
-						else if (ny == ( _subdomain_nums[1] - 1 ))
+						if (ny == ( _subdomain_nums[1] - 1 ))
 							BC[1][1] = FLAG_OBSTACLE;
 
 						if ( nz == 0 )
 							BC[2][0] = FLAG_OBSTACLE;
-						else if (nz == ( _subdomain_nums[2] - 1 ))
+						if (nz == ( _subdomain_nums[2] - 1 ))
 							BC[2][1] = FLAG_OBSTACLE;
 
 						_lbm_controller = new CController<T>(id,*subdomain);
 						_lbm_controller->setBC(BC);
 
-						// TODO: initialize the Controller communication classes
-
+						// Initializing the Controller's communication classes based on the already computed boundary conditions
+						if (BC[0][0] == FLAG_GHOST_LAYER) {
+							int comm_destination = id - 1;
+							CVector<3,int> send_size(1,_subdomain_size[1],_subdomain_size[2]);
+							CVector<3,int> recv_size(1,_subdomain_size[1],_subdomain_size[2]);
+							CVector<3,int> send_origin(1,0,0);
+							CVector<3,int> recv_origin(0,0,0);
+							CVector<3,int> comm_direction(1,0,0);
+							_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+						}
+						if (BC[0][1] == FLAG_GHOST_LAYER) {
+							int comm_destination = id + 1;
+							CVector<3,int> send_size(1,_subdomain_size[1],_subdomain_size[2]);
+							CVector<3,int> recv_size(1,_subdomain_size[1],_subdomain_size[2]);
+							CVector<3,int> send_origin(_subdomain_size[0] - 2, 0, 0);
+							CVector<3,int> recv_origin(_subdomain_size[0] - 1, 0, 0);
+							CVector<3,int> comm_direction(-1,0,0);
+							_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+						}
+						if (BC[1][0] == FLAG_GHOST_LAYER) {
+							int comm_destination = id - _subdomain_nums[0];
+							CVector<3,int> send_size(_subdomain_size[0], 1, _subdomain_size[2]);
+							CVector<3,int> recv_size(_subdomain_size[0], 1, _subdomain_size[2]);
+							CVector<3,int> send_origin(0,1,0);
+							CVector<3,int> recv_origin(0,0,0);
+							CVector<3,int> comm_direction(0,1,0);
+							_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+						}
+						if (BC[1][1] == FLAG_GHOST_LAYER) {
+							int comm_destination = id + _subdomain_nums[0];
+							CVector<3,int> send_size(_subdomain_size[0], 1, _subdomain_size[2]);
+							CVector<3,int> recv_size(_subdomain_size[0], 1, _subdomain_size[2]);
+							CVector<3,int> send_origin(0, _subdomain_size[1] - 2, 0);
+							CVector<3,int> recv_origin(0, _subdomain_size[1] - 1, 0);
+							CVector<3,int> comm_direction(0,-1,0);
+							_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+						}
+						if (BC[2][0] == FLAG_GHOST_LAYER) {
+							int comm_destination = id - _subdomain_nums[0]*_subdomain_nums[1];
+							CVector<3,int> send_size(_subdomain_size[0], _subdomain_size[1], 1);
+							CVector<3,int> recv_size(_subdomain_size[0], _subdomain_size[1], 1);
+							CVector<3,int> send_origin(0,0,1);
+							CVector<3,int> recv_origin(0,0,0);
+							CVector<3,int> comm_direction(0,0,1);
+							_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+						}
+						if (BC[2][1] == FLAG_GHOST_LAYER) {
+							int comm_destination = id + _subdomain_nums[0]*_subdomain_nums[1];
+							CVector<3,int> send_size(_subdomain_size[0], _subdomain_size[1], 1);
+							CVector<3,int> recv_size(_subdomain_size[0], _subdomain_size[1], 1);
+							CVector<3,int> send_origin(0, 0, _subdomain_size[2] - 2);
+							CVector<3,int> recv_origin(0, 0, _subdomain_size[2] - 1);
+							CVector<3,int> comm_direction(0,0,-1);
+							_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+						}
 						return;
 					}
 					id++;
 				}
+			}
+		}
 	}
 
 	// TODO: implement this function to use the configuration singleton
@@ -175,10 +227,10 @@ public:
 
 			std::list<int> &lbm_opencl_number_of_threads_list,		///< List with number of threads for each successively created kernel
 			std::list<int> &lbm_opencl_number_of_registers_list		///< List with number of registers for each thread threads for each successively created kernel
-			) {
+			)
+	{
 		if(!_lbm_controller)
 			throw "CManager: Initialize the simulation before starting it!";
-
 		_lbm_controller->run(	debug,
 				gravitation,
 				viscosity,
@@ -193,7 +245,6 @@ public:
 				lbm_opencl_number_of_threads_list,
 				lbm_opencl_number_of_registers_list
 		);
-
 	}
 };
 #endif

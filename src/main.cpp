@@ -272,11 +272,10 @@ parameter_error_ok:
 		  if (!number_of_registers_string.empty())
 			  extract_comma_separated_integers(lbm_opencl_number_of_registers_list, number_of_registers_string);
 
-
 		  int my_rank, num_procs;
 		  MPI_Init(&argc, &argv);    /// Start MPI
 		  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
-		  MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
+		  MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// Get number of processes
 
 		  manager.initSimulation(my_rank);
 		  manager.startSimulation(	debug,

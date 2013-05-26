@@ -99,7 +99,7 @@ public:
 			CVector<3,int> send_origin = (*it)->getSendOrigin();
 			CVector<3,int> recv_origin = (*it)->getRecvOrigin();
 			int dst_rank = (*it)->getDstId();
-
+			std::cout << "ALPHA RANK: " << dst_rank << std::endl;
 			// send buffer
 			int send_buffer_size = send_size.elements()*cLbmPtr->SIZE_DD_HOST;
 			int recv_buffer_size = recv_size.elements()*cLbmPtr->SIZE_DD_HOST;
@@ -115,8 +115,6 @@ public:
 			int my_rank, num_procs;
 			MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
 			MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
-
-
 
 			// TODO: check the MPI_TYPE
 			MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[0]);
@@ -135,7 +133,7 @@ public:
 		if(debug_mode)
 			std::cout << "sync beta." << std::endl;
 
-		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking way.
+		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking form.
 		typename std::vector< CComm<T>* >::iterator it = _comm_container.begin();
 		for( ;it != _comm_container.end(); it++) {
 			// the send and receive values in beta sync is the opposite values of
@@ -145,9 +143,9 @@ public:
 			CVector<3,int> recv_size = (*it)->getSendSize();;
 			CVector<3,int> send_origin = (*it)->getRecvOrigin();
 			CVector<3,int> recv_origin = (*it)->getSendOrigin();
-			CVector<3,int> normal = (*it)->getNormal();
+			CVector<3,int> normal = (*it)->getCommDirection();
 			int dst_rank = (*it)->getDstId();
-
+			std::cout << "BETA RANK: " << dst_rank << std::endl;
 			// send buffer
 			int send_buffer_size = send_size.elements()*cLbmPtr->SIZE_DD_HOST;
 			int recv_buffer_size = recv_size.elements()*cLbmPtr->SIZE_DD_HOST;
@@ -169,7 +167,7 @@ public:
 			MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[1]);
 			MPI_Waitall(2, req, status );
 
-			// TODO: OPTI: you need to wait only for receiving to execute following command
+			// TODO: OPTIMIZATION: you need to wait only for receiving to execute following command
 			cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size, normal);
 			cLbmPtr->wait();
 
@@ -448,6 +446,10 @@ public:
 		for(int i = 0; i < 3; i++)
 			for (int j = 0; j < 2; j++)
 				_BC[i][j] = BC[i][j];
+	}
+
+	void addCommunication( CComm<T>* comm) {
+		_comm_container.push_back(comm);
 	}
 };
 

@@ -34,24 +34,9 @@ public:
 		int jmax = this->cLbmOpencl->domain_cells[1];
 		int kmax = this->cLbmOpencl->domain_cells[2];
 
-		// TODO: remove this part after debugging
-//		imax = 16;
-//		jmax = 16;
-//		kmax = 16;
-
-
 		int total_el = imax*jmax*kmax;
 
-		// load array from GPU
-		// TODO: remove this part after debugging
-		CVector<3,int> origin(16,16,16);
-		CVector<3,int> size(imax, jmax, kmax);
-
-		// TODO: remove this part after debugging
-//		this->cLbmOpencl->storeVelocity(this->velocity, origin, size);
-//		this->cLbmOpencl->storeDensity(this->density, origin, size);
-//		this->cLbmOpencl->storeFlags(this->flags, origin, size);
-
+		// load array from device
 		this->cLbmOpencl->storeVelocity(this->velocity);
 		this->cLbmOpencl->storeDensity(this->density);
 		this->cLbmOpencl->storeFlags(this->flags);
