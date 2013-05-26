@@ -31,6 +31,9 @@
 #include "CDomain.hpp"
 #include "CController.hpp"
 #include "common.h"
+#include "CManager.hpp"
+//#include "CConfiguration.hpp"
+//#include "Singleton.hpp"
 
 CVector<3,int> E0(1,0,0) 	;
 CVector<3,int> E1(-1,0,0)	;
@@ -61,6 +64,9 @@ CVector<3,int> lbm_units[] = {	E0,E1,E2,E3,
 		E12,E13,E14,E15,
 		E16,E17,E18
 };
+
+// TODO: use a singleton for storing the simulation configration data
+//typedef Singleton<CConfiguration<T> > ConfSingleton;   // Global declaration
 
 // simulation type
 typedef float T;
@@ -94,7 +100,7 @@ int main(int argc, char** argv)
 {
 	bool debug = false;
 
-	CVector<3,int> domain_size(64,32,32);
+	CVector<3,int> domain_size(32,32,32);
 	CVector<3,T> gravitation(0,-9.81,0);
 	T viscosity = 0.001308;
 	T timestep = -1.0;
@@ -249,29 +255,13 @@ parameter_error_ok:
 		  }
 
 	  } else {
+		  CVector<3,T> length(0.10,0.05,0.05);
+		  CVector<3,int> origin(0,0,0);
+		  CDomain<T> domain(-1, domain_size, origin, length);
 
-		  CVector<3,int> domain_size_1(32,32,32);
-		  CVector<3,int> domain_size_2(32,32,32);
-		  CVector<3,int> origin_1(0,0,0);
-		  CVector<3,int> origin_2(32,0,0);
-
-		  CVector<3,T> length(0.05,0.05,0.05);
-		  CDomain<T> domain_1(0, domain_size_1, origin_1, length);
-		  CDomain<T> domain_2(1, domain_size_2, origin_2, length);
-
-		  CController<T> lbmController1(0,domain_1);
-		  CController<T> lbmController2(1,domain_2);
-
-		  int BC1[3][2] = { /* x BC */FLAG_OBSTACLE,FLAG_GHOST_LAYER,
-				  	  	  	/* y BC */FLAG_OBSTACLE,FLAG_OBSTACLE,
-				  	  	  	/* z BC */FLAG_OBSTACLE,FLAG_OBSTACLE};
-
-		  int BC2[3][2] = { /* x BC */FLAG_GHOST_LAYER, FLAG_OBSTACLE,
-				  	  	  	/* y BC */FLAG_OBSTACLE,FLAG_OBSTACLE,
-				  	  	  	/* z BC */FLAG_OBSTACLE,FLAG_OBSTACLE};
-
-		  lbmController1.setBC(BC1);
-		  lbmController2.setBC(BC2);
+		  // TODO: get the number of subdomain for each dimension from user.
+		  CVector<3,int> subdomain_nums(2,1,1);
+		  CManager<T> manager(domain, subdomain_nums);
 
 		  std::list<int> lbm_opencl_number_of_registers_list;
 		  std::list<int> lbm_opencl_number_of_threads_list;
@@ -281,43 +271,29 @@ parameter_error_ok:
 
 		  if (!number_of_registers_string.empty())
 			  extract_comma_separated_integers(lbm_opencl_number_of_registers_list, number_of_registers_string);
+
+
 		  int my_rank, num_procs;
 		  MPI_Init(&argc, &argv);    /// Start MPI
 		  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
 		  MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
 
-		  if ( my_rank == 0)
-		  lbmController1.run(	debug,
-				  //domain_1,
-				  gravitation,
-				  viscosity,
-				  computation_kernel_count,
-				  device_nr,
-				  gui,
-				  pause,
-				  timestep,
-				  take_frame_screenshots,
-				  steps,
+		  manager.initSimulation(my_rank);
+		  manager.startSimulation(	debug,
+				  				  gravitation,
+				  				  viscosity,
+				  				  computation_kernel_count,
+				  				  device_nr,
+				  				  gui,
+				  				  pause,
+				  				  timestep,
+				  				  take_frame_screenshots,
+				  				  steps,
 
-				  lbm_opencl_number_of_threads_list,
-				  lbm_opencl_number_of_registers_list
-		  );
+				  				  lbm_opencl_number_of_threads_list,
+				  				  lbm_opencl_number_of_registers_list
+				  );
 
-		  if ( my_rank == 1 )
-		  lbmController2.run(	debug,
-				  gravitation,
-				  viscosity,
-				  computation_kernel_count,
-				  device_nr,
-				  gui,
-				  pause,
-				  timestep,
-				  take_frame_screenshots,
-				  steps,
-
-				  lbm_opencl_number_of_threads_list,
-				  lbm_opencl_number_of_registers_list
-		  );
 		  MPI_Finalize();    /// Cleanup MPI
 	  }
 

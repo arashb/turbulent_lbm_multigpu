@@ -53,7 +53,7 @@ class CController
 	ILbmVisualization<T>* cLbmVisualization; ///< Visualization class
 	CLbmSolver<T> *cLbmPtr;
 	int _BC[3][2]; 		///< Boundary conditions. First index specifies the dimension and second the upper or the lower boundary.
-	std::vector< CComm<T>* > _comm_list;
+	std::vector< CComm<T>* > _comm_container; ///< A std::Vector containing all the communcation objects for the subdomain
 
 	T vector_checksum;
 
@@ -90,30 +90,10 @@ public:
 	void syncAlpha() {
 		if(debug_mode)
 			std::cout << "sync alpha." << std::endl;
-		// TODO: the data related to communication is hardcoded here.
-		// This should change in a way to get this data from a Communication Type Object
-//		CVector<3,int> send_size(1,_domain.getSize()[1],_domain.getSize()[2]);
-//		CVector<3,int> recv_size(1,_domain.getSize()[1],_domain.getSize()[2]);
-//		CVector<3,int> send_origin;
-//		CVector<3,int> recv_origin;
-//		if (_UID == 0) {
-//			send_origin[0] = _domain.getSize()[0] - 2;
-//			send_origin[1] = 0;
-//			send_origin[2] = 0;
-//			recv_origin[0] = _domain.getSize()[0] - 1;
-//			recv_origin[1] = 0;
-//			recv_origin[2] = 0;
-//		}else if ( _UID == 1) {
-//			send_origin[0] = 1;
-//			send_origin[1] = 0;
-//			send_origin[2] = 0;
-//			recv_origin[0] = 0;
-//			recv_origin[1] = 0;
-//			recv_origin[2] = 0;
-//		}
 
-		typename std::vector< CComm<T>* >::iterator it = _comm_list.begin();
-		for( ;it != _comm_list.end(); it++){
+		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking way.
+		typename std::vector< CComm<T>* >::iterator it = _comm_container.begin();
+		for( ;it != _comm_container.end(); it++){
 			CVector<3,int> send_size = (*it)->getSendSize();
 			CVector<3,int> recv_size = (*it)->getRecvSize();
 			CVector<3,int> send_origin = (*it)->getSendOrigin();
@@ -155,36 +135,9 @@ public:
 		if(debug_mode)
 			std::cout << "sync beta." << std::endl;
 
-		// TODO: the data related to communication is hard coded here.
-		// This should change in a way to get this data from a Communication Type Object
-//		CVector<3,int> send_size(1,_domain.getSize()[1],_domain.getSize()[2]);
-//		CVector<3,int> recv_size(1,_domain.getSize()[1],_domain.getSize()[2]);
-//		CVector<3,int> send_origin;
-//		CVector<3,int> recv_origin;
-//		if (_UID == 0) {
-//			send_origin[0] = _domain.getSize()[0] - 1;
-//			send_origin[1] = 0;
-//			send_origin[2] = 0;
-//			recv_origin[0] = _domain.getSize()[0] - 2;
-//			recv_origin[1] = 0;
-//			recv_origin[2] = 0;
-//		}else if ( _UID == 1) {
-//			send_origin[0] = 0;
-//			send_origin[1] = 0;
-//			send_origin[2] = 0;
-//			recv_origin[0] = 1;
-//			recv_origin[1] = 0;
-//			recv_origin[2] = 0;
-//		}
-
-//		CVector<3,int> normal;
-//		if (_UID == 0)
-//			normal[0] = -1; // (-1, 0, 0)
-//		else if (_UID == 1)
-//			normal[0] = 1;  // (1, 0, 0)
-
-		typename std::vector< CComm<T>* >::iterator it = _comm_list.begin();
-		for( ;it != _comm_list.end(); it++) {
+		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking way.
+		typename std::vector< CComm<T>* >::iterator it = _comm_container.begin();
+		for( ;it != _comm_container.end(); it++) {
 			// the send and receive values in beta sync is the opposite values of
 			// Comm instance related to current communication, since the ghost layer data
 			// will be sent back to their origin
@@ -418,18 +371,7 @@ public:
 			cLbmVisualization->setup(cLbm);
 		}
 
-//		for (int i = 0; i < loops/10; i++)
-//		{
-//			// simulation
-//			computeNextStep();
-//			std::cout << "." << std::flush;
-//			if (do_visualization)
-//				cLbmVisualization->render(i);
-//
-//		}
-//		std::cout << "|" << std::flush;
-//		cLbm.wait();
-
+#if NDEBUG
 		cStopwatch.start();
 		for (int i = 0; i < loops; i++)
 		{
@@ -439,6 +381,7 @@ public:
 			computeNextStep();
 
 		}
+#else
 
 //		if (do_visualization)
 //			cLbmVisualization->render(0);
@@ -459,6 +402,7 @@ public:
 //			cLbmVisualization->render(5);
 //		std::cout << "." << std::flush;
 
+#endif
 		cLbm.wait();
 		cStopwatch.stop();
 
