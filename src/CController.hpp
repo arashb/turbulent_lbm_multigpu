@@ -85,7 +85,7 @@ class CController
 	int initLBMSolver() {
 
 #if DEBUG
-			std::cout << "domain size: " << domain_size << std::endl;
+			//std::cout << "domain size: " << _domain.getSize() << std::endl;
 		// load platform information
 			std::cout << "loading platforms" << std::endl;
 #endif
@@ -181,9 +181,9 @@ class CController
 		// load information about first device - e.g. max_work_group_size
 #if DEBUG
 		std::cout << "loading device information" << std::endl;
-		CCL::CDeviceInfo cDeviceInfo(cDevice);
+		CCL::CDeviceInfo cDeviceInfo(*cDevice);
 
-		std::cout << "Device " << (device_nr) << ":" << std::endl;
+		std::cout << "Device " << (ConfigSingleton::Instance()->device_nr) << ":" << std::endl;
 		std::cout << "        Name: " << cDeviceInfo.name << std::endl;
 		std::cout << "     Profile: " << cDeviceInfo.profile << std::endl;
 		std::cout << "     Version: " << cDeviceInfo.version << std::endl;
@@ -203,7 +203,7 @@ class CController
 				ConfigSingleton::Instance()->gravitation,	// gravitation vector
 				ConfigSingleton::Instance()->viscosity,
 				ConfigSingleton::Instance()->computation_kernel_count,
-				ConfigSingleton::Instance()->debug_mode,
+				//ConfigSingleton::Instance()->debug_mode,
 				ConfigSingleton::Instance()->do_visualization || ConfigSingleton::Instance()->debug_mode,
 				ConfigSingleton::Instance()->do_visualization || ConfigSingleton::Instance()->debug_mode,
 				ConfigSingleton::Instance()->timestep,
@@ -226,15 +226,15 @@ class CController
 
 public:
 
-	CController(int UID, CDomain<T> domain)	:
-		cLbmVisualization(NULL),
+	CController(int UID, CDomain<T> domain, int BC[3][2])	:
 		_UID(UID),
-		_domain(domain)
+		_domain(domain),
+		cLbmVisualization(NULL)
 	{
-		// default boundary conditions is obstacle
+		// TODO: set the default boundary conditions to obstacle
 		for(int i = 0; i < 3; i++)
 			for (int j = 0; j < 2; j++)
-				_BC[i][j] = FLAG_OBSTACLE;
+				_BC[i][j] = BC[i][j];
 
 		// init the LBMSolver
 		initLBMSolver();
@@ -349,12 +349,11 @@ public:
 	int run()
 	{
 		CVector<3,int> domain_size = _domain.getSize();
-		T domain_length = _domain.getLength()[0];
 		int loops = ConfigSingleton::Instance()->loops;
 		if (loops < 0)
 			loops = 100;
-		//
-		int res = initLBMSolver();
+
+		//int res = initLBMSolver();
 		vector_checksum = 0;
 
 		// approximate bandwidth
@@ -380,7 +379,7 @@ public:
 			cLbmVisualization->setup(cLbmPtr);
 		}
 
-#if NDEBUG
+
 		cStopwatch.start();
 		for (int i = 0; i < loops; i++)
 		{
@@ -390,7 +389,7 @@ public:
 			computeNextStep();
 
 		}
-#else
+
 
 //		if (do_visualization)
 //			cLbmVisualization->render(0);
@@ -411,7 +410,7 @@ public:
 //			cLbmVisualization->render(5);
 //		std::cout << "." << std::flush;
 
-#endif
+
 		cLbmPtr->wait();
 		cStopwatch.stop();
 
@@ -419,7 +418,6 @@ public:
 
 		if (domain_size.elements() <= 512) {
 #if DEBUG
-			if (debug_mode)
 				cLbmPtr->debug_print();
 #endif
 		}
@@ -441,7 +439,7 @@ public:
 
 #if DEBUG
 			// The velocity checksum is only stored in debug mode!
-			vector_checksum = cLbm.getVelocityChecksum();
+			vector_checksum = cLbmPtr->getVelocityChecksum();
 			std::cout << "Checksum: " << (vector_checksum*1000.0f) << std::endl;
 #endif
 
@@ -454,11 +452,11 @@ public:
 		return EXIT_SUCCESS;
 	}
 
-	void setBC(int BC[3][2]) {
-		for(int i = 0; i < 3; i++)
-			for (int j = 0; j < 2; j++)
-				_BC[i][j] = BC[i][j];
-	}
+//	void setBC(int BC[3][2]) {
+//		for(int i = 0; i < 3; i++)
+//			for (int j = 0; j < 2; j++)
+//				_BC[i][j] = BC[i][j];
+//	}
 
 	void addCommunication( CComm<T>* comm) {
 		_comm_container.push_back(comm);
@@ -477,7 +475,7 @@ public:
 		std::cout << "GEOMETRY: " << size << std::endl;
 		int * src = new int[size.elements()];
 		for( int i = 0; i < size.elements(); i++)
-			src[i] = 220;
+			src[i] = FLAG_VELOCITY_INJECTION;
 		cLbmPtr->setFlags(src,origin,size);
 
 	}

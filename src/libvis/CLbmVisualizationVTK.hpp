@@ -20,7 +20,7 @@ public:
 		_timeStepNumber = -1;
 	}
 
-	void setup(CLbmSolver<T> &p_cLbmOpencl) {
+	void setup(CLbmSolver<T> *p_cLbmOpencl) {
 		ILbmVisualization<T>::setup(p_cLbmOpencl);
 	}
 

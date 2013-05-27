@@ -116,8 +116,6 @@ private:
 	bool store_velocity;	// store velocity for visualization
 	bool store_density;
 
-	bool debug;		// output debug informations
-
 public:
 	size_t simulation_step_counter;
 	CError error;
@@ -138,7 +136,7 @@ public:
 				CVector<3,T> &p_d_gravitation,
 				T p_d_viscosity,
 				size_t p_computation_kernel_count,
-				bool p_debug,
+				//bool p_debug,
 				bool p_store_velocity,
 				bool p_store_density,
 				T p_d_timestep,
@@ -146,8 +144,8 @@ public:
 				std::list<int> &p_lbm_opencl_number_of_work_items_list,		///< list with number of threads for each successively created kernel
 				std::list<int> &p_lbm_opencl_number_of_registers_list		///< list with number of registers for each thread threads for each successively created kernel
 		) :CLbmSkeleton<T>(domain),
-		_UID(UID),
 		drivenCavityVelocity(100.0, 0, 0, 1),
+		_UID(UID),
 		cCommandQueue(p_cCommandQueue),
 		cContext(p_cContext),
 		cDevice(p_cDevice),
@@ -164,7 +162,7 @@ public:
 
 		store_velocity = p_store_velocity;
 		store_density = p_store_density;
-		debug = p_debug;
+		//debug = p_debug;
 
 		// setting the boundary conditions
 		for(int i = 0; i < 3; i++)
@@ -277,9 +275,9 @@ public:
 		if (store_density)
 			cl_program_defines << "#define STORE_DENSITY 1" << std::endl;
 
-		if (debug)
+#if DEBUG
 			std::cout << cl_program_defines.str() << std::endl;
-
+#endif
 		/*
 		 * ALLOCATE BUFFERS
 		 */
@@ -293,12 +291,13 @@ public:
 		for(int i = 0; i < 3; i++)
 			for(int j = 0; j < 2; j++)
 				bc_linear[i*2+j] = _BC[i][j];
-		if (debug) {
+
+#if DEBUG
 			std::cout << "BOUNDARY CONDITION: "<< std::endl;
 			for(int i = 0; i < 6; i++)
 				std::cout << " " << bc_linear[i];
 			std::cout << std::endl;
-		}
+#endif
 		cMemBC.create(cContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR , sizeof(cl_int)*6, bc_linear);
 
 		/**
@@ -342,9 +341,9 @@ public:
 			error << cProgramInit.error.getString() << CError::endl;
 			return;
 		}
-		if (debug)
+#if DEBUG
 			std::cout << "KernelInit:	local_work_group_size: " << cKernelInit_WorkGroupSize << "		max_registers: " << cKernelInit_MaxRegisters << std::endl;
-
+#endif
 
 		/*
 		 * ALPHA
@@ -376,9 +375,9 @@ public:
 			error << cProgramAlpha.error.getString() << CError::endl;
 			return;
 		}
-		if (debug)
+#if DEBUG
 			std::cout << "KernelAlpha:	local_work_group_size: " << cLbmKernelAlpha_WorkGroupSize << "		max_registers: " << cLbmKernelAlpha_MaxRegisters << std::endl;
-
+#endif
 		/*
 		 * BETA
 		 */
@@ -410,22 +409,23 @@ public:
 
 			return;
 		}
-		if (debug)
+#if DEBUG
 			std::cout << "KernelBeta:	local_work_group_size: " << cLbmKernelBeta_WorkGroupSize << "		max_registers: " << cLbmKernelBeta_MaxRegisters << std::endl;
-
+#endif
 		/**
 		 * create kernels and setup arguments
 		 */
 		CVector<4,T> paramDrivenCavityVelocity = drivenCavityVelocity;
 		paramDrivenCavityVelocity *= CLbmSkeleton<T>::d_timestep;
 
-		if (debug)
+#if DEBUG
 		{
 			std::cout << "driven cavity velocity: " << paramDrivenCavityVelocity << std::endl;
 			std::cout << "inverse tau: " << this->inv_tau << std::endl;
 			std::cout << "d_timestep: " << this->d_timestep << std::endl;
 			std::cout << "gravitaton: " << this->gravitation << std::endl;
 		}
+#endif
 		/**
 		 * SETUP ARGUMENTS
 		 */
@@ -469,9 +469,9 @@ public:
 	{
 		simulation_step_counter = 0;
 
-		if (debug)
+#if DEBUG
 			std::cout << "Init Simulation: " << std::flush;
-
+#endif
 		cCommandQueue.enqueueNDRangeKernel(	cKernelInit,	// kernel
 											1,				// dimensions
 											NULL,			// global work offset
@@ -481,13 +481,15 @@ public:
 
 		cCommandQueue.enqueueBarrier();
 
-		if (debug)
+#if DEBUG
 			std::cout << "OK" << std::endl;
+#endif
 	}
 
 	void simulationStepAlpha() {
-		if ( debug)
+#if DEBUG
 			std::cout << "computing alpha" << std::endl;
+#endif
 		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelAlpha,	// kernel
 				1,						// dimensions
 				NULL,					// global work offset
@@ -497,8 +499,9 @@ public:
 	}
 
 	void simulationStepBeta() {
-		if ( debug)
+#if DEBUG
 			std::cout << "computing beta" << std::endl;
+#endif
 		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelBeta,	// kernel
 				1,						// dimensions
 				NULL,					// global work offset
@@ -700,7 +703,6 @@ public:
 		const int total_el = this->domain_cells_count;
 		const int total_block_el = size.elements();
 
-		int dst_offset = 0;
 		size_t byte_size = size[0]*sizeof(T);
 		size_t current_src_offset;
 		size_t current_dst_offset = 0;
@@ -764,7 +766,6 @@ public:
 		const int total_el = this->domain_cells_count;
 		const int total_block_el = size.elements();
 
-		int dst_offset = 0;
 		size_t byte_size = size[0]*sizeof(T);
 		size_t current_src_offset;
 		size_t current_dst_offset = 0;

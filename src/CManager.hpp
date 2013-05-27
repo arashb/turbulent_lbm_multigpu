@@ -82,7 +82,7 @@ public:
 		_subdomain_length[2] = domain_length[2] / _subdomain_nums[2];
 
 #if DEBUG
-		std::cout << "NUMBER OF SUBDOMAINS: " << _subdo_subdomain_nums << std::endl;
+		std::cout << "NUMBER OF SUBDOMAINS: " << _subdomain_nums << std::endl;
 		std::cout << "SUBDOMAIN_SIZE: " << _subdomain_size << std::endl;
 		std::cout << "SUBDOMAIN_LENGTHS: " << _subdomain_length << std::endl;
 #endif
@@ -91,9 +91,10 @@ public:
 
 	void initSimulation(int my_rank) {
 		// initialize the boundary condition
-		int BC[3][2] = { /* x BC */FLAG_GHOST_LAYER,FLAG_GHOST_LAYER,
-				/* y BC */FLAG_GHOST_LAYER,FLAG_GHOST_LAYER,
-				/* z BC */FLAG_GHOST_LAYER,FLAG_GHOST_LAYER};
+		int BC[3][2] = { /* x BC */{FLAG_GHOST_LAYER,FLAG_GHOST_LAYER},
+						/* y BC */{FLAG_GHOST_LAYER,FLAG_GHOST_LAYER},
+						/* z BC */{FLAG_GHOST_LAYER,FLAG_GHOST_LAYER}
+		};
 
 		int id = 0;
 		// TODO: OPTIMIZATION: for huge number of subdomains three nested loops is slow.
@@ -124,8 +125,7 @@ public:
 						if (nz == ( _subdomain_nums[2] - 1 ))
 							BC[2][1] = FLAG_OBSTACLE;
 
-						_lbm_controller = new CController<T>(id,*subdomain);
-						_lbm_controller->setBC(BC);
+						_lbm_controller = new CController<T>(id,*subdomain,BC);
 
 						// Initializing the Controller's communication classes based on the already computed boundary conditions
 						if (BC[0][0] == FLAG_GHOST_LAYER) {
@@ -192,7 +192,6 @@ public:
 				}
 			}
 		}
-
 	}
 
 	void startSimulation() {

@@ -29,11 +29,7 @@ struct CLbmSolverFixture
 		T viscosity = 0.001308;
 		T timestep = -1.0;
 		int steps = -1;
-
 		bool gui = false;
-		bool pause = false;
-		bool take_frame_screenshots = false;
-		bool unit_test = false;
 		size_t computation_kernel_count = 128;
 		int device_nr = 0;
 
@@ -159,7 +155,6 @@ struct CLbmSolverFixture
 			std::cout << "creating command queue" << std::endl;
 		CCL::CCommandQueue cCommandQueue(cContext, cDevice);
 
-		T domain_length = 0.05;
 		int BC[3][2];
 		// INIT LATTICE BOLTZMANN!
 		 cLbm = new CLbmSolver<T>(	0, cCommandQueue,
@@ -167,12 +162,9 @@ struct CLbmSolverFixture
 							cDevice,
 							BC,
 							domain,
-							//domain_size, // domain size
-							//domain_length, // length of domain size in x direction
 							gravitation, // gravitation vector
 							viscosity,
 							computation_kernel_count,
-							debug_mode,
 							gui || debug_mode,
 							gui || debug_mode,
 							timestep,
@@ -278,9 +270,6 @@ struct CLbmSolverFixtureWrite {
 		int steps = -1;
 
 		bool gui = false;
-		bool pause = false;
-		bool take_frame_screenshots = false;
-		bool unit_test = false;
 		size_t computation_kernel_count = 128;
 		int device_nr = 0;
 
@@ -406,7 +395,6 @@ struct CLbmSolverFixtureWrite {
 			std::cout << "creating command queue" << std::endl;
 		CCL::CCommandQueue cCommandQueue(cContext, cDevice);
 
-		T domain_length = 0.05;
 		int BC[3][2];
 		// INIT LATTICE BOLTZMANN!
 		 cLbm = new CLbmSolver<T>(	0, cCommandQueue,
@@ -414,12 +402,9 @@ struct CLbmSolverFixtureWrite {
 							cDevice,
 							BC,
 							domain,
-							//domain_size, // domain size
-							//domain_length, // length of domain size in x direction
 							gravitation, // gravitation vector
 							viscosity,
 							computation_kernel_count,
-							debug_mode,
 							gui || debug_mode,
 							gui || debug_mode,
 							timestep,
@@ -517,8 +502,6 @@ SUITE(CLBMSolverSuite)
 {
 
 TEST_FIXTURE(CLbmSolverFixture, StoreVelociyBlockwise) {
-	CLbmSolver<T> *lbmMock = cLbm;
-
 	T* tmpvelocity = velocity;
 	T* tmpvelocity_blockwise = velocity_blockwise;
 
@@ -526,7 +509,6 @@ TEST_FIXTURE(CLbmSolverFixture, StoreVelociyBlockwise) {
 }
 
 TEST_FIXTURE(CLbmSolverFixture, StoreDensityBlockwise) {
-
 	T* tmpdensity = density;
 	T* tmpdensity_blockwise = density_blockwise;
 
@@ -534,7 +516,6 @@ TEST_FIXTURE(CLbmSolverFixture, StoreDensityBlockwise) {
 }
 
 TEST_FIXTURE(CLbmSolverFixture, StoreDensityDistributionBlockwise) {
-
 	T* tmpdd = dd;
 	T* tmpdd_blockwise = dd_blockwise;
 
@@ -542,7 +523,6 @@ TEST_FIXTURE(CLbmSolverFixture, StoreDensityDistributionBlockwise) {
 }
 
 TEST_FIXTURE(CLbmSolverFixture, StoreDensityDistributionPartBlockwise) {
-
 	T* tmpdd = dd;
 	T* tmpdd_blockwise = dd_part_blockwise;
 
@@ -550,7 +530,6 @@ TEST_FIXTURE(CLbmSolverFixture, StoreDensityDistributionPartBlockwise) {
 }
 
 TEST_FIXTURE(CLbmSolverFixture, StoreFlagsBlockwise) {
-
 	int* tmpflags = flags;
 	int* tmpflags_blockwise = flags_blockwise;
 
