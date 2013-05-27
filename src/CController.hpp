@@ -30,6 +30,8 @@
 #include "libvis/CLbmVisualizationVTK.hpp"
 #include "CComm.hpp"
 #include "common.h"
+#include "CConfiguration.hpp"
+#include "Singleton.hpp"
 
 #include <list>
 #include <vector>
@@ -56,12 +58,18 @@ class CController
 	std::vector< CComm<T>* > _comm_container; ///< A std::Vector containing all the communcation objects for the subdomain
 
 	T vector_checksum;
+	CCL::CPlatforms* cPlatforms;
+	CCL::CPlatform* cPlatform;
+	CCL::CContext* cContext;
+	CCL::CDevices* cDevices;
+	CCL::CDevice* cDevice;
+	CCL::CCommandQueue* cCommandQueue;
 
 	// amount of vectors to omit while visualization of velicities
 	//int visualization_increment;
 
 	// true if debug mode is active
-	bool debug_mode;
+	//bool debug_mode;
 
 	void outputDD(int dd_i)
 	{
@@ -72,6 +80,148 @@ class CController
 		int wrap_max_line = 16;
 		int gcd = wrap_max_line;
 		cLbmPtr->debugDD(dd_i, gcd, cLbmPtr->domain_cells[0]*cLbmPtr->domain_cells[1]);
+	}
+
+	int initLBMSolver() {
+
+#if DEBUG
+			std::cout << "domain size: " << domain_size << std::endl;
+		// load platform information
+			std::cout << "loading platforms" << std::endl;
+#endif
+		cPlatforms = new CCL::CPlatforms();
+		cPlatforms->load();
+
+
+
+		if (cPlatforms->platform_ids_count == 0)
+		{
+			std::cerr << "no platform found!" << std::endl;
+			return -1;
+		}
+
+		int platform_id_nr = -1;
+		for (size_t i = 0; i < cPlatforms->platform_ids_count; i++)
+		{
+			CCL::CPlatform cPlatform(cPlatforms->platform_ids[i]);
+			cPlatform.loadPlatformInfo();
+
+			if (platform_id_nr == -1)
+				if (strcmp(cPlatform.profile, "FULL_PROFILE") == 0)
+				{
+					platform_id_nr = i;
+#if DEBUG
+						std::cout << "Using Platform " << (i+1) << " for computation" << std::endl;
+#endif
+				}
+
+#if DEBUG
+				std::cout << "Platform " << (i) << ":" << std::endl;
+				std::cout << "        Name: " << cPlatform.name << std::endl;
+				std::cout << "     Profile: " << cPlatform.profile << std::endl;
+				std::cout << "     Version: " << cPlatform.version << std::endl;
+				std::cout << "      Vendor: " << cPlatform.vendor << std::endl;
+				std::cout << "  Extensions: " << cPlatform.extensions << std::endl;
+				std::cout << std::endl;
+#endif
+		}
+
+		if (platform_id_nr == -1)
+		{
+			std::cout << "no usable platform found" << std::endl;
+			return -1;
+		}
+
+		cPlatform = new CCL::CPlatform(cPlatforms->platform_ids[platform_id_nr]);
+
+		// load standard context for GPU devices
+#if DEBUG
+			std::cout << "loading gpu context" << std::endl;
+#endif
+
+		cContext = new CCL::CContext(*cPlatform, CL_DEVICE_TYPE_GPU);
+
+		// load devices belonging to cContext
+#if DEBUG
+			std::cout << "loading devices" << std::endl;
+#endif
+		cDevices = new CCL::CDevices(*cContext);
+
+		if (cDevices->size() == 0)
+		{
+			std::cerr << "no device found - aborting" << std::endl;
+			return -1;
+		}
+
+		if (ConfigSingleton::Instance()->device_nr == -1)
+		{
+			// list available devices
+			for (int i = 0; i < (int)cDevices->size(); i++)
+			{
+				CCL::CDeviceInfo cDeviceInfo((*cDevices)[i]);
+				std::cout << "Device " << (i) << ":" << std::endl;
+				std::cout << "        Name: " << cDeviceInfo.name << std::endl;
+				std::cout << "     Profile: " << cDeviceInfo.profile << std::endl;
+				std::cout << "     Version: " << cDeviceInfo.version << std::endl;
+				std::cout << "      Vendor: " << cDeviceInfo.vendor << std::endl;
+				std::cout << "  Extensions: " << cDeviceInfo.extensions << std::endl;
+				std::cout << std::endl;
+			}
+			return -1;
+		}
+
+		if (ConfigSingleton::Instance()->device_nr < 0 || ConfigSingleton::Instance()->device_nr >= (int)cDevices->size())
+		{
+			std::cerr << "invalid device number - use option \"-d -1\" to list all devices" << std::endl;
+			return -1;
+		}
+
+		cDevice = &((*cDevices)[ConfigSingleton::Instance()->device_nr]);
+
+		// load information about first device - e.g. max_work_group_size
+#if DEBUG
+		std::cout << "loading device information" << std::endl;
+		CCL::CDeviceInfo cDeviceInfo(cDevice);
+
+		std::cout << "Device " << (device_nr) << ":" << std::endl;
+		std::cout << "        Name: " << cDeviceInfo.name << std::endl;
+		std::cout << "     Profile: " << cDeviceInfo.profile << std::endl;
+		std::cout << "     Version: " << cDeviceInfo.version << std::endl;
+		std::cout << "      Vendor: " << cDeviceInfo.vendor << std::endl;
+		std::cout << "  Extensions: " << cDeviceInfo.extensions << std::endl;
+		std::cout << std::endl;
+
+		std::cout << "creating command queue" << std::endl;
+#endif
+		// initialize queue
+		cCommandQueue = new CCL::CCommandQueue(*cContext, *cDevice);
+
+		// INIT LATTICE BOLTZMANN!
+		cLbmPtr = new CLbmSolver<T>(	_UID, *cCommandQueue, *cContext, *cDevice,
+				_BC,
+				_domain,
+				ConfigSingleton::Instance()->gravitation,	// gravitation vector
+				ConfigSingleton::Instance()->viscosity,
+				ConfigSingleton::Instance()->computation_kernel_count,
+				ConfigSingleton::Instance()->debug_mode,
+				ConfigSingleton::Instance()->do_visualization || ConfigSingleton::Instance()->debug_mode,
+				ConfigSingleton::Instance()->do_visualization || ConfigSingleton::Instance()->debug_mode,
+				ConfigSingleton::Instance()->timestep,
+				ConfigSingleton::Instance()->lbm_opencl_number_of_threads_list, // p_lbm_opencl_number_of_work_items_list,
+				ConfigSingleton::Instance()->lbm_opencl_number_of_threads_list
+		);
+
+
+
+		if (cLbmPtr->error())
+		{
+			std::cout << cLbmPtr->error.getString();
+			return -1;
+		}
+
+		cLbmPtr->wait();
+		CStopwatch cStopwatch;
+		return 0;
 	}
 
 public:
@@ -85,12 +235,15 @@ public:
 		for(int i = 0; i < 3; i++)
 			for (int j = 0; j < 2; j++)
 				_BC[i][j] = FLAG_OBSTACLE;
+
+		// init the LBMSolver
+		initLBMSolver();
 	}
 
 	void syncAlpha() {
-		if(debug_mode)
+#if DEBUG
 			std::cout << "sync alpha." << std::endl;
-
+#endif
 		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking way.
 		typename std::vector< CComm<T>* >::iterator it = _comm_container.begin();
 		for( ;it != _comm_container.end(); it++){
@@ -99,7 +252,10 @@ public:
 			CVector<3,int> send_origin = (*it)->getSendOrigin();
 			CVector<3,int> recv_origin = (*it)->getRecvOrigin();
 			int dst_rank = (*it)->getDstId();
+#if DEBUG
 			std::cout << "ALPHA RANK: " << dst_rank << std::endl;
+#endif
+
 			// send buffer
 			int send_buffer_size = send_size.elements()*cLbmPtr->SIZE_DD_HOST;
 			int recv_buffer_size = recv_size.elements()*cLbmPtr->SIZE_DD_HOST;
@@ -130,8 +286,9 @@ public:
 	}
 
 	void syncBeta() {
-		if(debug_mode)
+#if DEBUG
 			std::cout << "sync beta." << std::endl;
+#endif
 
 		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking form.
 		typename std::vector< CComm<T>* >::iterator it = _comm_container.begin();
@@ -145,7 +302,9 @@ public:
 			CVector<3,int> recv_origin = (*it)->getSendOrigin();
 			CVector<3,int> normal = (*it)->getCommDirection();
 			int dst_rank = (*it)->getDstId();
+#if DEBUG
 			std::cout << "BETA RANK: " << dst_rank << std::endl;
+#endif
 			// send buffer
 			int send_buffer_size = send_size.elements()*cLbmPtr->SIZE_DD_HOST;
 			int recv_buffer_size = recv_size.elements()*cLbmPtr->SIZE_DD_HOST;
@@ -187,137 +346,15 @@ public:
  * This function starts the simulation for the particular subdomain corresponded to
  * this class.
  */
-	int run(
-			bool p_debug_mode, 				///< Set this variable to true to have a verbose output of simulation process.
-			//CDomain<T> domain, 				///< Specify domain properties
-			CVector<3,T> gravitation,		///< Specify the gravitation vector
-			T viscosity,
-			size_t computation_kernel_count,
-			int device_nr,
-			bool do_visualization,
-			bool pause,
-			T timestep,
-			bool take_frame_screenshots,
-			int loops,
-
-			std::list<int> &p_lbm_opencl_number_of_work_items_list,		///< List with number of threads for each successively created kernel
-			std::list<int> &p_lbm_opencl_number_of_registers_list		///< List with number of registers for each thread threads for each successively created kernel
-	)		
+	int run()
 	{
 		CVector<3,int> domain_size = _domain.getSize();
 		T domain_length = _domain.getLength()[0];
-
+		int loops = ConfigSingleton::Instance()->loops;
 		if (loops < 0)
 			loops = 100;
-
-		debug_mode = p_debug_mode;
-
-		if (debug_mode)
-			std::cout << "domain size: " << domain_size << std::endl;
-
-		// load platform information
-		if (debug_mode)	std::cout << "loading platforms" << std::endl;
-		CCL::CPlatforms cPlatforms;
-		cPlatforms.load();
-
-		if (cPlatforms.platform_ids_count == 0)
-		{
-			std::cerr << "no platform found!" << std::endl;
-			return -1;
-		}
-
-		int platform_id_nr = -1;
-		for (size_t i = 0; i < cPlatforms.platform_ids_count; i++)
-		{
-			CCL::CPlatform cPlatform(cPlatforms.platform_ids[i]);
-			cPlatform.loadPlatformInfo();
-
-			if (platform_id_nr == -1)
-				if (strcmp(cPlatform.profile, "FULL_PROFILE") == 0)
-				{
-					platform_id_nr = i;
-					if (debug_mode)
-						std::cout << "Using Platform " << (i+1) << " for computation" << std::endl;
-				}
-
-			if (debug_mode)
-			{
-				std::cout << "Platform " << (i) << ":" << std::endl;
-				std::cout << "        Name: " << cPlatform.name << std::endl;
-				std::cout << "     Profile: " << cPlatform.profile << std::endl;
-				std::cout << "     Version: " << cPlatform.version << std::endl;
-				std::cout << "      Vendor: " << cPlatform.vendor << std::endl;
-				std::cout << "  Extensions: " << cPlatform.extensions << std::endl;
-				std::cout << std::endl;
-			}
-		}
-
-		if (platform_id_nr == -1)
-		{
-			std::cout << "no usable platform found" << std::endl;
-			return -1;
-		}
-
-		CCL::CPlatform cPlatform(cPlatforms.platform_ids[platform_id_nr]);
-
-		// load standard context for GPU devices
-		if (debug_mode)	std::cout << "loading gpu context" << std::endl;
-		CCL::CContext cContext(cPlatform, CL_DEVICE_TYPE_GPU);
-
-		// load devices belonging to cContext
-		if (debug_mode)	std::cout << "loading devices" << std::endl;
-		CCL::CDevices cDevices(cContext);
-
-		if (cDevices.size() == 0)
-		{
-			std::cerr << "no device found - aborting" << std::endl;
-			return -1;
-		}
-
-		if (device_nr == -1)
-		{
-			// list available devices
-			for (int i = 0; i < (int)cDevices.size(); i++)
-			{
-				CCL::CDeviceInfo cDeviceInfo(cDevices[i]);
-				std::cout << "Device " << (i) << ":" << std::endl;
-				std::cout << "        Name: " << cDeviceInfo.name << std::endl;
-				std::cout << "     Profile: " << cDeviceInfo.profile << std::endl;
-				std::cout << "     Version: " << cDeviceInfo.version << std::endl;
-				std::cout << "      Vendor: " << cDeviceInfo.vendor << std::endl;
-				std::cout << "  Extensions: " << cDeviceInfo.extensions << std::endl;
-				std::cout << std::endl;
-			}
-			return -1;
-		}
-
-		if (device_nr < 0 || device_nr >= (int)cDevices.size())
-		{
-			std::cerr << "invalid device number - use option \"-d -1\" to list all devices" << std::endl;
-			return -1;
-		}
-
-		CCL::CDevice &cDevice = cDevices[device_nr];
-
-		// load information about first device - e.g. max_work_group_size
-		if (debug_mode)	std::cout << "loading device information" << std::endl;
-		CCL::CDeviceInfo cDeviceInfo(cDevice);
-
-		if (debug_mode)
-		{
-			std::cout << "Device " << (device_nr) << ":" << std::endl;
-			std::cout << "        Name: " << cDeviceInfo.name << std::endl;
-			std::cout << "     Profile: " << cDeviceInfo.profile << std::endl;
-			std::cout << "     Version: " << cDeviceInfo.version << std::endl;
-			std::cout << "      Vendor: " << cDeviceInfo.vendor << std::endl;
-			std::cout << "  Extensions: " << cDeviceInfo.extensions << std::endl;
-			std::cout << std::endl;
-		}
-
-		// initialize queue
-		if (debug_mode)	std::cout << "creating command queue" << std::endl;
-		CCL::CCommandQueue cCommandQueue(cContext, cDevice);
-
+		//
+		int res = initLBMSolver();
 		vector_checksum = 0;
 
 		// approximate bandwidth
@@ -330,43 +367,17 @@ public:
 		floats_per_cell += 1.0;
 
 		// velocity vector is also stored
-		if (do_visualization || debug_mode)
+		if (ConfigSingleton::Instance()->do_visualization || ConfigSingleton::Instance()->debug_mode)
 			floats_per_cell += 3;
-
-		// INIT LATTICE BOLTZMANN!
-		CLbmSolver<T> cLbm(	_UID, cCommandQueue, cContext, cDevice,
-				_BC,
-				_domain,
-				gravitation,	// gravitation vector
-				viscosity,
-				computation_kernel_count,
-				debug_mode,
-				do_visualization || debug_mode,
-				do_visualization || debug_mode,
-				timestep,
-				p_lbm_opencl_number_of_work_items_list,
-				p_lbm_opencl_number_of_registers_list
-		);
-
-
-		if (cLbm.error())
-		{
-			std::cout << cLbm.error.getString();
-			return -1;
-		}
-
-		cLbm.wait();
-
-		cLbmPtr = &cLbm;
 
 		CStopwatch cStopwatch;
 
 		// setting up the visualization
 		std::string outputfilename = "./vtkOutput/OUTPUT";
-		if (do_visualization)
+		if (ConfigSingleton::Instance()->do_visualization)
 		{
 			cLbmVisualization = new CLbmVisualizationVTK<T>(_UID,outputfilename);
-			cLbmVisualization->setup(cLbm);
+			cLbmVisualization->setup(cLbmPtr);
 		}
 
 #if NDEBUG
@@ -374,7 +385,7 @@ public:
 		for (int i = 0; i < loops; i++)
 		{
 			//simulation
-			if (do_visualization)
+			if (ConfigSingleton::Instance()->do_visualization)
 				cLbmVisualization->render(i);
 			computeNextStep();
 
@@ -401,15 +412,17 @@ public:
 //		std::cout << "." << std::flush;
 
 #endif
-		cLbm.wait();
+		cLbmPtr->wait();
 		cStopwatch.stop();
 
 		std::cout << std::endl;
 
-		if (domain_size.elements() <= 512)
+		if (domain_size.elements() <= 512) {
+#if DEBUG
 			if (debug_mode)
-				cLbm.debug_print();
-
+				cLbmPtr->debug_print();
+#endif
+		}
 		std::cout << std::endl;
 
 		std::cout << "Cube: " << domain_size << std::endl;
@@ -417,7 +430,7 @@ public:
 		double fps = (((double)loops) / cStopwatch.time);
 		std::cout << "FPS: " << fps << std::endl;
 
-		double mlups = ((double)fps*(double)cLbm.domain_cells.elements())*(double)0.000001;
+		double mlups = ((double)fps*(double)cLbmPtr->domain_cells.elements())*(double)0.000001;
 		std::cout << "MLUPS: " << mlups << std::endl;
 
 		std::cout << "Bandwidth: " << (mlups*floats_per_cell*(double)sizeof(T)) << " MB/s (RW, bidirectional)" << std::endl;
@@ -426,12 +439,11 @@ public:
 		std::cout.precision(8);
 		std::cout.setf(std::ios::fixed,std::ios::floatfield);
 
-		if (debug_mode)
-		{
+#if DEBUG
 			// The velocity checksum is only stored in debug mode!
 			vector_checksum = cLbm.getVelocityChecksum();
 			std::cout << "Checksum: " << (vector_checksum*1000.0f) << std::endl;
-		}
+#endif
 
 		std::cout.precision(ss);
 		std::cout << std::resetiosflags(std::ios::fixed);
@@ -462,10 +474,12 @@ public:
 #endif
 		CVector<3,int> origin(1,_domain.getSize()[1] - 2,1);
 		CVector<3,int> size(_domain.getSize()[0] - 2 ,1, _domain.getSize()[2] - 2);
-		int * src = new int(size.elements());
+		std::cout << "GEOMETRY: " << size << std::endl;
+		int * src = new int[size.elements()];
 		for( int i = 0; i < size.elements(); i++)
-			src[i] = FLAG_VELOCITY_INJECTION;
+			src[i] = 220;
 		cLbmPtr->setFlags(src,origin,size);
+
 	}
 };
 

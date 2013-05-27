@@ -8,6 +8,9 @@
 #ifndef COMMON_H_
 #define COMMON_H_
 
+#include "CConfiguration.hpp"
+#include "Singleton.hpp"
+
 #define FLAG_OBSTACLE	(1 << 0)
 #define FLAG_FLUID	(1 << 1)
 #define FLAG_VELOCITY_INJECTION	(1 << 2)
@@ -40,5 +43,6 @@ extern CVector<3,int> E18	;
 
 extern CVector<3,int> lbm_units[];
 
+typedef Singleton<CConfiguration<T> > ConfigSingleton;   // Global declaration
 
 #endif /* COMMON_H_ */

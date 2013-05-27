@@ -182,69 +182,25 @@ public:
 							CVector<3,int> comm_direction(0,0,-1);
 							_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
 						}
-						return;
+						//return;
+						// TODO: this geometry is hard coded right now. reimplement it in general form.
+						if ( ny == _subdomain_nums[1] - 1) {
+							_lbm_controller->setGeometry();
+						}
 					}
 					id++;
 				}
 			}
 		}
+
 	}
 
-	// TODO: implement this function to use the configuration singleton
 	void startSimulation() {
 		if(!_lbm_controller)
 			throw "CManager: Initialize the simulation before starting it!";
 
-//		_lbm_controller->run(	debug,
-//				gravitation,
-//				viscosity,
-//				computation_kernel_count,
-//				device_nr,
-//				gui,
-//				pause,
-//				timestep,
-//				take_frame_screenshots,
-//				steps,
-//
-//				lbm_opencl_number_of_threads_list,
-//				lbm_opencl_number_of_registers_list
-//		);
+		_lbm_controller->run();
 
-	}
-
-	void startSimulation(
-			bool debug, 				///< Set this variable to true to have a verbose output of simulation process.
-			//CDomain<T> domain, 				///< Specify domain properties
-			CVector<3,T> gravitation,		///< Specify the gravitation vector
-			T viscosity,
-			size_t computation_kernel_count,
-			int device_nr,
-			bool do_visualization,
-			bool pause,
-			T timestep,
-			bool take_frame_screenshots,
-			int steps,
-
-			std::list<int> &lbm_opencl_number_of_threads_list,		///< List with number of threads for each successively created kernel
-			std::list<int> &lbm_opencl_number_of_registers_list		///< List with number of registers for each thread threads for each successively created kernel
-			)
-	{
-		if(!_lbm_controller)
-			throw "CManager: Initialize the simulation before starting it!";
-		_lbm_controller->run(	debug,
-				gravitation,
-				viscosity,
-				computation_kernel_count,
-				device_nr,
-				do_visualization,
-				pause,
-				timestep,
-				take_frame_screenshots,
-				steps,
-
-				lbm_opencl_number_of_threads_list,
-				lbm_opencl_number_of_registers_list
-		);
 	}
 };
 #endif

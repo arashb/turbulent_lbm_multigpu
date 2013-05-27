@@ -37,10 +37,10 @@ public:
 			delete flags;
     };
 
-	virtual void setup(CLbmSolver<T> &p_cLbmOpencl) {
-		cLbmOpencl = &p_cLbmOpencl;
+	virtual void setup(CLbmSolver<T> *p_cLbmOpencl) {
+		cLbmOpencl = p_cLbmOpencl;
 
-		CVector<3,int> domain_cells = p_cLbmOpencl.domain_cells;
+		CVector<3,int> domain_cells = cLbmOpencl->domain_cells;
 
 		delete [] velocity;
 		velocity = new T[domain_cells.elements()*3];

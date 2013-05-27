@@ -33,7 +33,7 @@
 #include "common.h"
 #include "CManager.hpp"
 #include "CConfiguration.hpp"
-//#include "Singleton.hpp"
+#include "Singleton.hpp"
 #include "tinyxml2.h"
 
 CVector<3,int> E0(1,0,0) 	;
@@ -65,9 +65,6 @@ CVector<3,int> lbm_units[] = {	E0,E1,E2,E3,
 		E12,E13,E14,E15,
 		E16,E17,E18
 };
-
-// TODO: use a singleton for storing the simulation configration data
-//typedef Singleton<CConfiguration<T> > ConfSingleton;   // Global declaration
 
 // simulation type
 typedef float T;
@@ -106,9 +103,9 @@ int main(int argc, char** argv)
 	CVector<3,T> gravitation(0,-9.81,0);
 	T viscosity = 0.001308;
 	T timestep = -1.0;
-	int steps = -1;
+	int loops = -1;
 
-	bool gui = false;
+	bool do_visualisation = false;
 	bool pause = false;
 	bool take_frame_screenshots = false;
 	bool unit_test = false;
@@ -117,7 +114,7 @@ int main(int argc, char** argv)
 	std::string number_of_registers_string;	///< string storing the number of registers for opencl threads separated with comma
 	std::string number_of_threads_string;		///< string storing the number of threads for opencl separated with comma
 	std::string test_suite;
-	bool use_config_file;
+	bool use_config_file = true;
 	std::string conf_file;
 
 	int device_nr = 0;
@@ -166,7 +163,7 @@ int main(int argc, char** argv)
 			domain_size[2] = atoi(optarg);
 			break;
 		case 'l':
-			steps = atoi(optarg);
+			loops = atoi(optarg);
 			break;
 
 		case 'y':
@@ -186,7 +183,7 @@ int main(int argc, char** argv)
 			break;
 
 		case 'g':
-			gui = true;
+			do_visualisation = true;
 			break;
 
 		case 'G':
@@ -244,10 +241,32 @@ int main(int argc, char** argv)
 
 	parameter_error_ok:
 
-//	if( use_config_file) {
-//		CConfiguration<T> config;
-//		config.load_file(conf_file);
-//	}
+
+	std::list<int> lbm_opencl_number_of_registers_list;
+	std::list<int> lbm_opencl_number_of_threads_list;
+
+	if (!number_of_threads_string.empty())
+		extract_comma_separated_integers(lbm_opencl_number_of_threads_list, number_of_threads_string);
+
+	if (!number_of_registers_string.empty())
+		extract_comma_separated_integers(lbm_opencl_number_of_registers_list, number_of_registers_string);
+
+	if( use_config_file) {
+		ConfigSingleton::Instance()->gravitation = gravitation;
+		ConfigSingleton::Instance()->viscosity = viscosity;
+		ConfigSingleton::Instance()->computation_kernel_count = computation_kernel_count;
+		ConfigSingleton::Instance()->device_nr = device_nr;
+		ConfigSingleton::Instance()->do_visualization = do_visualisation;
+		ConfigSingleton::Instance()->timestep = timestep;
+		ConfigSingleton::Instance()->loops = loops;
+		ConfigSingleton::Instance()->lbm_opencl_number_of_registers_list = lbm_opencl_number_of_registers_list;
+		ConfigSingleton::Instance()->lbm_opencl_number_of_threads_list = lbm_opencl_number_of_threads_list;
+#if DEBUG
+		ConfigSingleton::Instance()->debug_mode = true;
+#endif
+		//config.load_file(conf_file);
+
+	}
 	if (unit_test) {
 
 		if ( strcmp(  "all", test_suite.c_str() ) == 0 ) {
@@ -282,18 +301,7 @@ int main(int argc, char** argv)
 		CVector<3,int> origin(0,0,0);
 		CDomain<T> domain(-1, domain_size, origin, length);
 
-		// TODO: get the number of subdomain for each dimension from user.
-		//CVector<3,int> subdomain_nums(2,1,1);
 		CManager<T> manager(domain, subdomain_nums);
-
-		std::list<int> lbm_opencl_number_of_registers_list;
-		std::list<int> lbm_opencl_number_of_threads_list;
-
-		if (!number_of_threads_string.empty())
-			extract_comma_separated_integers(lbm_opencl_number_of_threads_list, number_of_threads_string);
-
-		if (!number_of_registers_string.empty())
-			extract_comma_separated_integers(lbm_opencl_number_of_registers_list, number_of_registers_string);
 
 		int my_rank, num_procs;
 		MPI_Init(&argc, &argv);    /// Start MPI
@@ -306,20 +314,7 @@ int main(int argc, char** argv)
 			exit(EXIT_FAILURE);
 		}
 		manager.initSimulation(my_rank);
-		manager.startSimulation(	debug,
-				gravitation,
-				viscosity,
-				computation_kernel_count,
-				device_nr,
-				gui,
-				pause,
-				timestep,
-				take_frame_screenshots,
-				steps,
-
-				lbm_opencl_number_of_threads_list,
-				lbm_opencl_number_of_registers_list
-		);
+		manager.startSimulation();
 
 		MPI_Finalize();    /// Cleanup MPI
 	}

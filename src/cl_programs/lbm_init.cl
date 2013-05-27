@@ -67,8 +67,8 @@ __kernel void init_kernel(
 	else if( pos.z == DOMAIN_CELLS_Z-1 )
 		flag = bc[5];
 
-	else if (pos.y == DOMAIN_CELLS_Y-2)
-		flag = FLAG_VELOCITY_INJECTION;
+//	else if (pos.y == DOMAIN_CELLS_Y-2)
+//		flag = FLAG_VELOCITY_INJECTION;
 
 #if 0
 	if (	pos.x == 0 || pos.y == 0 || pos.z == 0 ||
