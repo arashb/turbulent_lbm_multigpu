@@ -334,7 +334,7 @@ public:
 			floats_per_cell += 3;
 
 		// INIT LATTICE BOLTZMANN!
-		CLbmSolver<T> cLbm(	cCommandQueue, cContext, cDevice,
+		CLbmSolver<T> cLbm(	_UID, cCommandQueue, cContext, cDevice,
 				_BC,
 				_domain,
 				gravitation,	// gravitation vector
@@ -450,6 +450,22 @@ public:
 
 	void addCommunication( CComm<T>* comm) {
 		_comm_container.push_back(comm);
+	}
+
+	/*
+	 * This Function is used the set the geometry (e.g obstacles, velocity injections, ...) of corresponding domain
+	 */
+	// TODO: implement this in a general form
+	void setGeometry() {
+#if DEBUG
+		std::cout << "Setting Geometry for Domain " << _UID << std::endl;
+#endif
+		CVector<3,int> origin(1,_domain.getSize()[1] - 2,1);
+		CVector<3,int> size(_domain.getSize()[0] - 2 ,1, _domain.getSize()[2] - 2);
+		int * src = new int(size.elements());
+		for( int i = 0; i < size.elements(); i++)
+			src[i] = FLAG_VELOCITY_INJECTION;
+		cLbmPtr->setFlags(src,origin,size);
 	}
 };
 
