@@ -103,6 +103,7 @@ else:
 
 # linking to the unit test library
 env.Append(LIBS=['UnitTest++'])
+env.Append(LIBS=['tinyxml2'])
 
 #
 # SDL
@@ -175,6 +176,11 @@ if env['mode'] == 'debug':
 		env.Append(CXXFLAGS=' -O0 -g3')
 #		env.Append(CXXFLAGS=' -traceback')
 
+	elif env['compiler'] == 'openmpic++':
+		env.Append(CXXFLAGS=' -O0 -g3 -Wall')
+
+
+
 elif env['mode'] == 'release':
 	env.Append(CXXFLAGS=' -DNDEBUG=1')
 
@@ -183,6 +189,10 @@ elif env['mode'] == 'release':
 
 	elif env['compiler'] == 'intel':
 		env.Append(CXXFLAGS=' -xHOST -O3 -g -fast -fno-alias')
+
+	elif env['compiler'] == 'openmpic++':
+		env.Append(CXXFLAGS=' -O3 -g -mtune=native')
+
 
 else:
 	print 'ERROR: mode'
@@ -200,6 +210,7 @@ else:
 # include the third party softwares like unit testing, ...
 includePaths = [
         '#/include/UnitTest++',
+        '#/include/tinyxml2',
         '.',
         'src/'
 ]

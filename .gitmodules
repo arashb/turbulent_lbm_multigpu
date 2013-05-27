@@ -1,3 +1,6 @@
 [submodule "externals/unittest-cpp"]
 	path = externals/unittest-cpp
 	url = git@github.com:arashb/unittest-cpp.git
+[submodule "externals/tinyxml2"]
+	path = externals/tinyxml2
+	url = git://github.com/leethomason/tinyxml2.git
