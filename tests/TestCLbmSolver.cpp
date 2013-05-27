@@ -162,7 +162,7 @@ struct CLbmSolverFixture
 		T domain_length = 0.05;
 		int BC[3][2];
 		// INIT LATTICE BOLTZMANN!
-		 cLbm = new CLbmSolver<T>(	cCommandQueue,
+		 cLbm = new CLbmSolver<T>(	0, cCommandQueue,
 							cContext,
 							cDevice,
 							BC,
@@ -409,7 +409,7 @@ struct CLbmSolverFixtureWrite {
 		T domain_length = 0.05;
 		int BC[3][2];
 		// INIT LATTICE BOLTZMANN!
-		 cLbm = new CLbmSolver<T>(	cCommandQueue,
+		 cLbm = new CLbmSolver<T>(	0, cCommandQueue,
 							cContext,
 							cDevice,
 							BC,

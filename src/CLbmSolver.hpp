@@ -31,7 +31,7 @@
 #define LBM_FLAG_OBSTACLE			(1<<0)
 #define LBM_FLAG_FLUID				(1<<1)
 #define LBM_FLAG_VELOCITY_INJECTION	(1<<2)
-#define LBM_FLAG_GHOST_LAYER	(1<<3)
+#define LBM_FLAG_GHOST_LAYER		(1<<3)
 
 /**
  * the density distributions are packed cell wise to optimize the collision operation and stored
@@ -73,7 +73,7 @@ public:
 	CVector<4,T> drivenCavityVelocity;
 	static const size_t SIZE_DD_HOST = 19;
 private:
-
+	int _UID;
 	static const size_t SIZE_DD_HOST_BYTES = SIZE_DD_HOST*sizeof(T);
 	int _BC[3][2]; 		///< Boundary conditions. First index specifys the dimension and second the upper or the lower boundary.
 	// opencl handlers
@@ -129,7 +129,8 @@ public:
 	// viscosity parameters:
 	// http://en.wikipedia.org/wiki/Viscosity
 	//
-	CLbmSolver(	CCL::CCommandQueue &p_cCommandQueue,
+	CLbmSolver(	int UID,
+				CCL::CCommandQueue &p_cCommandQueue,
 				CCL::CContext &p_cContext,
 				CCL::CDevice &p_cDevice,
 				int BC[3][2],
@@ -145,8 +146,8 @@ public:
 				std::list<int> &p_lbm_opencl_number_of_work_items_list,		///< list with number of threads for each successively created kernel
 				std::list<int> &p_lbm_opencl_number_of_registers_list		///< list with number of registers for each thread threads for each successively created kernel
 		) :CLbmSkeleton<T>(domain),
+		_UID(UID),
 		drivenCavityVelocity(100.0, 0, 0, 1),
-
 		cCommandQueue(p_cCommandQueue),
 		cContext(p_cContext),
 		cDevice(p_cDevice),
