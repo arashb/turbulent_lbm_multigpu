@@ -64,7 +64,7 @@ class CController
 	CCL::CDevices* cDevices;
 	CCL::CDevice* cDevice;
 	CCL::CCommandQueue* cCommandQueue;
-	CCL::CDeviceInfo* cDeviceInfo;
+	//CCL::CDeviceInfo* cDeviceInfo;
 
 	// amount of vectors to omit while visualization of velicities
 	//int visualization_increment;
@@ -178,7 +178,7 @@ class CController
 		}
 
 		cDevice = &((*cDevices)[ConfigSingleton::Instance()->device_nr]);
-		cDeviceInfo = new CCL::CDeviceInfo(*cDevice);
+		//cDeviceInfo = new CCL::CDeviceInfo(*cDevice);
 
 		// load information about first device - e.g. max_work_group_size
 #if DEBUG
@@ -261,8 +261,8 @@ public:
 		if ( cCommandQueue )
 			delete cCommandQueue;
 
-		if (cDeviceInfo)
-			delete cDeviceInfo;
+//		if (cDeviceInfo)
+//			delete cDeviceInfo;
 
 		if (cLbmVisualization) ///< Visualization class
 			delete cLbmVisualization;

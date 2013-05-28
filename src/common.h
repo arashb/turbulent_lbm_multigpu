@@ -45,4 +45,11 @@ extern CVector<3,int> lbm_units[];
 
 typedef Singleton<CConfiguration<T> > ConfigSingleton;   // Global declaration
 
+typedef enum {
+	OPENCL_VERSION_UNKNOWN = 0,
+	OPENCL_VERSION_1_0_0 = 100,
+	OPENCL_VESRION_1_1_0 = 110,
+	OPENCL_VERSION_1_2_0 = 120,
+} OPENCL_VERSION;
+
 #endif /* COMMON_H_ */
