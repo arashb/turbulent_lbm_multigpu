@@ -1387,7 +1387,35 @@ public:
 					));
 		}
 
-
+		/**
+		 * copy data from buffer in host memory to CL device
+		 */
+		inline void enqueueWriteBufferRect(	CMem &cMem,
+						cl_bool block_write,
+						const size_t buffer_origin[3],
+						const size_t host_origin[3],
+						const size_t region[3],
+						const void *buffer_ptr
+		)
+		{
+#ifdef CL_VERSION_1_2
+			CL_CHECK_ERROR(	clEnqueueWriteBufferRect(	command_queue,
+								cMem.memobj,
+								block_write,
+								buffer_origin,
+								host_origin,
+								region,
+								0,
+								0,
+								0,
+								0,
+								buffer_ptr,
+								0,
+								NULL,
+								NULL
+					));
+#endif
+		}
 
 		/**
 		 * read from CL device to buffer located in host memory
@@ -1485,6 +1513,36 @@ public:
 								&event.event
 					));
 		}
+		/**
+		 * copy data from buffer in host memory to CL device
+		 */
+		inline void enqueueReadBufferRect(	CMem &cMem,
+				cl_bool block_write,
+				const size_t buffer_origin[3],
+				const size_t host_origin[3],
+				const size_t region[3],
+				void *buffer_ptr
+		)
+		{
+#ifdef CL_VERSION_1_2
+			CL_CHECK_ERROR(	clEnqueueReadBufferRect(	command_queue,
+								cMem.memobj,
+								block_write,
+								buffer_origin,
+								host_origin,
+								region,
+								0,
+								0,
+								0,
+								0,
+								buffer_ptr,
+								0,
+								NULL,
+								NULL
+					));
+#endif
+
+		}
 
 		/**
 		 * copy buffer to buffer on device
@@ -1533,6 +1591,34 @@ public:
 								event_wait_list,
 								&event.event
 					));
+		}
+
+		/**
+		 * copy buffer to buffer on device
+		 */
+		inline void enqueueCopyBufferRect(	CMem &cSrcMem,		///< source memory object
+										CMem &cDstMem,		///< destination memory object
+										const size_t src_origin[3],
+										const size_t dst_origin[3],
+										const size_t region[3]
+		)
+		{
+#ifdef CL_VERSION_1_2
+			CL_CHECK_ERROR(	clEnqueueCopyBufferRect(	command_queue,
+								cSrcMem.memobj,
+								cDstMem.memobj,
+								src_origin,
+								dst_origin,
+								region,
+								0,
+								0,
+								0,
+								0,
+								0,
+								NULL,
+								NULL
+					));
+#endif
 		}
 		/**
 		 * copy buffer to buffer on device
