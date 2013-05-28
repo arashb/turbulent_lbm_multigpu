@@ -64,6 +64,7 @@ class CController
 	CCL::CDevices* cDevices;
 	CCL::CDevice* cDevice;
 	CCL::CCommandQueue* cCommandQueue;
+	CCL::CDeviceInfo* cDeviceInfo;
 
 	// amount of vectors to omit while visualization of velicities
 	//int visualization_increment;
@@ -177,6 +178,7 @@ class CController
 		}
 
 		cDevice = &((*cDevices)[ConfigSingleton::Instance()->device_nr]);
+		cDeviceInfo = new CCL::CDeviceInfo(*cDevice);
 
 		// load information about first device - e.g. max_work_group_size
 #if DEBUG
@@ -236,8 +238,42 @@ public:
 			for (int j = 0; j < 2; j++)
 				_BC[i][j] = BC[i][j];
 
-		// init the LBMSolver
-		initLBMSolver();
+		// initialize the LBMSolver
+		if ( -1 == initLBMSolver() )
+			throw "Initialization of LBM Solver failed!";
+	}
+	~CController(){
+		if (cPlatforms)
+			delete cPlatform;
+
+		if (cPlatform)
+			delete cPlatform;
+
+		if (cContext)
+			delete cContext;
+
+		if (cDevices)
+			delete cDevices;
+
+		if (cDevice)
+			delete cDevice;
+
+		if ( cCommandQueue )
+			delete cCommandQueue;
+
+		if (cDeviceInfo)
+			delete cDeviceInfo;
+
+		if (cLbmVisualization) ///< Visualization class
+			delete cLbmVisualization;
+
+		if (cLbmPtr)
+			delete cLbmPtr;
+
+		typename std::vector< CComm<T>* >::iterator it = _comm_container.begin();
+		for( ;it != _comm_container.end(); it++){
+			delete *it;
+		}
 	}
 
 	void syncAlpha() {
@@ -472,12 +508,14 @@ public:
 #endif
 		CVector<3,int> origin(1,_domain.getSize()[1] - 2,1);
 		CVector<3,int> size(_domain.getSize()[0] - 2 ,1, _domain.getSize()[2] - 2);
+#if DEBUG
 		std::cout << "GEOMETRY: " << size << std::endl;
+#endif
 		int * src = new int[size.elements()];
 		for( int i = 0; i < size.elements(); i++)
 			src[i] = FLAG_VELOCITY_INJECTION;
 		cLbmPtr->setFlags(src,origin,size);
-
+		delete src;
 	}
 };
 
