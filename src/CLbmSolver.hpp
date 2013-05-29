@@ -100,6 +100,12 @@ private:
 	size_t cLbmKernelBeta_GlobalWorkGroupSize;
 	size_t cLbmKernelBeta_MaxRegisters;
 
+	// INITIALIZATION KERNEL
+	CCL::CKernel cKernelCopyRect;
+	size_t cKernelCopyRect_WorkGroupSize;
+	size_t cKernelCopyRect_GlobalWorkGroupSize;
+	size_t cKernelCopyRect_MaxRegisters;
+
 	// density distributions (D3Q19 model)
 	CCL::CMem cMemDensityDistributions;
 
@@ -460,8 +466,43 @@ public:
 			return;
 		}
 #if DEBUG
-			std::cout << "KernelBeta:	local_work_group_size: " << cLbmKernelBeta_WorkGroupSize << "		max_registers: " << cLbmKernelBeta_MaxRegisters << std::endl;
+		std::cout << "KernelBeta:	local_work_group_size: " << cLbmKernelBeta_WorkGroupSize << "		max_registers: " << cLbmKernelBeta_MaxRegisters << std::endl;
 #endif
+
+		/*
+		 * INIT CopyBufferRect
+		 */
+//		sprintf(charbuf, "%i", (int)cKernelCopyRect_WorkGroupSize);
+//		cProgramDefinesPostfixString = "#define LOCAL_WORK_GROUP_SIZE	(";
+//		cProgramDefinesPostfixString += charbuf;
+//		cProgramDefinesPostfixString +=  ")";
+
+		/*cProgramCompileOptionsString = "-Werror -I./";*/
+		cProgramCompileOptionsString = "-I./";
+		if (cKernelCopyRect_MaxRegisters != 0)
+		{
+			/* TODO: check for cl_nv_compiler_options extension */
+			cProgramCompileOptionsString += " -cl-nv-maxrregcount=";
+			cProgramCompileOptionsString += cKernelCopyRect_MaxRegisters;
+		}
+
+//		cKernelCopyRect_GlobalWorkGroupSize = domain_cells_count;
+//		if (cKernelInit_GlobalWorkGroupSize % cKernelInit_WorkGroupSize != 0)
+//			cKernelInit_GlobalWorkGroupSize = (cKernelInit_GlobalWorkGroupSize / cKernelInit_WorkGroupSize + 1) * cKernelInit_WorkGroupSize;
+
+		CCL::CProgram cProgramCopyRect;
+		cProgramCopyRect.load(cContext/*, cl_program_defines.str()+cProgramDefinesPostfixString*/, "src/cl_programs/copy_buffer_rect.cl");
+		cProgramCopyRect.build(cDevice, cProgramCompileOptionsString.c_str());
+		if (cProgramCopyRect.error())
+		{
+			error << "failed to compile copy_buffer_rect.cl" << CError::endl;
+			error << cProgramCopyRect.error.getString() << CError::endl;
+			return;
+		}
+#if DEBUG
+			std::cout << "KernelCopyRect:	local_work_group_size: " << cKernelCopyRect_WorkGroupSize << "		max_registers: " << cKernelCopyRect_MaxRegisters << std::endl;
+#endif
+
 		/**
 		 * create kernels and setup arguments
 		 */
@@ -511,6 +552,7 @@ public:
 		cLbmKernelBeta.setArg(7, this->gravitation[2]);
 		cLbmKernelBeta.setArg(8, paramDrivenCavityVelocity[0]);
 
+		cKernelCopyRect.create(cProgramCopyRect, "copy_buffer_rect");
 
 		reset();
 	}
@@ -538,7 +580,7 @@ public:
 
 	void simulationStepAlpha() {
 #if DEBUG
-			std::cout << "computing alpha" << std::endl;
+		std::cout << "--> Running Alpha kernel" << std::endl;
 #endif
 		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelAlpha,	// kernel
 				1,						// dimensions
@@ -550,7 +592,7 @@ public:
 
 	void simulationStepBeta() {
 #if DEBUG
-			std::cout << "computing beta" << std::endl;
+			std::cout << "--> Running BETA kernel" << std::endl;
 #endif
 		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelBeta,	// kernel
 				1,						// dimensions
