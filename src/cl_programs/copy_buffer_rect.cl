@@ -11,13 +11,15 @@
  */
 __kernel void copy_buffer_rect(
 		__global T*  	 src,
+		__const			 int src_offset,
 		__const 		 int src_origin_x,
 		__const  		 int src_origin_y,
 		__const          int src_origin_z,
 		__const          int src_size_x,
 		__const          int src_size_y,
 		__const          int src_size_z,
-		__global T*  dst,
+		__global T*  	 dst,
+		__const			 int dst_offset,
 		__const 		 int dst_origin_x,
 		__const          int dst_origin_y,
 		__const          int dst_origin_z,
@@ -35,12 +37,12 @@ __kernel void copy_buffer_rect(
 	int dst_slice_z_size = dst_size_x * dst_size_y;
 
 	// index of the origin of the block in the src array
-	int src_origin_idx = src_origin_x +
+	int src_origin_idx = src_offset + src_origin_x +
 						(src_origin_y + gid_j) * src_size_x +
 						(src_origin_z + gid_k) * src_slice_z_size;
 
 	// index of the origin of the block in the dst array
-	int dst_origin_idx = dst_origin_x +
+	int dst_origin_idx = dst_offset + dst_origin_x +
 						(dst_origin_y + gid_j) * dst_size_x +
 						(dst_origin_z + gid_k) * dst_slice_z_size;
 	int x_idx;

@@ -888,8 +888,8 @@ public:
 				return;
 
 			// build
-//			cl_int ret_val = clBuildProgram(program, 1, &device.device_id, options, NULL, NULL);
-			cl_int ret_val = clBuildProgram(program, 0, NULL, options, NULL, NULL);
+			cl_int ret_val = clBuildProgram(program, 1, &device.device_id, options, NULL, NULL);
+			//cl_int ret_val = clBuildProgram(program, 0, NULL, options, NULL, NULL);
 
 			// avoid abortion due to CL_BILD_PROGRAM_FAILURE
 			if (ret_val != CL_SUCCESS)
