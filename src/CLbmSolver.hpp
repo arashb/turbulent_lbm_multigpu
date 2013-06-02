@@ -167,6 +167,54 @@ private:
 		}
 		return cl_version;
 	}
+
+	inline void enqueueCopyRectKernel(CCL::CMem& src,CCL::CMem& dst,
+									  const int src_offset,
+									  CVector<3,int> src_origin,
+									  CVector<3,int> src_size,
+									  const int dst_offset,
+									  CVector<3,int> dst_origin,
+									  CVector<3,int> dst_size,
+									  CVector<3,int> block_size,
+									  bool withBarrier = true
+		)
+	{
+		// set kernel args
+		// source args
+		cKernelCopyRect.setArg(0, src);
+		cKernelCopyRect.setArg(1, src_offset);
+		cKernelCopyRect.setArg(2, src_origin[0]);
+		cKernelCopyRect.setArg(3, src_origin[1]);
+		cKernelCopyRect.setArg(4, src_origin[2]);
+		cKernelCopyRect.setArg(5, src_size[0]);
+		cKernelCopyRect.setArg(6, src_size[1]);
+		cKernelCopyRect.setArg(7, src_size[2]);
+
+		// destination args
+		cKernelCopyRect.setArg(8, dst);
+		cKernelCopyRect.setArg(9, dst_offset);
+		cKernelCopyRect.setArg(10, dst_origin[0]);
+		cKernelCopyRect.setArg(11, dst_origin[1]);
+		cKernelCopyRect.setArg(12, dst_origin[2]);
+		cKernelCopyRect.setArg(13, dst_size[0]);
+		cKernelCopyRect.setArg(14, dst_size[1] );
+		cKernelCopyRect.setArg(15, dst_size[2] );
+		cKernelCopyRect.setArg(16, block_size[0] );
+
+		size_t lGlobalSize[2];
+		lGlobalSize[0] = block_size[1];
+		lGlobalSize[1] = block_size[2];
+		// enqueue the CopyRect kernel
+		cCommandQueue.enqueueNDRangeKernel(	cKernelCopyRect,	// kernel
+											2,				// dimensions
+											NULL,			// global work offset
+											lGlobalSize,
+											NULL
+						);
+		if(withBarrier)
+			cCommandQueue.enqueueBarrier();
+	}
+
 public:
 	size_t simulation_step_counter;
 	CError error;
@@ -653,7 +701,7 @@ public:
 		CCL::CMem cBuffer;
 		cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(T)*size.elements()*SIZE_DD_HOST, NULL);
 
-		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) // OpenCL 1.2 and later
+		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) // OpenCL 1.1 and later
 		{
 			// TODO: implement the clEnqueueReadBufferRect
 		}
@@ -662,40 +710,19 @@ public:
 #if DEBUG
 			std::cout << "Runnig the CopyBufferRectKernel(setDensityDistribution)" << std::endl;
 #endif
-			size_t lGlobalSize[2];
 			for (int f = 0; f < SIZE_DD_HOST; f++) {
-				// velocity in dim direction
-				// set kernel args
-				// source args
-				cKernelCopyRect.setArg(8, cBuffer);
-				cKernelCopyRect.setArg(9, f*size.elements());
-				cKernelCopyRect.setArg(10, 0);
-				cKernelCopyRect.setArg(11, 0);
-				cKernelCopyRect.setArg(12, 0);
-				cKernelCopyRect.setArg(13, size[0]);
-				cKernelCopyRect.setArg(14, size[1]);
-				cKernelCopyRect.setArg(15, size[2]);
-
-				// destination args
-				cKernelCopyRect.setArg(0, cMemDensityDistributions);
-				cKernelCopyRect.setArg(1, f*this->domain_cells_count);
-				cKernelCopyRect.setArg(2, origin[0]);
-				cKernelCopyRect.setArg(3, origin[1]);
-				cKernelCopyRect.setArg(4, origin[2]);
-				cKernelCopyRect.setArg(5, this->domain_cells[0] );
-				cKernelCopyRect.setArg(6, this->domain_cells[1] );
-				cKernelCopyRect.setArg(7, this->domain_cells[2] );
-				cKernelCopyRect.setArg(16, size[0] );
-
-				lGlobalSize[0] = size[1];
-				lGlobalSize[1] = size[2];
-				// enqueue the CopyRect kernel
-				cCommandQueue.enqueueNDRangeKernel(	cKernelCopyRect,	// kernel
-						2,				// dimensions
-						NULL,			// global work offset
-						lGlobalSize,
-						NULL
-				);
+				enqueueCopyRectKernel(
+										cMemDensityDistributions,
+										cBuffer,
+										f*this->domain_cells_count,
+										origin,
+										this->domain_cells,
+										f*size.elements(),
+										CVector<3,int>(0,0,0),
+										size,
+										size,
+										false
+										);
 			}
 			cCommandQueue.enqueueBarrier();
 		}
@@ -744,7 +771,7 @@ public:
 		CCL::CMem cBuffer;
 		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(T)*size.elements()*SIZE_DD_HOST, src);
 
-		if ( _cl_version >= OPENCL_VERSION_1_2_0 ) {
+		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
 			// TODO: implement the clEnqueueWriteBufferRect
 		}
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
@@ -754,38 +781,17 @@ public:
 #endif
 			size_t lGlobalSize[2];
 			for (int f = 0; f < SIZE_DD_HOST; f++) {
-				// velocity in dim direction
-				// set kernel args
-				// source args
-				cKernelCopyRect.setArg(0, cBuffer);
-				cKernelCopyRect.setArg(1, f*size.elements());
-				cKernelCopyRect.setArg(2, 0);
-				cKernelCopyRect.setArg(3, 0);
-				cKernelCopyRect.setArg(4, 0);
-				cKernelCopyRect.setArg(5, size[0]);
-				cKernelCopyRect.setArg(6, size[1]);
-				cKernelCopyRect.setArg(7, size[2]);
-
-				// destination args
-				cKernelCopyRect.setArg(8, cMemDensityDistributions);
-				cKernelCopyRect.setArg(9, f*this->domain_cells_count);
-				cKernelCopyRect.setArg(10, origin[0]);
-				cKernelCopyRect.setArg(11, origin[1]);
-				cKernelCopyRect.setArg(12, origin[2]);
-				cKernelCopyRect.setArg(13, this->domain_cells[0] );
-				cKernelCopyRect.setArg(14, this->domain_cells[1] );
-				cKernelCopyRect.setArg(15, this->domain_cells[2] );
-				cKernelCopyRect.setArg(16, size[0] );
-
-				lGlobalSize[0] = size[1];
-				lGlobalSize[1] = size[2];
-				// enqueue the CopyRect kernel
-				cCommandQueue.enqueueNDRangeKernel(	cKernelCopyRect,	// kernel
-						2,				// dimensions
-						NULL,			// global work offset
-						lGlobalSize,
-						NULL
-				);
+				enqueueCopyRectKernel(  cBuffer,
+										cMemDensityDistributions,
+										f*size.elements(),
+										CVector<3,int>(0,0,0),
+										size,
+										f*this->domain_cells_count,
+										origin,
+										this->domain_cells,
+										size,
+										false
+										);
 			}
 			cCommandQueue.enqueueBarrier();
 		}
@@ -827,7 +833,7 @@ public:
 		CCL::CMem cBuffer;
 		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(T)*size.elements()*SIZE_DD_HOST, src);
 
-		if ( _cl_version >= OPENCL_VERSION_1_2_0 ) {
+		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
 			// TODO: implement the clEnqueueWriteBufferRect
 		}
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
@@ -835,41 +841,19 @@ public:
 #if DEBUG
 			std::cout << "Runnig the CopyBufferRectKernel(setDensityDistributionWithNorm)" << std::endl;
 #endif
-			size_t lGlobalSize[2];
 			for (int f = 0; f < SIZE_DD_HOST; f++) {
 				if( norm.dotProd(lbm_units[f]) > 0 ) {
-					// velocity in dim direction
-					// set kernel args
-					// source args
-					cKernelCopyRect.setArg(0, cBuffer);
-					cKernelCopyRect.setArg(1, f*size.elements());
-					cKernelCopyRect.setArg(2, 0);
-					cKernelCopyRect.setArg(3, 0);
-					cKernelCopyRect.setArg(4, 0);
-					cKernelCopyRect.setArg(5, size[0]);
-					cKernelCopyRect.setArg(6, size[1]);
-					cKernelCopyRect.setArg(7, size[2]);
-
-					// destination args
-					cKernelCopyRect.setArg(8, cMemDensityDistributions);
-					cKernelCopyRect.setArg(9, f*this->domain_cells_count);
-					cKernelCopyRect.setArg(10, origin[0]);
-					cKernelCopyRect.setArg(11, origin[1]);
-					cKernelCopyRect.setArg(12, origin[2]);
-					cKernelCopyRect.setArg(13, this->domain_cells[0] );
-					cKernelCopyRect.setArg(14, this->domain_cells[1] );
-					cKernelCopyRect.setArg(15, this->domain_cells[2] );
-					cKernelCopyRect.setArg(16, size[0] );
-
-					lGlobalSize[0] = size[1];
-					lGlobalSize[1] = size[2];
-					// enqueue the CopyRect kernel
-					cCommandQueue.enqueueNDRangeKernel(	cKernelCopyRect,	// kernel
-							2,				// dimensions
-							NULL,			// global work offset
-							lGlobalSize,
-							NULL
-					);
+					enqueueCopyRectKernel(  cBuffer,
+											cMemDensityDistributions,
+											f*size.elements(),
+											CVector<3,int>(0,0,0),
+											size,
+											f*this->domain_cells_count,
+											origin,
+											this->domain_cells,
+											size,
+											false
+											);
 				}
 			}
 			cCommandQueue.enqueueBarrier();
@@ -943,40 +927,18 @@ public:
 #if DEBUG
 			std::cout << "Running the CopyBufferRectKernel(storeVelocity)" << std::endl;
 #endif
-			size_t lGlobalSize[2];
 			for (int dim = 0; dim < 3; dim++) {
-				// velocity in dim direction
-				// set kernel args
-				// source args
-				cKernelCopyRect.setArg(8, cBuffer);
-				cKernelCopyRect.setArg(9, dim*size.elements());
-				cKernelCopyRect.setArg(10, 0);
-				cKernelCopyRect.setArg(11, 0);
-				cKernelCopyRect.setArg(12, 0);
-				cKernelCopyRect.setArg(13, size[0]);
-				cKernelCopyRect.setArg(14, size[1]);
-				cKernelCopyRect.setArg(15, size[2]);
-
-				// destination args
-				cKernelCopyRect.setArg(0, cMemVelocity);
-				cKernelCopyRect.setArg(1, dim*this->domain_cells_count);
-				cKernelCopyRect.setArg(2, origin[0]);
-				cKernelCopyRect.setArg(3, origin[1]);
-				cKernelCopyRect.setArg(4, origin[2]);
-				cKernelCopyRect.setArg(5, this->domain_cells[0] );
-				cKernelCopyRect.setArg(6, this->domain_cells[1] );
-				cKernelCopyRect.setArg(7, this->domain_cells[2] );
-				cKernelCopyRect.setArg(16, size[0] );
-
-				lGlobalSize[0] = size[1];
-				lGlobalSize[1] = size[2];
-				// enqueue the CopyRect kernel
-				cCommandQueue.enqueueNDRangeKernel(	cKernelCopyRect,	// kernel
-						2,				// dimensions
-						NULL,			// global work offset
-						lGlobalSize,
-						NULL
-				);
+				enqueueCopyRectKernel(  cMemVelocity,
+										cBuffer,
+										dim*this->domain_cells_count,
+										origin,
+										this->domain_cells,
+										dim*size.elements(),
+										CVector<3,int>(0,0,0),
+										size,
+										size,
+										false
+										);
 			}
 			cCommandQueue.enqueueBarrier();
 		}
@@ -1042,7 +1004,7 @@ public:
 		CCL::CMem cBuffer;
 		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(T)*size.elements()*3, src);
 
-		if ( _cl_version >= OPENCL_VERSION_1_2_0 ) {
+		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
 			// TODO: implement the clEnqueueWriteBufferRect
 		}
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
@@ -1050,40 +1012,19 @@ public:
 #if DEBUG
 			std::cout << "Runnig the CopyBufferRectKernel(setVelocity)" << std::endl;
 #endif
-			size_t lGlobalSize[2];
+
 			for (int dim = 0; dim < 3; dim++) {
-				// velocity in dim direction
-				// set kernel args
-				// source args
-				cKernelCopyRect.setArg(0, cBuffer);
-				cKernelCopyRect.setArg(1, dim*size.elements());
-				cKernelCopyRect.setArg(2, 0);
-				cKernelCopyRect.setArg(3, 0);
-				cKernelCopyRect.setArg(4, 0);
-				cKernelCopyRect.setArg(5, size[0]);
-				cKernelCopyRect.setArg(6, size[1]);
-				cKernelCopyRect.setArg(7, size[2]);
-
-				// destination args
-				cKernelCopyRect.setArg(8, cMemVelocity);
-				cKernelCopyRect.setArg(9, dim*this->domain_cells_count);
-				cKernelCopyRect.setArg(10, origin[0]);
-				cKernelCopyRect.setArg(11, origin[1]);
-				cKernelCopyRect.setArg(12, origin[2]);
-				cKernelCopyRect.setArg(13, this->domain_cells[0] );
-				cKernelCopyRect.setArg(14, this->domain_cells[1] );
-				cKernelCopyRect.setArg(15, this->domain_cells[2] );
-				cKernelCopyRect.setArg(16, size[0] );
-
-				lGlobalSize[0] = size[1];
-				lGlobalSize[1] = size[2];
-				// enqueue the CopyRect kernel
-				cCommandQueue.enqueueNDRangeKernel(	cKernelCopyRect,	// kernel
-						2,				// dimensions
-						NULL,			// global work offset
-						lGlobalSize,
-						NULL
-				);
+				enqueueCopyRectKernel(  cBuffer,
+										cMemVelocity,
+										dim*size.elements(),
+										CVector<3,int>(0,0,0),
+										size,
+										dim*this->domain_cells_count,
+										origin,
+										this->domain_cells,
+										size,
+										false
+										);
 			}
 			cCommandQueue.enqueueBarrier();
 		}
@@ -1166,43 +1107,18 @@ public:
 #if DEBUG
 			std::cout << "Runnig the CopyBufferRectKernel(storeFlags)" << std::endl;
 #endif
-			// set kernel args
-			// source args
-			cKernelCopyRect.setArg(0, cMemDensity);
-			cKernelCopyRect.setArg(1, 0);
-			cKernelCopyRect.setArg(2, origin[0]);
-			cKernelCopyRect.setArg(3, origin[1]);
-			cKernelCopyRect.setArg(4, origin[2]);
-			cKernelCopyRect.setArg(5, this->domain_cells[0] );
-			cKernelCopyRect.setArg(6, this->domain_cells[1] );
-			cKernelCopyRect.setArg(7, this->domain_cells[2] );
-
-			// destination args
-			cKernelCopyRect.setArg(8, cBuffer);
-			cKernelCopyRect.setArg(9, 0);
-			cKernelCopyRect.setArg(10, 0);
-			cKernelCopyRect.setArg(11, 0);
-			cKernelCopyRect.setArg(12, 0);
-			cKernelCopyRect.setArg(13, size[0]);
-			cKernelCopyRect.setArg(14, size[1]);
-			cKernelCopyRect.setArg(15, size[2]);
-			cKernelCopyRect.setArg(16, size[0] );
-
-			size_t lGlobalSize[2];
-			lGlobalSize[0] = size[1];
-			lGlobalSize[1] = size[2];
-			// enqueue the CopyRect kernel
-			cCommandQueue.enqueueNDRangeKernel(	cKernelCopyRect,	// kernel
-												2,				// dimensions
-												NULL,			// global work offset
-												lGlobalSize,
-												NULL
-							);
-			cCommandQueue.enqueueBarrier();
+			enqueueCopyRectKernel(  cMemDensity,
+									cBuffer,
+									0,
+									origin,
+									this->domain_cells,
+									0,
+									CVector<3,int>(0,0,0),
+									size,
+									size
+									);
 		}
 		else {	// if nothing in this world works for you then use this method since it is very slow
-
-
 			const int NUM_CELLS_X = this->domain_cells[0];
 			const int NUM_CELLS_Y = this->domain_cells[1];
 
@@ -1248,7 +1164,7 @@ public:
 		CCL::CMem cBuffer;
 		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR ,sizeof(T)*size.elements(), src);
 
-		if ( _cl_version >= OPENCL_VERSION_1_2_0 ) {
+		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
 			// TODO: implement the clEnqueueWriteBufferRect
 		}
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
@@ -1257,40 +1173,16 @@ public:
 #if DEBUG
 			std::cout << "Runnig the CopyBufferRectKernel(setDensity)" << std::endl;
 #endif
-			// set kernel args
-			// source args
-			cKernelCopyRect.setArg(0, cBuffer);
-			cKernelCopyRect.setArg(1, 0);
-			cKernelCopyRect.setArg(2, 0);
-			cKernelCopyRect.setArg(3, 0);
-			cKernelCopyRect.setArg(4, 0);
-			cKernelCopyRect.setArg(5, size[0]);
-			cKernelCopyRect.setArg(6, size[1]);
-			cKernelCopyRect.setArg(7, size[2]);
-
-			// destination args
-			cKernelCopyRect.setArg(8, cMemDensity);
-			cKernelCopyRect.setArg(9, 0);
-			cKernelCopyRect.setArg(10, origin[0]);
-			cKernelCopyRect.setArg(11, origin[1]);
-			cKernelCopyRect.setArg(12, origin[2]);
-			cKernelCopyRect.setArg(13, this->domain_cells[0] );
-			cKernelCopyRect.setArg(14, this->domain_cells[1] );
-			cKernelCopyRect.setArg(15, this->domain_cells[2] );
-			cKernelCopyRect.setArg(16, size[0] );
-
-			size_t lGlobalSize[2];
-			lGlobalSize[0] = size[1];
-			lGlobalSize[1] = size[2];
-			// TODO: enqueue the CopyRect kernel
-			cCommandQueue.enqueueNDRangeKernel(	cKernelCopyRect,	// kernel
-												2,				// dimensions
-												NULL,			// global work offset
-												lGlobalSize,
-												NULL
-							);
-
-			cCommandQueue.enqueueBarrier();
+			enqueueCopyRectKernel(  cBuffer,
+									cMemDensity,
+									0,
+									CVector<3,int>(0,0,0),
+									size,
+									0,
+									origin,
+									this->domain_cells,
+									size
+									);
 		}
 		else {	// if nothing in this world works for you then use this method since it is very slow
 
@@ -1344,39 +1236,16 @@ public:
 #if DEBUG
 			std::cout << "Runnig the CopyBufferRectKernel(storeFlags)" << std::endl;
 #endif
-			// set kernel args
-			// source args
-			cKernelCopyRect.setArg(0, cMemCellFlags);
-			cKernelCopyRect.setArg(1, 0);
-			cKernelCopyRect.setArg(2, origin[0]);
-			cKernelCopyRect.setArg(3, origin[1]);
-			cKernelCopyRect.setArg(4, origin[2]);
-			cKernelCopyRect.setArg(5, this->domain_cells[0] );
-			cKernelCopyRect.setArg(6, this->domain_cells[1] );
-			cKernelCopyRect.setArg(7, this->domain_cells[2] );
-
-			// destination args
-			cKernelCopyRect.setArg(8, cBuffer);
-			cKernelCopyRect.setArg(9, 0);
-			cKernelCopyRect.setArg(10, 0);
-			cKernelCopyRect.setArg(11, 0);
-			cKernelCopyRect.setArg(12, 0);
-			cKernelCopyRect.setArg(13, size[0]);
-			cKernelCopyRect.setArg(14, size[1]);
-			cKernelCopyRect.setArg(15, size[2]);
-			cKernelCopyRect.setArg(16, size[0] );
-
-			size_t lGlobalSize[2];
-			lGlobalSize[0] = size[1];
-			lGlobalSize[1] = size[2];
-			// enqueue the CopyRect kernel
-			cCommandQueue.enqueueNDRangeKernel(	cKernelCopyRect,	// kernel
-												2,				// dimensions
-												NULL,			// global work offset
-												lGlobalSize,
-												NULL
-							);
-			cCommandQueue.enqueueBarrier();
+			enqueueCopyRectKernel(  cMemCellFlags,
+									cBuffer,
+									0,
+									origin,
+									this->domain_cells,
+									0,
+									CVector<3,int>(0,0,0),
+									size,
+									size
+									);
 		}
 		else {	// if nothing in this world works for you then use this method since it is very slow
 			const int NUM_CELLS_X = this->domain_cells[0];
@@ -1421,40 +1290,16 @@ public:
 #if DEBUG
 			std::cout << "Runnig the CopyBufferRectKernel(setFlags)" << std::endl;
 #endif
-			// set kernel args
-			// source args
-			cKernelCopyRect.setArg(0, cBuffer);
-			cKernelCopyRect.setArg(1, 0);
-			cKernelCopyRect.setArg(2, 0);
-			cKernelCopyRect.setArg(3, 0);
-			cKernelCopyRect.setArg(4, 0);
-			cKernelCopyRect.setArg(5, size[0]);
-			cKernelCopyRect.setArg(6, size[1]);
-			cKernelCopyRect.setArg(7, size[2]);
-
-			// destination args
-			cKernelCopyRect.setArg(8, cMemCellFlags);
-			cKernelCopyRect.setArg(9, 0);
-			cKernelCopyRect.setArg(10, origin[0]);
-			cKernelCopyRect.setArg(11, origin[1]);
-			cKernelCopyRect.setArg(12, origin[2]);
-			cKernelCopyRect.setArg(13, this->domain_cells[0] );
-			cKernelCopyRect.setArg(14, this->domain_cells[1] );
-			cKernelCopyRect.setArg(15, this->domain_cells[2] );
-			cKernelCopyRect.setArg(16, size[0] );
-
-			size_t lGlobalSize[2];
-			lGlobalSize[0] = size[1];
-			lGlobalSize[1] = size[2];
-			// enqueue the CopyRect kernel
-			cCommandQueue.enqueueNDRangeKernel(	cKernelCopyRect,	// kernel
-												2,				// dimensions
-												NULL,			// global work offset
-												lGlobalSize,
-												NULL
-							);
-
-			cCommandQueue.enqueueBarrier();
+			enqueueCopyRectKernel(  cBuffer,
+									cMemCellFlags,
+									0,
+									CVector<3,int>(0,0,0),
+									size,
+									0,
+									origin,
+									this->domain_cells,
+									size
+									);
 		}
 		else {	// if nothing in this world works for you then use this method since it is very slow
 

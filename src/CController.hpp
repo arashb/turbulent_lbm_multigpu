@@ -24,6 +24,7 @@
 #include "libcl/CCL.hpp"
 #include "libtools/CStopwatch.hpp"
 
+#include "mpi.h"
 #include "CDomain.hpp"
 #include "CLbmSolver.hpp"
 #include "libvis/ILbmVisualization.hpp"
