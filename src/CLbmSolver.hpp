@@ -1006,6 +1006,7 @@ public:
 
 		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
 			// TODO: implement the clEnqueueWriteBufferRect
+
 		}
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
 		{
@@ -1161,17 +1162,32 @@ public:
 	 * @param size The size of data block
 	 */
 	void setDensity(T *src, CVector<3,int> &origin, CVector<3,int> &size) {
-		CCL::CMem cBuffer;
-		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR ,sizeof(T)*size.elements(), src);
-
 		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
-			// TODO: implement the clEnqueueWriteBufferRect
+			// TODO: test this part
+			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
+			size_t host_origin[3] = {0,0,0};
+			size_t region[3] = {size[0], size[1], size[2]};
+			cCommandQueue.enqueueWriteBufferRect(
+					cMemDensity,
+					CL_TRUE,
+					buffer_origin,
+					host_origin,
+					region,
+					this->domain_cells[0],
+					this->domain_cells[0]*this->domain_cells[1],
+					0,
+					0,
+					src
+			);
 		}
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
 		{
 #if DEBUG
 			std::cout << "Runnig the CopyBufferRectKernel(setDensity)" << std::endl;
 #endif
+			CCL::CMem cBuffer;
+			cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR ,sizeof(T)*size.elements(), src);
+
 			enqueueCopyRectKernel(  cBuffer,
 									cMemDensity,
 									0,
@@ -1184,6 +1200,8 @@ public:
 									);
 		}
 		else {	// if nothing in this world works for you then use this method since it is very slow
+			CCL::CMem cBuffer;
+			cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR ,sizeof(T)*size.elements(), src);
 
 			const int NUM_CELLS_X = this->domain_cells[0];
 			const int NUM_CELLS_Y = this->domain_cells[1];
@@ -1277,18 +1295,33 @@ public:
 	}
 
 	void setFlags(int *src, CVector<3,int> &origin, CVector<3,int> &size ) {
-		CCL::CMem cBuffer;
-		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(int)*size.elements(), src);
-
 		if ( _cl_version >= OPENCL_VERSION_1_1_0 )  // OpenCL 1.2 and later
 		{
-			// TODO: implement the clEnqueueWriteBufferRect
+			// TODO: test this part
+			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
+			size_t host_origin[3] = {0,0,0};
+			size_t region[3] = {size[0], size[1], size[2]};
+			cCommandQueue.enqueueWriteBufferRect(
+					cMemCellFlags,
+					CL_TRUE,
+					buffer_origin,
+					host_origin,
+					region,
+					this->domain_cells[0],
+					this->domain_cells[0]*this->domain_cells[1],
+					0,
+					0,
+					src
+			);
 		}
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0) // OpenCL 1.0 and later
 		{
 #if DEBUG
 			std::cout << "Runnig the CopyBufferRectKernel(setFlags)" << std::endl;
 #endif
+			CCL::CMem cBuffer;
+			cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(int)*size.elements(), src);
+
 			enqueueCopyRectKernel(  cBuffer,
 									cMemCellFlags,
 									0,
@@ -1301,7 +1334,8 @@ public:
 									);
 		}
 		else {	// if nothing in this world works for you then use this method since it is very slow
-
+			CCL::CMem cBuffer;
+			cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(int)*size.elements(), src);
 			const int NUM_CELLS_X = this->domain_cells[0];
 			const int NUM_CELLS_Y = this->domain_cells[1];
 			const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
