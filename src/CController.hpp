@@ -308,9 +308,15 @@ public:
 			MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
 			MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
 
-			// TODO: check the MPI_TYPE
-			MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[0]);
-			MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[1]);
+			if (typeid(T) == typeid(float)){
+				MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[0]);
+				MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[1]);
+			}else if (typeid(T) == typeid(double)) {
+				MPI_Isend(send_buffer, send_buffer_size, MPI_DOUBLE, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[0]);
+				MPI_Irecv(recv_buffer, recv_buffer_size, MPI_DOUBLE, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[1]);
+			} else {
+				throw "Type id of MPI send/receive buffer is unknown!";
+			}
 			MPI_Waitall(2, req, status );
 
 			cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size);
@@ -357,9 +363,15 @@ public:
 			MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
 			MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
 
-			// TODO: check the MPI_TYPE
-			MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[0]);
-			MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[1]);
+			if (typeid(T) == typeid(float)){
+				MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[0]);
+				MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[1]);
+			} else if (typeid(T) == typeid(double)) {
+				MPI_Isend(send_buffer, send_buffer_size, MPI_DOUBLE, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[0]);
+				MPI_Irecv(recv_buffer, recv_buffer_size, MPI_DOUBLE, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[1]);
+			} else {
+				throw "Type id of MPI send/receive buffer is unknown!";
+			}
 			MPI_Waitall(2, req, status );
 
 			// TODO: OPTIMIZATION: you need to wait only for receiving to execute following command
