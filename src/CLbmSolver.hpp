@@ -779,7 +779,6 @@ public:
 #if DEBUG
 			std::cout << "Runnig the CopyBufferRectKernel(setDensityDistribution)" << std::endl;
 #endif
-			size_t lGlobalSize[2];
 			for (int f = 0; f < SIZE_DD_HOST; f++) {
 				enqueueCopyRectKernel(  cBuffer,
 										cMemDensityDistributions,

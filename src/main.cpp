@@ -100,6 +100,8 @@ int main(int argc, char** argv)
 
 	CVector<3,int> domain_size(32,32,32);
 	CVector<3,int> subdomain_nums(1,1,1);
+	CVector<3,T> domain_length(0.1,0.1,0.1);
+
 	CVector<3,T> gravitation(0,-9.81,0);
 	T viscosity = 0.001308;
 	T timestep = -1.0;
@@ -114,7 +116,7 @@ int main(int argc, char** argv)
 	std::string number_of_registers_string;	///< string storing the number of registers for opencl threads separated with comma
 	std::string number_of_threads_string;		///< string storing the number of threads for opencl separated with comma
 	std::string test_suite;
-	bool use_config_file = true;
+	bool use_config_file = false;
 	std::string conf_file;
 
 	int device_nr = 0;
@@ -252,6 +254,11 @@ int main(int argc, char** argv)
 		extract_comma_separated_integers(lbm_opencl_number_of_registers_list, number_of_registers_string);
 
 	if( use_config_file) {
+		ConfigSingleton::Instance()->loadFile(conf_file);
+	} else {
+		ConfigSingleton::Instance()->domain_size = domain_size;
+		ConfigSingleton::Instance()->subdomain_num = subdomain_nums;
+		ConfigSingleton::Instance()->domain_length = domain_length;
 		ConfigSingleton::Instance()->gravitation = gravitation;
 		ConfigSingleton::Instance()->viscosity = viscosity;
 		ConfigSingleton::Instance()->computation_kernel_count = computation_kernel_count;
@@ -261,20 +268,19 @@ int main(int argc, char** argv)
 		ConfigSingleton::Instance()->loops = loops;
 		ConfigSingleton::Instance()->lbm_opencl_number_of_registers_list = lbm_opencl_number_of_registers_list;
 		ConfigSingleton::Instance()->lbm_opencl_number_of_threads_list = lbm_opencl_number_of_threads_list;
+	}
 #if DEBUG
 		ConfigSingleton::Instance()->debug_mode = true;
+		ConfigSingleton::Instance()->printMe();
 #endif
-		//config.load_file(conf_file);
 
-	}
 	if (unit_test) {
 
 		if ( strcmp(  "all", test_suite.c_str() ) == 0 ) {
 			if( debug)
 				std::cout << "running all test." << std::endl;
-			return UnitTest::RunAllTests();
+				return UnitTest::RunAllTests();
 		}
-
 		else {
 			const UnitTest::TestList& allTests( UnitTest::Test::GetTestList() );
 			UnitTest::TestList selectedTests;
@@ -289,28 +295,25 @@ int main(int argc, char** argv)
 				}
 				p = p->next;
 			}
-
 			//run selected test(s) only
 			UnitTest::TestReporterStdout reporter;
 			UnitTest::TestRunner runner( reporter );
 			return runner.RunTestsIf( selectedTests, 0, UnitTest::True(), 0 );
 		}
-
 	} else {
-		CVector<3,T> length(0.10,0.05,0.05);
-		CVector<3,int> origin(0,0,0);
-		CDomain<T> domain(-1, domain_size, origin, length);
 
-		CManager<T> manager(domain, subdomain_nums);
+		CVector<3,int> origin(0,0,0);
+		CDomain<T> domain(-1, ConfigSingleton::Instance()->domain_size, origin, ConfigSingleton::Instance()->domain_length);
+		CManager<T> manager(domain, ConfigSingleton::Instance()->subdomain_num);
 
 		int my_rank, num_procs;
 		MPI_Init(&argc, &argv);    /// Start MPI
 		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
 		MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// Get number of processes
 
-		if ( num_procs != subdomain_nums.elements()) {
+		if ( num_procs != ConfigSingleton::Instance()->subdomain_num.elements()) {
 			std::cout << "Number of allocated processors should be equal to the number of subdomains!" << std::endl;
-			std::cout << "Current number of subdomains is : " << subdomain_nums.elements() << std::endl;
+			std::cout << "Current number of subdomains is : " << ConfigSingleton::Instance()->subdomain_num.elements() << std::endl;
 			exit(EXIT_FAILURE);
 		}
 		manager.initSimulation(my_rank);
@@ -318,7 +321,7 @@ int main(int argc, char** argv)
 
 		MPI_Finalize();    /// Cleanup MPI
 	}
-
+	return 0;
 
 }
 
