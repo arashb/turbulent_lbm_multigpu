@@ -234,7 +234,6 @@ public:
 		_domain(domain),
 		cLbmVisualization(NULL)
 	{
-		// TODO: set the default boundary conditions to obstacle
 		for(int i = 0; i < 3; i++)
 			for (int j = 0; j < 2; j++)
 				_BC[i][j] = BC[i][j];
@@ -317,8 +316,8 @@ public:
 			cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size);
 			cLbmPtr->wait();
 
-			delete send_buffer;
-			delete recv_buffer;
+			delete[] send_buffer;
+			delete[] recv_buffer;
 		}
 	}
 
@@ -367,8 +366,8 @@ public:
 			cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size, normal);
 			cLbmPtr->wait();
 
-			delete send_buffer;
-			delete recv_buffer;
+			delete[] send_buffer;
+			delete[] recv_buffer;
 		}
 	}
 
@@ -390,7 +389,6 @@ public:
 		if (loops < 0)
 			loops = 100;
 
-		//int res = initLBMSolver();
 		vector_checksum = 0;
 
 		// approximate bandwidth
@@ -415,8 +413,6 @@ public:
 			cLbmVisualization = new CLbmVisualizationVTK<T>(_UID,outputfilename);
 			cLbmVisualization->setup(cLbmPtr);
 		}
-
-
 		cStopwatch.start();
 		for (int i = 0; i < loops; i++)
 		{
@@ -426,28 +422,6 @@ public:
 			computeNextStep();
 
 		}
-
-
-//		if (do_visualization)
-//			cLbmVisualization->render(0);
-//		syncAlpha();
-//		if (do_visualization)
-//			cLbmVisualization->render(1);
-//		cLbmPtr->simulationStepBeta();
-//		if (do_visualization)
-//			cLbmVisualization->render(2);
-//		syncBeta();
-//		if (do_visualization)
-//			cLbmVisualization->render(3);
-//		cLbmPtr->simulationStepAlpha();
-//		if (do_visualization)
-//			cLbmVisualization->render(4);
-//		syncAlpha();
-//		if (do_visualization)
-//			cLbmVisualization->render(5);
-//		std::cout << "." << std::flush;
-
-
 		cLbmPtr->wait();
 		cStopwatch.stop();
 
@@ -489,12 +463,6 @@ public:
 		return EXIT_SUCCESS;
 	}
 
-//	void setBC(int BC[3][2]) {
-//		for(int i = 0; i < 3; i++)
-//			for (int j = 0; j < 2; j++)
-//				_BC[i][j] = BC[i][j];
-//	}
-
 	void addCommunication( CComm<T>* comm) {
 		_comm_container.push_back(comm);
 	}
@@ -516,7 +484,7 @@ public:
 		for( int i = 0; i < size.elements(); i++)
 			src[i] = FLAG_VELOCITY_INJECTION;
 		cLbmPtr->setFlags(src,origin,size);
-		delete src;
+		delete[] src;
 	}
 };
 

@@ -28,13 +28,13 @@ public:
 
     virtual ~ILbmVisualization() {
 		if (velocity)
-			delete velocity;
+			delete[] velocity;
 
 		if (density)
-			delete density;
+			delete[] density;
 
 		if (flags)
-			delete flags;
+			delete[] flags;
     };
 
 	virtual void setup(CLbmSolver<T> *p_cLbmOpencl) {

@@ -30,7 +30,7 @@ public:
 
 	CManager(CDomain<T> domain, CVector<3, int> subdomainNums):
 		_domain(domain),
-	//	_subdomain_nums(1,1,1),
+		//	_subdomain_nums(1,1,1),
 		_lbm_controller(NULL)
 	{
 		this->setSubdomainNums(subdomainNums);
@@ -54,9 +54,9 @@ public:
 	void setSubdomainNums(CVector<3, int> subdomainNums) {
 		CVector<3,int> do_size = _domain.getSize();
 		if ( (do_size[0] % subdomainNums[0] != 0) ||
-			 (do_size[1] % subdomainNums[1] != 0) ||
-			 (do_size[2] % subdomainNums[2] != 0)
-			 ) {
+				(do_size[1] % subdomainNums[1] != 0) ||
+				(do_size[2] % subdomainNums[2] != 0)
+		) {
 			throw "Number of subdomains does not match with the grid size!";
 		}
 
@@ -66,9 +66,9 @@ public:
 		tmpSD_size[2] = do_size[2] / subdomainNums[2];
 
 		if ( (tmpSD_size[0] & 2 ) &&
-			 (tmpSD_size[1] & 2 ) &&
-			 (tmpSD_size[2] & 2 )
-			 )
+				(tmpSD_size[1] & 2 ) &&
+				(tmpSD_size[2] & 2 )
+		)
 		{
 			throw "Subdomain sizes should be power of 2!";
 		}
@@ -92,112 +92,108 @@ public:
 	void initSimulation(int my_rank) {
 		// initialize the boundary condition
 		int BC[3][2] = { /* x BC */{FLAG_GHOST_LAYER,FLAG_GHOST_LAYER},
-						/* y BC */{FLAG_GHOST_LAYER,FLAG_GHOST_LAYER},
-						/* z BC */{FLAG_GHOST_LAYER,FLAG_GHOST_LAYER}
+				/* y BC */{FLAG_GHOST_LAYER,FLAG_GHOST_LAYER},
+				/* z BC */{FLAG_GHOST_LAYER,FLAG_GHOST_LAYER}
 		};
 
-		int id = 0;
-		// TODO: OPTIMIZATION: for huge number of subdomains three nested loops is slow.
-		for( int nz = 0; nz < _subdomain_nums[2]; nz++) {
-			for ( int ny = 0; ny < _subdomain_nums[1]; ny++ ) {
-				for( int nx = 0; nx < _subdomain_nums[0]; nx++)
-				{
-					if ( id == my_rank)
-					{
-						// create the subdomains instances for the whole domain
-						CVector<3,int> origin(nx*_subdomain_size[0],ny*_subdomain_size[1],nz*_subdomain_size[2]);
-						CDomain<T> *subdomain = new CDomain<T>(id, _subdomain_size, origin, _subdomain_length);
-						//_subdomains_container[id] = subdomain;
+		int id = my_rank;
+		int tmpid = id;
+		int nx, ny, nz;
+		nx = tmpid % _subdomain_nums[0];
+		tmpid /= _subdomain_nums[0];
+		ny = tmpid % _subdomain_nums[1];
+		tmpid /= _subdomain_nums[1];
+		nz = tmpid;
+#if DEBUG
+		std::cout << "ID: "<< id << " NX: " << nx << " NY: " << ny << " NZ: " << nz << std::endl;
+#endif
+		// create the subdomains instances for the whole domain
+		CVector<3,int> origin(nx*_subdomain_size[0],ny*_subdomain_size[1],nz*_subdomain_size[2]);
+		CDomain<T> *subdomain = new CDomain<T>(id, _subdomain_size, origin, _subdomain_length);
 
-						// Setting the boundary conditions for the current Controller
-						if ( nx == 0 )
-							BC[0][0] = FLAG_OBSTACLE;
-						if (nx == ( _subdomain_nums[0] - 1 ))
-							BC[0][1] = FLAG_OBSTACLE;
+		// Setting the boundary conditions for the current Controller
+		if ( nx == 0 )
+			BC[0][0] = FLAG_OBSTACLE;
+		if (nx == ( _subdomain_nums[0] - 1 ))
+			BC[0][1] = FLAG_OBSTACLE;
 
-						if ( ny == 0 )
-							BC[1][0] = FLAG_OBSTACLE;
-						if (ny == ( _subdomain_nums[1] - 1 ))
-							BC[1][1] = FLAG_OBSTACLE;
+		if ( ny == 0 )
+			BC[1][0] = FLAG_OBSTACLE;
+		if (ny == ( _subdomain_nums[1] - 1 ))
+			BC[1][1] = FLAG_OBSTACLE;
 
-						if ( nz == 0 )
-							BC[2][0] = FLAG_OBSTACLE;
-						if (nz == ( _subdomain_nums[2] - 1 ))
-							BC[2][1] = FLAG_OBSTACLE;
+		if ( nz == 0 )
+			BC[2][0] = FLAG_OBSTACLE;
+		if (nz == ( _subdomain_nums[2] - 1 ))
+			BC[2][1] = FLAG_OBSTACLE;
 
-						_lbm_controller = new CController<T>(id,*subdomain,BC);
+		_lbm_controller = new CController<T>(id,*subdomain,BC);
 
-						// Initializing the Controller's communication classes based on the already computed boundary conditions
-						if (BC[0][0] == FLAG_GHOST_LAYER) {
-							int comm_destination = id - 1;
-							CVector<3,int> send_size(1,_subdomain_size[1],_subdomain_size[2]);
-							CVector<3,int> recv_size(1,_subdomain_size[1],_subdomain_size[2]);
-							CVector<3,int> send_origin(1,0,0);
-							CVector<3,int> recv_origin(0,0,0);
-							CVector<3,int> comm_direction(1,0,0);
-							_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
-						}
-						if (BC[0][1] == FLAG_GHOST_LAYER) {
-							int comm_destination = id + 1;
-							CVector<3,int> send_size(1,_subdomain_size[1],_subdomain_size[2]);
-							CVector<3,int> recv_size(1,_subdomain_size[1],_subdomain_size[2]);
-							CVector<3,int> send_origin(_subdomain_size[0] - 2, 0, 0);
-							CVector<3,int> recv_origin(_subdomain_size[0] - 1, 0, 0);
-							CVector<3,int> comm_direction(-1,0,0);
-							_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
-						}
-						if (BC[1][0] == FLAG_GHOST_LAYER) {
-							int comm_destination = id - _subdomain_nums[0];
-							CVector<3,int> send_size(_subdomain_size[0], 1, _subdomain_size[2]);
-							CVector<3,int> recv_size(_subdomain_size[0], 1, _subdomain_size[2]);
-							CVector<3,int> send_origin(0,1,0);
-							CVector<3,int> recv_origin(0,0,0);
-							CVector<3,int> comm_direction(0,1,0);
-							_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
-						}
-						if (BC[1][1] == FLAG_GHOST_LAYER) {
-							int comm_destination = id + _subdomain_nums[0];
-							CVector<3,int> send_size(_subdomain_size[0], 1, _subdomain_size[2]);
-							CVector<3,int> recv_size(_subdomain_size[0], 1, _subdomain_size[2]);
-							CVector<3,int> send_origin(0, _subdomain_size[1] - 2, 0);
-							CVector<3,int> recv_origin(0, _subdomain_size[1] - 1, 0);
-							CVector<3,int> comm_direction(0,-1,0);
-							_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
-						}
-						if (BC[2][0] == FLAG_GHOST_LAYER) {
-							int comm_destination = id - _subdomain_nums[0]*_subdomain_nums[1];
-							CVector<3,int> send_size(_subdomain_size[0], _subdomain_size[1], 1);
-							CVector<3,int> recv_size(_subdomain_size[0], _subdomain_size[1], 1);
-							CVector<3,int> send_origin(0,0,1);
-							CVector<3,int> recv_origin(0,0,0);
-							CVector<3,int> comm_direction(0,0,1);
-							_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
-						}
-						if (BC[2][1] == FLAG_GHOST_LAYER) {
-							int comm_destination = id + _subdomain_nums[0]*_subdomain_nums[1];
-							CVector<3,int> send_size(_subdomain_size[0], _subdomain_size[1], 1);
-							CVector<3,int> recv_size(_subdomain_size[0], _subdomain_size[1], 1);
-							CVector<3,int> send_origin(0, 0, _subdomain_size[2] - 2);
-							CVector<3,int> recv_origin(0, 0, _subdomain_size[2] - 1);
-							CVector<3,int> comm_direction(0,0,-1);
-							_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
-						}
-						//return;
-						// TODO: this geometry is hard coded right now. reimplement it in general form.
-						if ( ny == _subdomain_nums[1] - 1) {
-							_lbm_controller->setGeometry();
-						}
-					}
-					id++;
-				}
-			}
+		// Initializing the Controller's communication classes based on the already computed boundary conditions
+		if (BC[0][0] == FLAG_GHOST_LAYER) {
+			int comm_destination = id - 1;
+			CVector<3,int> send_size(1,_subdomain_size[1],_subdomain_size[2]);
+			CVector<3,int> recv_size(1,_subdomain_size[1],_subdomain_size[2]);
+			CVector<3,int> send_origin(1,0,0);
+			CVector<3,int> recv_origin(0,0,0);
+			CVector<3,int> comm_direction(1,0,0);
+			_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
 		}
+		if (BC[0][1] == FLAG_GHOST_LAYER) {
+			int comm_destination = id + 1;
+			CVector<3,int> send_size(1,_subdomain_size[1],_subdomain_size[2]);
+			CVector<3,int> recv_size(1,_subdomain_size[1],_subdomain_size[2]);
+			CVector<3,int> send_origin(_subdomain_size[0] - 2, 0, 0);
+			CVector<3,int> recv_origin(_subdomain_size[0] - 1, 0, 0);
+			CVector<3,int> comm_direction(-1,0,0);
+			_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+		}
+		if (BC[1][0] == FLAG_GHOST_LAYER) {
+			int comm_destination = id - _subdomain_nums[0];
+			CVector<3,int> send_size(_subdomain_size[0], 1, _subdomain_size[2]);
+			CVector<3,int> recv_size(_subdomain_size[0], 1, _subdomain_size[2]);
+			CVector<3,int> send_origin(0,1,0);
+			CVector<3,int> recv_origin(0,0,0);
+			CVector<3,int> comm_direction(0,1,0);
+			_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+		}
+		if (BC[1][1] == FLAG_GHOST_LAYER) {
+			int comm_destination = id + _subdomain_nums[0];
+			CVector<3,int> send_size(_subdomain_size[0], 1, _subdomain_size[2]);
+			CVector<3,int> recv_size(_subdomain_size[0], 1, _subdomain_size[2]);
+			CVector<3,int> send_origin(0, _subdomain_size[1] - 2, 0);
+			CVector<3,int> recv_origin(0, _subdomain_size[1] - 1, 0);
+			CVector<3,int> comm_direction(0,-1,0);
+			_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+		}
+		if (BC[2][0] == FLAG_GHOST_LAYER) {
+			int comm_destination = id - _subdomain_nums[0]*_subdomain_nums[1];
+			CVector<3,int> send_size(_subdomain_size[0], _subdomain_size[1], 1);
+			CVector<3,int> recv_size(_subdomain_size[0], _subdomain_size[1], 1);
+			CVector<3,int> send_origin(0,0,1);
+			CVector<3,int> recv_origin(0,0,0);
+			CVector<3,int> comm_direction(0,0,1);
+			_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+		}
+		if (BC[2][1] == FLAG_GHOST_LAYER) {
+			int comm_destination = id + _subdomain_nums[0]*_subdomain_nums[1];
+			CVector<3,int> send_size(_subdomain_size[0], _subdomain_size[1], 1);
+			CVector<3,int> recv_size(_subdomain_size[0], _subdomain_size[1], 1);
+			CVector<3,int> send_origin(0, 0, _subdomain_size[2] - 2);
+			CVector<3,int> recv_origin(0, 0, _subdomain_size[2] - 1);
+			CVector<3,int> comm_direction(0,0,-1);
+			_lbm_controller->addCommunication(new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+		}
+		// TODO: this geometry is hard coded right now. reimplement it in general form.
+		if ( ny == _subdomain_nums[1] - 1) {
+			_lbm_controller->setGeometry();
+		}
+
 	}
 
 	void startSimulation() {
 		if(!_lbm_controller)
 			throw "CManager: Initialize the simulation before starting it!";
-
 		_lbm_controller->run();
 
 	}

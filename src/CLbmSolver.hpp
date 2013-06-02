@@ -1169,7 +1169,6 @@ public:
 		}
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
 		{
-			// TODO: implement your own kernel to copy blockwise data
 #if DEBUG
 			std::cout << "Runnig the CopyBufferRectKernel(setDensity)" << std::endl;
 #endif
