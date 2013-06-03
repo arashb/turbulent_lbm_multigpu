@@ -130,6 +130,7 @@ public:
 		_lbm_controller = new CController<T>(id,*subdomain,BC);
 
 		// Initializing the Controller's communication classes based on the already computed boundary conditions
+		// TODO: add the halo region size to send/recv sizes
 		if (BC[0][0] == FLAG_GHOST_LAYER) {
 			int comm_destination = id - 1;
 			CVector<3,int> send_size(1,_subdomain_size[1],_subdomain_size[2]);
@@ -196,6 +197,14 @@ public:
 			throw "CManager: Initialize the simulation before starting it!";
 		_lbm_controller->run();
 
+	}
+
+	CController<T>* getController() const {
+		return _lbm_controller;
+	}
+
+	void setController(CController<T>* lbmController) {
+		_lbm_controller = lbmController;
 	}
 };
 #endif

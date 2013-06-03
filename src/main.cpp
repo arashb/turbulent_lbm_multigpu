@@ -319,7 +319,41 @@ int main(int argc, char** argv)
 		manager.initSimulation(my_rank);
 		manager.startSimulation();
 
+		if( ConfigSingleton::Instance()->do_validate) {
+			std::cout << my_rank << " --> Begin the validation of computed results." << std::endl;
+			CManager<T> validataion_manager(domain, CVector<3,int>(1,1,1));
+			//if (my_rank == 0) {
+				std::cout <<  my_rank << "--> Compute the results for one domain." << std::endl;
+				//CManager<T> validataion_manager(domain, CVector<3,int>(1,1,1));
+				validataion_manager.initSimulation(0);
+				validataion_manager.startSimulation();
+			//}
+
+			std::cout << my_rank << "--> Comparing the results of one domain with multi-domain." << std::endl;
+
+			// getting the local data
+			CController<T>* controller = manager.getController();
+			CVector<3,int> size_with_halo = controller->getDomain().getSize();
+			CVector<3,int> size_without_halo(size_with_halo[0]-1, size_with_halo[1]-1, size_with_halo[2]-1 );
+			T* local_data = new T[size_without_halo.elements()];
+			CVector<3,int> origin(1,1,1);
+			controller->getSolver()->storeVelocity(local_data, origin, size_without_halo);
+
+			// getting the global data
+			int id = controller->getUid();
+			int tmpid = id;
+			int nx, ny, nz;
+			nx = tmpid % ConfigSingleton::Instance()->subdomain_num[0];
+			tmpid /= ConfigSingleton::Instance()->subdomain_num[0];
+			ny = tmpid % ConfigSingleton::Instance()->subdomain_num[1];
+			tmpid /= ConfigSingleton::Instance()->subdomain_num[1];
+			nz = tmpid;
+
+			// comparing local and global data
+
+		}
 		MPI_Finalize();    /// Cleanup MPI
+
 	}
 	return 0;
 

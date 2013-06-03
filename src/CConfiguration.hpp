@@ -38,6 +38,7 @@ public:
 	bool do_visualization;
 	T timestep;
 	int loops;
+	bool do_validate;
 
 	// TODO: lbm_opencl_number_of_registers_list, lbm_opencl_number_of_threads_list
 	std::list<int> lbm_opencl_number_of_registers_list;
@@ -88,6 +89,7 @@ public:
 		std::cout <<  "	        LOOPS: " <<  loops << std::endl;
 		std::cout <<  "	     TIMESTEP: " <<  timestep << std::endl;
 		std::cout <<  "	          VTK: " <<  do_visualization << std::endl;
+		std::cout <<  "	     VALIDATE: " <<  do_validate << std::endl;
 		std::cout <<  "DEVICE: " << std::endl;
 		std::cout <<  "  KERNEL_COUNT: " <<  computation_kernel_count << std::endl;
 		std::cout <<  "	    DEVICE_NR: " <<  device_nr << std::endl;
@@ -130,6 +132,7 @@ private:
 		loops = atoi(child_three->FirstChildElement( "loops" )->GetText());
 		timestep = atof(child_three->FirstChildElement( "timestep" )->GetText());
 		do_visualization = atoi(child_three->FirstChildElement( "visualization" )->FirstChildElement("VTK")->GetText());
+		do_validate = atoi(child_three->FirstChildElement( "validate" )->GetText());
 	}
 	void interpret_device_data(const txml::XMLNode* root) {
 		const txml::XMLNode* child_four = root->FirstChildElement(TAG_NAME_CHILD_FOUR);

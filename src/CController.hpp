@@ -199,6 +199,7 @@ class CController
 		// initialize queue
 		cCommandQueue = new CCL::CCommandQueue(*cContext, *cDevice);
 
+		//CVector<3,int> halo_domain(_domain[0]+2,_domain[1]+2,_domain[2]+2);
 		// INIT LATTICE BOLTZMANN!
 		cLbmPtr = new CLbmSolver<T>(	_UID, *cCommandQueue, *cContext, *cDevice,
 				_BC,
@@ -498,6 +499,30 @@ public:
 		cLbmPtr->setFlags(src,origin,size);
 		delete[] src;
 	}
+
+	CLbmSolver<T>* getSolver() const {
+		return cLbmPtr;
+	}
+
+	void setSolver(CLbmSolver<T>* lbmPtr) {
+		cLbmPtr = lbmPtr;
+	}
+
+	CDomain<T> getDomain() const {
+		return _domain;
+	}
+
+//	void setDomain(CDomain<T> domain) {
+//		_domain = domain;
+//	}
+
+	int getUid() const {
+		return _UID;
+	}
+
+//	void setUid(int uid) {
+//		_UID = uid;
+//	}
 };
 
 #endif
