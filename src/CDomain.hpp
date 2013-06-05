@@ -38,15 +38,15 @@ public:
 			_length = CVector<3,T>(0.05,0.05,0.05);
 		}
 	// halo domain
-	CDomain( CDomain &domain, int halo_size )
-	{
-		_UID = domain.getUid();
-		_size[0] = domain.getSize()[0] + 2*halo_size;
-		_size[1] = domain.getSize()[1] + 2*halo_size;
-		_size[2] = domain.getSize()[2] + 2*halo_size;
-		_origin_cell = domain.getOrigin();
-		_length = domain.getLength();
-	}
+//	CDomain( CDomain &domain, int halo_size )
+//	{
+//		_UID = domain.getUid();
+//		_size[0] = domain.getSize()[0] + 2*halo_size;
+//		_size[1] = domain.getSize()[1] + 2*halo_size;
+//		_size[2] = domain.getSize()[2] + 2*halo_size;
+//		_origin_cell = domain.getOrigin();
+//		_length = domain.getLength();
+//	}
 
 	~CDomain() {
 
