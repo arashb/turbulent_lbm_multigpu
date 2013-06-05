@@ -242,7 +242,7 @@ public:
 
 				std::list<int> &p_lbm_opencl_number_of_work_items_list,		///< list with number of threads for each successively created kernel
 				std::list<int> &p_lbm_opencl_number_of_registers_list		///< list with number of registers for each thread threads for each successively created kernel
-		) :CLbmSkeleton<T>(CDomain<T>(domain, HALO_SIZE)), // creating a domain with halo size 1 in eash direction
+		) :CLbmSkeleton<T>(CDomain<T>(domain)),
 		drivenCavityVelocity(100.0, 0, 0, 1),
 		_UID(UID),
 		cCommandQueue(p_cCommandQueue),

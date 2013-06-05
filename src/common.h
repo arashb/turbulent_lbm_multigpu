@@ -17,7 +17,7 @@
 #define FLAG_GHOST_LAYER (1 << 3)
 #define FLAG_GHOST_LAYER_BETA (FLAG_GHOST_LAYER | (1 << 4))
 
-#define HALO_SIZE 0
+//#define HALO_SIZE 0
 
 extern CVector<3,int> E0 	;
 extern CVector<3,int> E1	;

@@ -316,45 +316,84 @@ int main(int argc, char** argv)
 			std::cout << "Current number of subdomains is : " << ConfigSingleton::Instance()->subdomain_num.elements() << std::endl;
 			exit(EXIT_FAILURE);
 		}
+
 		manager.initSimulation(my_rank);
 		manager.startSimulation();
 
+//
 		if( ConfigSingleton::Instance()->do_validate) {
-			std::cout << my_rank << " --> Begin the validation of computed results." << std::endl;
-			CManager<T> validataion_manager(domain, CVector<3,int>(1,1,1));
-			//if (my_rank == 0) {
-				std::cout <<  my_rank << "--> Compute the results for one domain." << std::endl;
-				//CManager<T> validataion_manager(domain, CVector<3,int>(1,1,1));
-				validataion_manager.initSimulation(0);
-				validataion_manager.startSimulation();
-			//}
+//			std::cout << "--> PROC. RANK: " << my_rank << " --> Begin the validation of computed results." << std::endl;
+//
+//			// getting the local data
+//			CController<T>* controller = manager.getController();
+//			CVector<3,int> local_size_with_halo = controller->getDomain().getSize();
+//			CVector<3,int> local_size_without_halo(local_size_with_halo[0]-2, local_size_with_halo[1]-2, local_size_with_halo[2]-2 );
+//			T* local_data = new T[local_size_without_halo.elements()];
+//			CVector<3,int> local_origin(1,1,1);
+//			controller->getSolver()->storeVelocity(local_data, local_origin, local_size_without_halo);
 
-			std::cout << my_rank << "--> Comparing the results of one domain with multi-domain." << std::endl;
+			// until here is correct
+			// creating the correct domain size for the case that there is only one domain.
+			// the halo regions is subtracted form each direction.
+			// The size of halo regions is dependent to the number of subdomains in each direction
+//			CVector<3,int> validation_domain_size(ConfigSingleton::Instance()->domain_size[0] - 2*(ConfigSingleton::Instance()->subdomain_num[0] - 1),
+//												  ConfigSingleton::Instance()->domain_size[1] - 2*(ConfigSingleton::Instance()->subdomain_num[1] - 1),
+//												  ConfigSingleton::Instance()->domain_size[2] - 2*(ConfigSingleton::Instance()->subdomain_num[2] - 1));
+//			CDomain<T> validatiaon_domain(-2, validation_domain_size, origin, ConfigSingleton::Instance()->domain_length);
+//			CManager<T> validataion_manager(validatiaon_domain, CVector<3,int>(1,1,1));
+			// std::cout <<  my_rank << "--> Compute the results for one domain." << std::endl;
 
-			// getting the local data
-			CController<T>* controller = manager.getController();
-			CVector<3,int> size_with_halo = controller->getDomain().getSize();
-			CVector<3,int> size_without_halo(size_with_halo[0]-1, size_with_halo[1]-1, size_with_halo[2]-1 );
-			T* local_data = new T[size_without_halo.elements()];
-			CVector<3,int> origin(1,1,1);
-			controller->getSolver()->storeVelocity(local_data, origin, size_without_halo);
+//			if (my_rank == 0) {
+//				validataion_manager.initSimulation(-1);
+//				validataion_manager.startSimulation();
 
-			// getting the global data
-			int id = controller->getUid();
-			int tmpid = id;
-			int nx, ny, nz;
-			nx = tmpid % ConfigSingleton::Instance()->subdomain_num[0];
-			tmpid /= ConfigSingleton::Instance()->subdomain_num[0];
-			ny = tmpid % ConfigSingleton::Instance()->subdomain_num[1];
-			tmpid /= ConfigSingleton::Instance()->subdomain_num[1];
-			nz = tmpid;
+				// store the corresponding current subdmain data from validation data.
+				// In order to find the correct origin of data the number of subdomains
+//				// in each direction should be taken into account.
+//				for ( int nx  = 0; nx < ConfigSingleton::Instance()->subdomain_num[0]; nx++ )
+//					for( int ny = 0; ny < ConfigSingleton::Instance()->subdomain_num[1]; ny++)
+//						for( int nz = 0; nz < ConfigSingleton::Instance()->subdomain_num[2]; nz++) {
+//							T* sub_global_data = new T[local_size_without_halo.elements()];
+//							CVector<3,int> sub_origin(
+//									1+nx*(local_size_without_halo[0]),
+//									1+ny*(local_size_without_halo[1]),
+//									1+nz*(local_size_without_halo[2])
+//							);
+//							validataion_manager.getController()->getSolver()->storeVelocity(sub_global_data, sub_origin, local_size_with_halo);
+//						}
+//			}
 
-			// comparing local and global data
+
+////			// getting the global data
+//			int id = controller->getUid();
+//			int tmpid = id;
+//			int nx, ny, nz;
+//			nx = tmpid % ConfigSingleton::Instance()->subdomain_num[0];
+//			tmpid /= ConfigSingleton::Instance()->subdomain_num[0];
+//			ny = tmpid % ConfigSingleton::Instance()->subdomain_num[1];
+//			tmpid /= ConfigSingleton::Instance()->subdomain_num[1];
+//			nz = tmpid;
+//
+
+//			std::cout << "FUCK" << std::endl;
+////			std::cout << "PROC. RANK: " << my_rank << "VALIDATION SIZE: " << validation_domain_size << std::endl;
+//			// comparing local and global data
+//			double tolerance = 1.0e-16;
+//			for ( int i = 0; i < local_size_without_halo.elements(); i++)
+//			{
+//				//if (abs(sub_global_data[i] - local_data[i]) > tolerance ){
+//					//std::cout << "PROC. RANK: " << my_rank << "VALIDATION FAILED at Index: " << i << std::endl;
+//					std::cout << "GLOBAL_DATA[" << i <<  "] = " << sub_global_data[i] << std::endl;
+//					std::cout << "LOCAL_DATA[" << i << "] = " << local_data[i] << std::endl;
+//				//}
+//			}
+			//std::cout << "--> PROC. RANK: " << my_rank << " VALIDATION SUCCEED." << std::endl;
 
 		}
 		MPI_Finalize();    /// Cleanup MPI
 
 	}
+
 	return 0;
 
 }
