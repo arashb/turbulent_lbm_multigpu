@@ -65,13 +65,13 @@ public:
 		tmpSD_size[1] = do_size[1] / subdomainNums[1];
 		tmpSD_size[2] = do_size[2] / subdomainNums[2];
 
-		if ( (tmpSD_size[0] & 2 ) &&
-				(tmpSD_size[1] & 2 ) &&
-				(tmpSD_size[2] & 2 )
-		)
-		{
-			throw "Subdomain sizes should be power of 2!";
-		}
+//		if ( (tmpSD_size[0] & 2 ) &&
+//				(tmpSD_size[1] & 2 ) &&
+//				(tmpSD_size[2] & 2 )
+//		)
+//		{
+//			throw "Subdomain sizes should be power of 2!";
+//		}
 		_subdomain_size = tmpSD_size;
 		_subdomain_nums = subdomainNums;
 
@@ -97,6 +97,8 @@ public:
 		};
 
 		int id = my_rank;
+		if (id < 0)
+			id = 0;
 		int tmpid = id;
 		int nx, ny, nz;
 		nx = tmpid % _subdomain_nums[0];
