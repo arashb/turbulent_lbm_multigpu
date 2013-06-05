@@ -247,8 +247,8 @@ public:
 		if (cPlatforms)
 			delete cPlatform;
 
-		if (cPlatform)
-			delete cPlatform;
+//		if (cPlatform)
+//			delete cPlatform;
 
 		if (cContext)
 			delete cContext;
@@ -256,14 +256,12 @@ public:
 		if (cDevices)
 			delete cDevices;
 
-		if (cDevice)
-			delete cDevice;
+//		if (cDevice)
+//			delete cDevice;
 
 		if ( cCommandQueue )
 			delete cCommandQueue;
 
-//		if (cDeviceInfo)
-//			delete cDeviceInfo;
 
 		if (cLbmVisualization) ///< Visualization class
 			delete cLbmVisualization;

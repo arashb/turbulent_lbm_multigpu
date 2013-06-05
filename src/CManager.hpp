@@ -37,6 +37,8 @@ public:
 	}
 
 	~CManager() {
+		if (_lbm_controller)
+			delete _lbm_controller;
 	}
 
 	CDomain<T> getDomain() const {
