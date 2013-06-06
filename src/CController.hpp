@@ -199,6 +199,7 @@ class CController
 		// initialize queue
 		cCommandQueue = new CCL::CCommandQueue(*cContext, *cDevice);
 
+		//CVector<3,int> halo_domain(_domain[0]+2,_domain[1]+2,_domain[2]+2);
 		// INIT LATTICE BOLTZMANN!
 		cLbmPtr = new CLbmSolver<T>(	_UID, *cCommandQueue, *cContext, *cDevice,
 				_BC,
@@ -246,8 +247,8 @@ public:
 		if (cPlatforms)
 			delete cPlatform;
 
-		if (cPlatform)
-			delete cPlatform;
+//		if (cPlatform)
+//			delete cPlatform;
 
 		if (cContext)
 			delete cContext;
@@ -255,14 +256,12 @@ public:
 		if (cDevices)
 			delete cDevices;
 
-		if (cDevice)
-			delete cDevice;
+//		if (cDevice)
+//			delete cDevice;
 
 		if ( cCommandQueue )
 			delete cCommandQueue;
 
-//		if (cDeviceInfo)
-//			delete cDeviceInfo;
 
 		if (cLbmVisualization) ///< Visualization class
 			delete cLbmVisualization;
@@ -278,7 +277,7 @@ public:
 
 	void syncAlpha() {
 #if DEBUG
-			std::cout << "sync alpha." << std::endl;
+			std::cout << "--> Sync alpha" << std::endl;
 #endif
 		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking way.
 		typename std::vector< CComm<T>* >::iterator it = _comm_container.begin();
@@ -329,7 +328,7 @@ public:
 
 	void syncBeta() {
 #if DEBUG
-			std::cout << "sync beta." << std::endl;
+			std::cout << "--> Sync beta" << std::endl;
 #endif
 
 		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking form.
@@ -498,6 +497,30 @@ public:
 		cLbmPtr->setFlags(src,origin,size);
 		delete[] src;
 	}
+
+	CLbmSolver<T>* getSolver() const {
+		return cLbmPtr;
+	}
+
+	void setSolver(CLbmSolver<T>* lbmPtr) {
+		cLbmPtr = lbmPtr;
+	}
+
+	CDomain<T> getDomain() const {
+		return _domain;
+	}
+
+//	void setDomain(CDomain<T> domain) {
+//		_domain = domain;
+//	}
+
+	int getUid() const {
+		return _UID;
+	}
+
+//	void setUid(int uid) {
+//		_UID = uid;
+//	}
 };
 
 #endif

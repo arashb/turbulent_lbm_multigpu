@@ -37,6 +37,8 @@ public:
 	}
 
 	~CManager() {
+		if (_lbm_controller)
+			delete _lbm_controller;
 	}
 
 	CDomain<T> getDomain() const {
@@ -65,13 +67,6 @@ public:
 		tmpSD_size[1] = do_size[1] / subdomainNums[1];
 		tmpSD_size[2] = do_size[2] / subdomainNums[2];
 
-//		if ( (tmpSD_size[0] & 2 ) &&
-//				(tmpSD_size[1] & 2 ) &&
-//				(tmpSD_size[2] & 2 )
-//		)
-//		{
-//			throw "Subdomain sizes should be power of 2!";
-//		}
 		_subdomain_size = tmpSD_size;
 		_subdomain_nums = subdomainNums;
 
@@ -95,10 +90,10 @@ public:
 				/* y BC */{FLAG_GHOST_LAYER,FLAG_GHOST_LAYER},
 				/* z BC */{FLAG_GHOST_LAYER,FLAG_GHOST_LAYER}
 		};
-
 		int id = my_rank;
 		if (id < 0)
 			id = 0;
+
 		int tmpid = id;
 		int nx, ny, nz;
 		nx = tmpid % _subdomain_nums[0];
@@ -132,6 +127,7 @@ public:
 		_lbm_controller = new CController<T>(id,*subdomain,BC);
 
 		// Initializing the Controller's communication classes based on the already computed boundary conditions
+		// TODO: add the halo region size to send/recv sizes
 		if (BC[0][0] == FLAG_GHOST_LAYER) {
 			int comm_destination = id - 1;
 			CVector<3,int> send_size(1,_subdomain_size[1],_subdomain_size[2]);
@@ -198,6 +194,18 @@ public:
 			throw "CManager: Initialize the simulation before starting it!";
 		_lbm_controller->run();
 
+	}
+
+	CController<T>* getController() const {
+		return _lbm_controller;
+	}
+
+	void setController(CController<T>* lbmController) {
+		_lbm_controller = lbmController;
+	}
+
+	CVector<3, int> getSubdomainSize() const {
+		return _subdomain_size;
 	}
 };
 #endif
