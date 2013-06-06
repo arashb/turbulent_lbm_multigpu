@@ -301,8 +301,7 @@ int main(int argc, char** argv)
 			UnitTest::TestRunner runner( reporter );
 			return runner.RunTestsIf( selectedTests, 0, UnitTest::True(), 0 );
 		}
-	} else if ( ConfigSingleton::Instance()->do_validate ){
-
+	} else if ( ConfigSingleton::Instance()->do_validate ) {
 		CVector<3,int> origin(0,0,0);
 		CDomain<T> domain(-1, ConfigSingleton::Instance()->domain_size, origin, ConfigSingleton::Instance()->domain_length);
 		CManager<T> *manager = new CManager<T>(domain, ConfigSingleton::Instance()->subdomain_num);
@@ -323,13 +322,12 @@ int main(int argc, char** argv)
 			manager->startSimulation();
 
 			// getting the local data
-
 			if ( my_rank == VALIDATION_RANK) {
 				CController<T>* controller = manager->getController();
 				CVector<3,int> local_size_with_halo = controller->getDomain().getSize();
 				CVector<3,int> local_size_without_halo(local_size_with_halo[0]-2, local_size_with_halo[1]-2, local_size_with_halo[2]-2 );
 				int local_size[] = {local_size_without_halo[0], local_size_without_halo[1], local_size_without_halo[2]};
-				T* local_data = new T[local_size_without_halo.elements()];
+				T* local_data = new T[local_size_without_halo.elements()*3];
 				CVector<3,int> local_origin(1,1,1);
 				controller->getSolver()->storeVelocity(local_data, local_origin, local_size_without_halo);
 				MPI_Send(local_size, 3, MPI_INT, num_procs -1, 0, MPI_COMM_WORLD);
@@ -339,47 +337,35 @@ int main(int argc, char** argv)
 
 			delete manager;
 		}
-
 		if (my_rank == num_procs -1) {
 			MPI_Status stat1;
 			MPI_Status stat2;
 			int local_size[3];
 			MPI_Recv(local_size, 3, MPI_INT, VALIDATION_RANK, 0, MPI_COMM_WORLD, &stat1);
 			CVector<3,int> local_size_without_halo(local_size[0], local_size[1], local_size[2]);
-			T* local_data = new T[local_size_without_halo.elements()];
+			T* local_data = new T[local_size_without_halo.elements()*3];
 			MPI_Recv(local_data,local_size_without_halo.elements(),MPI_FLOAT, VALIDATION_RANK, 1, MPI_COMM_WORLD, &stat2 );
 
-
-			//			 until here is correct
-			//			 creating the correct domain size for the case that there is only one domain.
-			//			 the halo regions is subtracted form each direction.
-			//			 The size of halo regions is dependent to the number of subdomains in each direction
-			CVector<3,int> validation_domain_size(ConfigSingleton::Instance()->domain_size[0] - 2*(ConfigSingleton::Instance()->subdomain_num[0] - 1),
+			//	until here is correct
+			//	creating the correct domain size for the case that there is only one domain.
+			//	the halo regions is subtracted form each direction.
+			//	The size of halo regions is dependent to the number of subdomains in each direction
+			CVector<3,int> validation_domain_size(
+					ConfigSingleton::Instance()->domain_size[0] - 2*(ConfigSingleton::Instance()->subdomain_num[0] - 1),
 					ConfigSingleton::Instance()->domain_size[1] - 2*(ConfigSingleton::Instance()->subdomain_num[1] - 1),
 					ConfigSingleton::Instance()->domain_size[2] - 2*(ConfigSingleton::Instance()->subdomain_num[2] - 1));
-			CDomain<T> validatiaon_domain(-2, validation_domain_size, origin, ConfigSingleton::Instance()->domain_length);
+			T cell_length_x = ConfigSingleton::Instance()->domain_length[0] / (T)ConfigSingleton::Instance()->domain_size[0];
+			T cell_length_y = ConfigSingleton::Instance()->domain_length[1] / (T)ConfigSingleton::Instance()->domain_size[1];
+			T cell_length_z = ConfigSingleton::Instance()->domain_length[2] / (T)ConfigSingleton::Instance()->domain_size[2];
+			CVector<3,T> validation_domain_length(validation_domain_size[0]*cell_length_x, validation_domain_size[1]*cell_length_y, validation_domain_size[2]*cell_length_z);
+			CDomain<T> validatiaon_domain(-2, validation_domain_size, origin, validation_domain_length);
 			CManager<T> validataion_manager(validatiaon_domain, CVector<3,int>(1,1,1));
 			std::cout <<  my_rank << "--> Compute the results for one domain." << std::endl;
 
 			validataion_manager.initSimulation(-1);
 			validataion_manager.startSimulation();
-			T* sub_global_data = new T[local_size_without_halo.elements()];
-			//
-			//				// store the corresponding current subdmain data from validation data.
-			//				// In order to find the correct origin of data the number of subdomains
-			//				// in each direction should be taken into account.
-			//				for ( int nx  = 0; nx < ConfigSingleton::Instance()->subdomain_num[0]; nx++ )
-			//					for( int ny = 0; ny < ConfigSingleton::Instance()->subdomain_num[1]; ny++)
-			//						for( int nz = 0; nz < ConfigSingleton::Instance()->subdomain_num[2]; nz++) {
-			//							CVector<3,int> sub_origin(
-			//									1+nx*(local_size_without_halo[0]),
-			//									1+ny*(local_size_without_halo[1]),
-			//									1+nz*(local_size_without_halo[2])
-			//							);
-			//							validataion_manager.getController()->getSolver()->storeVelocity(sub_global_data, sub_origin, local_size_with_halo);
-			//						}
-			//
-			//				// getting the global data
+			T* sub_global_data = new T[local_size_without_halo.elements()*3];
+			// getting the global data
 			int id = VALIDATION_RANK;
 			int tmpid = id;
 			int nx, ny, nz;
@@ -395,25 +381,23 @@ int main(int argc, char** argv)
 			);
 			validataion_manager.getController()->getSolver()->storeVelocity(sub_global_data, sub_origin, local_size_without_halo);
 
-			//
-			std::cout << "PROC. RANK: " << my_rank << "VALIDATION SIZE: " << validation_domain_size << std::endl;
+			std::cout << "PROC. RANK: " << my_rank << " VALIDATION SIZE: " << validation_domain_size << std::endl;
 			// comparing local and global data
 			double tolerance = 1.0e-5;
 			int error_counter = 0;
-			for ( int i = 0; i < local_size_without_halo.elements(); i++)
+			for ( int i = 0; i < local_size_without_halo.elements()*3; i++)
 			{
 				if (fabs(sub_global_data[i] - local_data[i]) > tolerance ){
+#if NDEBUG
 					std::cout << "PROC. RANK: " << my_rank << " VALIDATION FAILED at Index: " << i << std::endl;
 					std::cout << "GLOBAL_DATA[" << i <<  "] = " << sub_global_data[i] << std::endl;
 					std::cout << "LOCAL_DATA[" << i << "] = " << local_data[i] << std::endl;
 					std::cout << "PROC. RANK: " << my_rank << "DIFF: " << fabs((double)sub_global_data[i] - (double)local_data[i]) << std::endl;
+#endif
 					error_counter++;
 				}
 			}
-
 			std::cout << "--> PROC. RANK: " << my_rank << " NUMBER OF FAILED CELLS/TOTAL NUMBER OF CELLS: " << error_counter << "/" << local_size_without_halo.elements() << std::endl;
-
-
 		}
 		MPI_Finalize();    /// Cleanup MPI
 	}
