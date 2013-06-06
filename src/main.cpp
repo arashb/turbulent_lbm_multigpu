@@ -383,12 +383,12 @@ int main(int argc, char** argv)
 
 			std::cout << "PROC. RANK: " << my_rank << " VALIDATION SIZE: " << validation_domain_size << std::endl;
 			// comparing local and global data
-			double tolerance = 1.0e-5;
+			double tolerance = 1.0e-7;
 			int error_counter = 0;
 			for ( int i = 0; i < local_size_without_halo.elements()*3; i++)
 			{
 				if (fabs(sub_global_data[i] - local_data[i]) > tolerance ){
-#if NDEBUG
+#if DEBUG
 					std::cout << "PROC. RANK: " << my_rank << " VALIDATION FAILED at Index: " << i << std::endl;
 					std::cout << "GLOBAL_DATA[" << i <<  "] = " << sub_global_data[i] << std::endl;
 					std::cout << "LOCAL_DATA[" << i << "] = " << local_data[i] << std::endl;
@@ -397,7 +397,7 @@ int main(int argc, char** argv)
 					error_counter++;
 				}
 			}
-			std::cout << "--> PROC. RANK: " << my_rank << " NUMBER OF FAILED CELLS/TOTAL NUMBER OF CELLS: " << error_counter << "/" << local_size_without_halo.elements() << std::endl;
+			std::cout << "--> PROC. RANK: " << my_rank << " TOLERANCE: "<< tolerance << " NUMBER OF FAILED CELLS/TOTAL NUMBER OF CELLS: " << error_counter << "/" << local_size_without_halo.elements() << std::endl;
 		}
 		MPI_Finalize();    /// Cleanup MPI
 	}
