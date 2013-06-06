@@ -277,7 +277,7 @@ public:
 
 	void syncAlpha() {
 #if DEBUG
-			std::cout << "sync alpha." << std::endl;
+			std::cout << "--> Sync alpha" << std::endl;
 #endif
 		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking way.
 		typename std::vector< CComm<T>* >::iterator it = _comm_container.begin();
@@ -328,7 +328,7 @@ public:
 
 	void syncBeta() {
 #if DEBUG
-			std::cout << "sync beta." << std::endl;
+			std::cout << "--> Sync beta" << std::endl;
 #endif
 
 		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking form.
