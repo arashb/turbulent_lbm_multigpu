@@ -817,8 +817,8 @@ public:
 		}
 		else
 		{
-			//simulationStepBeta();
-			simulationStepBetaRect(CVector<3,int>(0,0,0), CVector<3,int>(this->domain_cells[0],this->domain_cells[1],this->domain_cells[2]));
+			simulationStepBeta();
+			//simulationStepBetaRect(CVector<3,int>(0,0,0), CVector<3,int>(this->domain_cells[0],this->domain_cells[1],this->domain_cells[2]));
 		}
 		cCommandQueue.enqueueBarrier();
 
@@ -858,9 +858,6 @@ public:
 		}
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0) // OpenCL 1.0 and later
 		{
-#if DEBUG
-			std::cout << "Runnig the CopyBufferRectKernel(setDensityDistribution)" << std::endl;
-#endif
 			for (int f = 0; f < SIZE_DD_HOST; f++) {
 				enqueueCopyRectKernel(
 										cMemDensityDistributions,
@@ -927,9 +924,6 @@ public:
 		}
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
 		{
-#if DEBUG
-			std::cout << "Runnig the CopyBufferRectKernel(setDensityDistribution)" << std::endl;
-#endif
 			for (int f = 0; f < SIZE_DD_HOST; f++) {
 				enqueueCopyRectKernel(  cBuffer,
 										cMemDensityDistributions,
@@ -988,9 +982,6 @@ public:
 		}
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
 		{
-#if DEBUG
-			std::cout << "Runnig the CopyBufferRectKernel(setDensityDistributionWithNorm)" << std::endl;
-#endif
 			for (int f = 0; f < SIZE_DD_HOST; f++) {
 				if( norm.dotProd(lbm_units[f]) > 0 ) {
 					enqueueCopyRectKernel(  cBuffer,
@@ -1074,9 +1065,6 @@ public:
 		}
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
 		{
-#if DEBUG
-			std::cout << "Running the CopyBufferRectKernel(storeVelocity)" << std::endl;
-#endif
 			for (int dim = 0; dim < 3; dim++) {
 				enqueueCopyRectKernel(  cMemVelocity,
 										cBuffer,
@@ -1160,10 +1148,6 @@ public:
 		}
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
 		{
-#if DEBUG
-			std::cout << "Runnig the CopyBufferRectKernel(setVelocity)" << std::endl;
-#endif
-
 			for (int dim = 0; dim < 3; dim++) {
 				enqueueCopyRectKernel(  cBuffer,
 										cMemVelocity,
@@ -1270,9 +1254,6 @@ public:
 		}
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
 		{
-#if DEBUG
-			std::cout << "Runnig the CopyBufferRectKernel(storeFlags)" << std::endl;
-#endif
 			enqueueCopyRectKernel(  cMemDensity,
 									cBuffer,
 									0,
@@ -1351,10 +1332,6 @@ public:
 
 			if ( _cl_version >= OPENCL_VERSION_1_0_0)
 			{
-#if DEBUG
-				std::cout << "Running the CopyBufferRectKernel(setDensity)" << std::endl;
-#endif
-
 				enqueueCopyRectKernel(  cBuffer,
 						cMemDensity,
 						0,
@@ -1431,9 +1408,6 @@ public:
 
 			if ( _cl_version >= OPENCL_VERSION_1_0_0)
 			{
-#if DEBUG
-				std::cout << "Runnig the CopyBufferRectKernel(storeFlags)" << std::endl;
-#endif
 				enqueueCopyRectKernel(  cMemCellFlags,
 						cBuffer,
 						0,
@@ -1502,10 +1476,6 @@ public:
 
 			if ( _cl_version >= OPENCL_VERSION_1_0_0) // OpenCL 1.0 and later
 			{
-#if DEBUG
-				std::cout << "Runnig the CopyBufferRectKernel(setFlags)" << std::endl;
-#endif
-
 				enqueueCopyRectKernel(  cBuffer,
 						cMemCellFlags,
 						0,

@@ -10,6 +10,7 @@
 
 #include "CConfiguration.hpp"
 #include "Singleton.hpp"
+#include "CComm.hpp"
 
 #define FLAG_OBSTACLE	(1 << 0)
 #define FLAG_FLUID	(1 << 1)
@@ -53,5 +54,13 @@ typedef enum {
 	OPENCL_VERSION_1_1_0 = 110,
 	OPENCL_VERSION_1_2_0 = 120,
 } OPENCL_VERSION;
+
+typedef enum {
+	MPI_COMM_DIRECTION_UNKNOWN = 0,
+	MPI_COMM_DIRECTION_X ,
+	MPI_COMM_DIRECTION_Y ,
+	MPI_COMM_DIRECTION_Z ,
+	MPI_COMM_DIRECTION_ALL,
+} MPI_COMM_DIRECTION;
 
 #endif /* COMMON_H_ */
