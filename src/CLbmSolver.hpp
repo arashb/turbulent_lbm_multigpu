@@ -847,7 +847,7 @@ public:
 							dst);
 	}
 
-	void storeDensityDistribution(T *dst, CVector<3,int> &origin, CVector<3,int> &size)
+	void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size)
 	{
 		CCL::CMem cBuffer;
 		cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(T)*size.elements()*SIZE_DD_HOST, NULL);
@@ -914,7 +914,7 @@ public:
 				dst);
 	}
 
-	void setDensityDistribution(T *src, CVector<3,int> &origin, CVector<3,int> &size)
+	void setDensityDistribution(T *src, CVector<3,int> origin, CVector<3,int> size)
 	{
 		CCL::CMem cBuffer;
 		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(T)*size.elements()*SIZE_DD_HOST, src);
@@ -972,7 +972,7 @@ public:
 		}
 	}
 
-	void setDensityDistribution(T *src, CVector<3,int> &origin, CVector<3,int> &size, CVector<3,int> norm)
+	void setDensityDistribution(T *src, CVector<3,int> origin, CVector<3,int> size, CVector<3,int> norm)
 	{
 		CCL::CMem cBuffer;
 		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(T)*size.elements()*SIZE_DD_HOST, src);
@@ -1056,7 +1056,7 @@ public:
 	 * @param origin The origin point of data block
 	 * @param size The size of data block
 	 */
-	void storeVelocity(T* dst, CVector<3,int> &origin, CVector<3,int> &size ) {
+	void storeVelocity(T* dst, CVector<3,int> origin, CVector<3,int> size ) {
 		CCL::CMem cBuffer;
 		cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(T)*size.elements()*3, NULL);
 
@@ -1138,7 +1138,7 @@ public:
 	 * @param origin The origin point of data block
 	 * @param size The size of data block
 	 */
-	void setVelocity(T* src, CVector<3,int> &origin, CVector<3,int> &size ) {
+	void setVelocity(T* src, CVector<3,int> origin, CVector<3,int> size ) {
 		CCL::CMem cBuffer;
 		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(T)*size.elements()*3, src);
 
@@ -1230,7 +1230,7 @@ public:
 	 * @param origin The origin point of data block
 	 * @param size The size of data block
 	 */
-	void storeDensity(T *dst, CVector<3,int> &origin, CVector<3,int> &size) {
+	void storeDensity(T *dst, CVector<3,int> origin, CVector<3,int> size) {
 		CCL::CMem cBuffer;
 		cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(T)*size.elements(), NULL);
 
@@ -1307,7 +1307,7 @@ public:
 	 * @param origin The origin point of data block
 	 * @param size The size of data block
 	 */
-	void setDensity(T *src, CVector<3,int> &origin, CVector<3,int> &size) {
+	void setDensity(T *src, CVector<3,int> origin, CVector<3,int> size) {
 		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
 			// TODO: test this part
 			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
@@ -1382,7 +1382,7 @@ public:
 							dst);
 	}
 
-	void storeFlags(int *dst, CVector<3,int> &origin, CVector<3,int> &size ) {
+	void storeFlags(int *dst, CVector<3,int> origin, CVector<3,int> size ) {
 		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
 			// TODO: test this part
 			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
@@ -1450,7 +1450,7 @@ public:
 		}
 	}
 
-	void setFlags(int *src, CVector<3,int> &origin, CVector<3,int> &size ) {
+	void setFlags(int *src, CVector<3,int> origin, CVector<3,int> size ) {
 		if ( _cl_version >= OPENCL_VERSION_1_1_0 )  // OpenCL 1.2 and later
 		{
 			// TODO: test this part

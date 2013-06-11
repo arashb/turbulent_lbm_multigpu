@@ -280,6 +280,63 @@ public:
 		}
 	}
 
+	void storeDataAlpha(MPI_COMM_DIRECTION direction) {
+		std::pair<comm_map_ptr, comm_map_ptr> ppp;
+		ppp = _comm_container.equal_range(direction);
+		comm_map_ptr it = ppp.first;
+		for( ;it != ppp.second; it++){
+			// Store data from device to host
+			cLbmPtr->storeDensityDistribution(	(*it).second->getSendBuffer(),
+					(*it).second->getSendOrigin(),
+					(*it).second->getSendSize());
+		}
+	}
+
+	void setDataAlpha(MPI_COMM_DIRECTION direction) {
+		std::pair<comm_map_ptr, comm_map_ptr> ppp;
+		ppp = _comm_container.equal_range(direction);
+		comm_map_ptr it = ppp.first;
+		for( ;it != ppp.second; it++){
+			// Store data from host to device
+			cLbmPtr->setDensityDistribution((*it).second->getRecvBuffer(),
+					(*it).second->getRecvOrigin(),
+					(*it).second->getRecvSize());
+		}
+		cLbmPtr->wait();
+	}
+
+	void storeDataBeta(MPI_COMM_DIRECTION direction) {
+		std::pair<comm_map_ptr, comm_map_ptr> ppp;
+		ppp = _comm_container.equal_range(direction);
+		comm_map_ptr it = ppp.first;
+		for( ;it != ppp.second; it++){
+			// Store data from device to host
+			// the send and receive origin and size values in beta sync is the opposite values of
+			// CComm object of current communication, since the ghost layer data
+			// will be sent back to their origin
+			cLbmPtr->storeDensityDistribution(	(*it).second->getSendBuffer(),
+					(*it).second->getRecvOrigin(),
+					(*it).second->getRecvSize());
+		}
+	}
+
+	void setDataBeta(MPI_COMM_DIRECTION direction) {
+		std::pair<comm_map_ptr, comm_map_ptr> ppp;
+		ppp = _comm_container.equal_range(direction);
+		comm_map_ptr it = ppp.first;
+		for( ;it != ppp.second; it++){
+			// Store data from host to device
+			// the send and receive origin and size values in beta sync is the opposite values of
+			// CComm object of current communication, since the ghost layer data
+			// will be sent back to their origin
+			cLbmPtr->setDensityDistribution((*it).second->getRecvBuffer(),
+					(*it).second->getSendOrigin(),
+					(*it).second->getSendSize(),
+					(*it).second->getCommDirection());
+		}
+		cLbmPtr->wait();
+	}
+
 	void syncAlpha() {
 #if DEBUG
 			std::cout << "--> Sync alpha" << std::endl;
@@ -287,23 +344,14 @@ public:
 		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking way.
 		comm_map_ptr it = _comm_container.begin();
 		for( ;it != _comm_container.end(); it++){
-			CVector<3,int> send_size = (*it).second->getSendSize();
-			CVector<3,int> recv_size = (*it).second->getRecvSize();
-			CVector<3,int> send_origin = (*it).second->getSendOrigin();
-			CVector<3,int> recv_origin = (*it).second->getRecvOrigin();
 			int dst_rank = (*it).second->getDstId();
-
-			int send_buffer_size = (*it).second->getSendBufferSize();//send_size.elements()*cLbmPtr->SIZE_DD_HOST;
+			int send_buffer_size = (*it).second->getSendBufferSize();
 			int recv_buffer_size = (*it).second->getRecvBufferSize();
 			T* send_buffer = (*it).second->getSendBuffer();
 			T* recv_buffer = (*it).second->getRecvBuffer();
 
 			MPI_Request req[2];
 			MPI_Status status[2];
-
-			// Download data from device to host
-			cLbmPtr->storeDensityDistribution(send_buffer, send_origin, send_size);
-			//cLbmPtr->wait();
 			int my_rank, num_procs;
 			MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
 			MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
@@ -318,9 +366,6 @@ public:
 				throw "Type id of MPI send/receive buffer is unknown!";
 			}
 			MPI_Waitall(2, req, status );
-
-			cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size);
-			cLbmPtr->wait();
 		}
 	}
 
@@ -329,34 +374,19 @@ public:
 			std::cout << "--> Sync alpha: " << direction <<  std::endl;
 #endif
 		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking way.
-
 		// iterating over all communication objects for a specific direction
 		std::pair<comm_map_ptr, comm_map_ptr> ppp;
 		ppp = _comm_container.equal_range(direction);
 		comm_map_ptr it = ppp.first;
 		for( ;it != ppp.second; it++){
-			CVector<3,int> send_size = (*it).second->getSendSize();
-			CVector<3,int> recv_size = (*it).second->getRecvSize();
-			CVector<3,int> send_origin = (*it).second->getSendOrigin();
-			CVector<3,int> recv_origin = (*it).second->getRecvOrigin();
 			int dst_rank = (*it).second->getDstId();
-
-			// send buffer
-			int send_buffer_size = (*it).second->getSendBufferSize();//send_size.elements()*cLbmPtr->SIZE_DD_HOST;
+			int send_buffer_size = (*it).second->getSendBufferSize();
 			int recv_buffer_size = (*it).second->getRecvBufferSize();
 			T* send_buffer = (*it).second->getSendBuffer();
 			T* recv_buffer = (*it).second->getRecvBuffer();
 
 			MPI_Request req[2];
 			MPI_Status status[2];
-
-			// Download data from device to host
-			cLbmPtr->storeDensityDistribution(send_buffer, send_origin, send_size);
-
-			int my_rank, num_procs;
-			MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
-			MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
-
 			if (typeid(T) == typeid(float)){
 				MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[0]);
 				MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[1]);
@@ -367,9 +397,6 @@ public:
 				throw "Type id of MPI send/receive buffer is unknown!";
 			}
 			MPI_Waitall(2, req, status );
-
-			cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size);
-			cLbmPtr->wait();
 		}
 	}
 
@@ -377,36 +404,17 @@ public:
 #if DEBUG
 			std::cout << "--> Sync beta" << std::endl;
 #endif
-
 		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking form.
 		comm_map_ptr it = _comm_container.begin();
 		for( ;it != _comm_container.end(); it++) {
-			// the send and receive values in beta sync is the opposite values of
-			// Comm instance related to current communication, since the ghost layer data
-			// will be sent back to their origin
-			CVector<3,int> send_size = (*it).second->getRecvSize();
-			CVector<3,int> recv_size = (*it).second->getSendSize();;
-			CVector<3,int> send_origin = (*it).second->getRecvOrigin();
-			CVector<3,int> recv_origin = (*it).second->getSendOrigin();
-			CVector<3,int> normal = (*it).second->getCommDirection();
 			int dst_rank = (*it).second->getDstId();
-
-			// send buffer
-			int send_buffer_size = (*it).second->getSendBufferSize();//send_size.elements()*cLbmPtr->SIZE_DD_HOST;
+			int send_buffer_size = (*it).second->getSendBufferSize();
 			int recv_buffer_size = (*it).second->getRecvBufferSize();
 			T* send_buffer = (*it).second->getSendBuffer();
 			T* recv_buffer = (*it).second->getRecvBuffer();
 
 			MPI_Request req[2];
 			MPI_Status status[2];
-
-			// Download data from device to host
-			cLbmPtr->storeDensityDistribution(send_buffer, send_origin, send_size);
-			//cLbmPtr->wait();
-			int my_rank, num_procs;
-			MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
-			MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
-
 			if (typeid(T) == typeid(float)){
 				MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[0]);
 				MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[1]);
@@ -417,10 +425,6 @@ public:
 				throw "Type id of MPI send/receive buffer is unknown!";
 			}
 			MPI_Waitall(2, req, status );
-
-			// TODO: OPTIMIZATION: you need to wait only for receiving to execute following command
-			cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size, normal);
-			cLbmPtr->wait();
 		}
 	}
 
@@ -428,24 +432,13 @@ public:
 #if DEBUG
 		std::cout << "--> Sync beta: " << direction <<  std::endl;
 #endif
-
 		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking form.
 		// iterating over all communication objects for a specific direction
 		std::pair<comm_map_ptr, comm_map_ptr> ppp;
 		ppp = _comm_container.equal_range(direction);
 		comm_map_ptr it = ppp.first;
 		for( ;it != ppp.second; it++) {
-			// the send and receive values in beta sync is the opposite values of
-			// Comm instance related to current communication, since the ghost layer data
-			// will be sent back to their origin
-			CVector<3,int> send_size = (*it).second->getRecvSize();
-			CVector<3,int> recv_size = (*it).second->getSendSize();;
-			CVector<3,int> send_origin = (*it).second->getRecvOrigin();
-			CVector<3,int> recv_origin = (*it).second->getSendOrigin();
-			CVector<3,int> normal = (*it).second->getCommDirection();
 			int dst_rank = (*it).second->getDstId();
-
-			// send buffer
 			int send_buffer_size = (*it).second->getSendBufferSize();//send_size.elements()*cLbmPtr->SIZE_DD_HOST;
 			int recv_buffer_size = (*it).second->getRecvBufferSize();
 			T* send_buffer = (*it).second->getSendBuffer();
@@ -453,14 +446,6 @@ public:
 
 			MPI_Request req[2];
 			MPI_Status status[2];
-
-			// Download data from device to host
-			cLbmPtr->storeDensityDistribution(send_buffer, send_origin, send_size);
-			//cLbmPtr->wait();
-			int my_rank, num_procs;
-			MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
-			MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
-
 			if (typeid(T) == typeid(float)){
 				MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[0]);
 				MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, &req[1]);
@@ -471,23 +456,35 @@ public:
 				throw "Type id of MPI send/receive buffer is unknown!";
 			}
 			MPI_Waitall(2, req, status );
-
-			// TODO: OPTIMIZATION: you need to wait only for receiving to execute following command
-			cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size, normal);
-			cLbmPtr->wait();
 		}
 	}
 	void computeNextStep(){
 		cLbmPtr->simulationStep();
 		if (cLbmPtr->simulation_step_counter & 1) {
+			storeDataBeta(MPI_COMM_DIRECTION_X);
 			syncBeta(MPI_COMM_DIRECTION_X);
+			setDataBeta(MPI_COMM_DIRECTION_X);
+
+			storeDataBeta(MPI_COMM_DIRECTION_Y);
 			syncBeta(MPI_COMM_DIRECTION_Y);
+			setDataBeta(MPI_COMM_DIRECTION_Y);
+
+			storeDataBeta(MPI_COMM_DIRECTION_Z);
 			syncBeta(MPI_COMM_DIRECTION_Z);
+			setDataBeta(MPI_COMM_DIRECTION_Z);
 		}
 		else {
+			storeDataAlpha(MPI_COMM_DIRECTION_X);
 			syncAlpha(MPI_COMM_DIRECTION_X);
+			setDataAlpha(MPI_COMM_DIRECTION_X);
+
+			storeDataAlpha(MPI_COMM_DIRECTION_Y);
 			syncAlpha(MPI_COMM_DIRECTION_Y);
+			setDataAlpha(MPI_COMM_DIRECTION_Y);
+
+			storeDataAlpha(MPI_COMM_DIRECTION_Z);
 			syncAlpha(MPI_COMM_DIRECTION_Z);
+			setDataAlpha(MPI_COMM_DIRECTION_Z);
 		}
 
 		// SIMULATION_STEP_ALPHA
@@ -496,12 +493,14 @@ public:
 //		CVector<3,int> x1_origin(_domain->getSize()[0]-1, 0, 0);
 //		CVector<3,int> x_size(1,_domain->getSize()[1],_domain->getSize()[2]);
 //		cLbmPtr->simulationStepAlphaRect(x0_origin, x_size);
-//
-//		// --> in parallel(0): Communication of x0 boundary
-//		// --> in parallel(0): Simulation step alpha x1 boundary
-//
 //		cLbmPtr->simulationStepAlphaRect(x1_origin, x_size);
+//		storeData(MPI_COMM_DIRECTION_X);
 //		syncAlpha(MPI_COMM_DIRECTION_X);
+//		setData(MPI_COMM_DIRECTION_X);
+		// --> in parallel(0): Communication of x0 boundary
+		// --> in parallel(0): Store x0 boundary
+		// --> in parallel(0): MPI communication x0 boundary
+		// --> in parallel(0): Simulation step alpha x1 boundary
 
 		// --> in parallel(1): Communication of x1 boundary
 		// --> in parallel(1): Simulation step alpha y0 boundary
