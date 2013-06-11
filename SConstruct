@@ -58,7 +58,7 @@ AddOption(	'--compiler',
 
 env['compiler'] = GetOption('compiler')
 
-if (env['compiler'] == None or (env['compiler'] not in ['gnu', 'intel', 'open64', 'openmpic++', 'mpic++' ])):
+if (env['compiler'] == None or (env['compiler'] not in ['gnu', 'intel', 'open64', 'openmpic++', 'mpicxx' ])):
 	env['compiler'] = 'openmpic++'
 
 
@@ -164,12 +164,12 @@ if env['compiler'] == 'openmpic++':
 	# activate OpenMPI C++ compiler
 	env.Replace(CXX = 'openmpic++')
 
-if env['compiler'] == 'mpic++':
+if env['compiler'] == 'mpicxx':
 	# eclipse specific flag
 	env.Append(CXXFLAGS=' -fmessage-length=0')
 
 	# activate OpenMPI C++ compiler
-	env.Replace(CXX = 'mpic++')
+	env.Replace(CXX = 'mpicxx')
 
 
 
@@ -186,7 +186,7 @@ if env['mode'] == 'debug':
 	elif env['compiler'] == 'openmpic++':
 		env.Append(CXXFLAGS=' -O0 -g3 -Wall')
 
-	elif env['compiler'] == 'mpic++':
+	elif env['compiler'] == 'mpicxx':
 		env.Append(CXXFLAGS=' -O0 -g3 -Wall')
 
 
@@ -203,7 +203,7 @@ elif env['mode'] == 'release':
 	elif env['compiler'] == 'openmpic++':
 		env.Append(CXXFLAGS=' -O3 -g -mtune=native')
 
-	elif env['compiler'] == 'mpic++':
+	elif env['compiler'] == 'mpicxx':
 		env.Append(CXXFLAGS=' -O3 -g -mtune=native')
 
 
