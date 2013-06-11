@@ -1,6 +1,8 @@
 #ifndef CMANAGER_H
 #define CMANAGER_H
 
+#include "CLbmSolver.hpp"
+
 /*
  * Class CComm provides necessary information for communication of data between two subdomains.
  *
@@ -16,6 +18,12 @@ private:
 	CVector<3,int> _recv_origin;
 	CVector<3,int> _comm_direction;
 
+	int _send_buffer_size;
+	int _recv_buffer_size;
+
+	T* _send_buffer;		///< Density distribution send and recv buffers
+	T* _recv_buffer;
+
 public:
 	CComm( int dstID,
 			CVector<3,int> send_size,
@@ -30,11 +38,20 @@ public:
 		_send_origin(send_origin),
 		_recv_origin(recv_origin),
 		_comm_direction(comm_direction)
-		{
-		}
+	{
+		// send buffer
+		_send_buffer_size = _send_size.elements()*CLbmSolver<T>::SIZE_DD_HOST;
+		_recv_buffer_size = _recv_size.elements()*CLbmSolver<T>::SIZE_DD_HOST;
+		_send_buffer = new T[_send_buffer_size];
+		_recv_buffer = new T[_recv_buffer_size];
+
+	}
 
 	~CComm(){
-
+		if(_send_buffer)
+			delete[] _send_buffer;
+		if(_recv_buffer)
+			delete[] _recv_buffer;
 	}
 	CVector<3, int> getCommDirection() const {
 		return _comm_direction;
@@ -82,6 +99,22 @@ public:
 
 	void setDstId(int dstId) {
 		_dstID = dstId;
+	}
+
+	T* getRecvBuffer() const {
+		return _recv_buffer;
+	}
+
+	int getRecvBufferSize() const {
+		return _recv_buffer_size;
+	}
+
+	T* getSendBuffer() const {
+		return _send_buffer;
+	}
+
+	int getSendBufferSize() const {
+		return _send_buffer_size;
 	}
 
 };

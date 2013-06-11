@@ -10,7 +10,7 @@
 
 #include "CConfiguration.hpp"
 #include "Singleton.hpp"
-#include "CComm.hpp"
+
 
 #define FLAG_OBSTACLE	(1 << 0)
 #define FLAG_FLUID	(1 << 1)

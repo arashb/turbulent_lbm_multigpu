@@ -293,11 +293,10 @@ public:
 			CVector<3,int> recv_origin = (*it).second->getRecvOrigin();
 			int dst_rank = (*it).second->getDstId();
 
-			// send buffer
-			int send_buffer_size = send_size.elements()*cLbmPtr->SIZE_DD_HOST;
-			int recv_buffer_size = recv_size.elements()*cLbmPtr->SIZE_DD_HOST;
-			T* send_buffer = new T[send_buffer_size];
-			T* recv_buffer = new T[recv_buffer_size];
+			int send_buffer_size = (*it).second->getSendBufferSize();//send_size.elements()*cLbmPtr->SIZE_DD_HOST;
+			int recv_buffer_size = (*it).second->getRecvBufferSize();
+			T* send_buffer = (*it).second->getSendBuffer();
+			T* recv_buffer = (*it).second->getRecvBuffer();
 
 			MPI_Request req[2];
 			MPI_Status status[2];
@@ -322,9 +321,6 @@ public:
 
 			cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size);
 			cLbmPtr->wait();
-
-			delete[] send_buffer;
-			delete[] recv_buffer;
 		}
 	}
 
@@ -346,17 +342,17 @@ public:
 			int dst_rank = (*it).second->getDstId();
 
 			// send buffer
-			int send_buffer_size = send_size.elements()*cLbmPtr->SIZE_DD_HOST;
-			int recv_buffer_size = recv_size.elements()*cLbmPtr->SIZE_DD_HOST;
-			T* send_buffer = new T[send_buffer_size];
-			T* recv_buffer = new T[recv_buffer_size];
+			int send_buffer_size = (*it).second->getSendBufferSize();//send_size.elements()*cLbmPtr->SIZE_DD_HOST;
+			int recv_buffer_size = (*it).second->getRecvBufferSize();
+			T* send_buffer = (*it).second->getSendBuffer();
+			T* recv_buffer = (*it).second->getRecvBuffer();
 
 			MPI_Request req[2];
 			MPI_Status status[2];
 
 			// Download data from device to host
 			cLbmPtr->storeDensityDistribution(send_buffer, send_origin, send_size);
-			//cLbmPtr->wait();
+
 			int my_rank, num_procs;
 			MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);    /// Get current process id
 			MPI_Comm_size(MPI_COMM_WORLD, &num_procs);    /// get number of processes
@@ -374,9 +370,6 @@ public:
 
 			cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size);
 			cLbmPtr->wait();
-
-			delete[] send_buffer;
-			delete[] recv_buffer;
 		}
 	}
 
@@ -399,10 +392,10 @@ public:
 			int dst_rank = (*it).second->getDstId();
 
 			// send buffer
-			int send_buffer_size = send_size.elements()*cLbmPtr->SIZE_DD_HOST;
-			int recv_buffer_size = recv_size.elements()*cLbmPtr->SIZE_DD_HOST;
-			T* send_buffer = new T[send_buffer_size];
-			T* recv_buffer = new T[recv_buffer_size];
+			int send_buffer_size = (*it).second->getSendBufferSize();//send_size.elements()*cLbmPtr->SIZE_DD_HOST;
+			int recv_buffer_size = (*it).second->getRecvBufferSize();
+			T* send_buffer = (*it).second->getSendBuffer();
+			T* recv_buffer = (*it).second->getRecvBuffer();
 
 			MPI_Request req[2];
 			MPI_Status status[2];
@@ -428,9 +421,6 @@ public:
 			// TODO: OPTIMIZATION: you need to wait only for receiving to execute following command
 			cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size, normal);
 			cLbmPtr->wait();
-
-			delete[] send_buffer;
-			delete[] recv_buffer;
 		}
 	}
 
@@ -456,10 +446,10 @@ public:
 			int dst_rank = (*it).second->getDstId();
 
 			// send buffer
-			int send_buffer_size = send_size.elements()*cLbmPtr->SIZE_DD_HOST;
-			int recv_buffer_size = recv_size.elements()*cLbmPtr->SIZE_DD_HOST;
-			T* send_buffer = new T[send_buffer_size];
-			T* recv_buffer = new T[recv_buffer_size];
+			int send_buffer_size = (*it).second->getSendBufferSize();//send_size.elements()*cLbmPtr->SIZE_DD_HOST;
+			int recv_buffer_size = (*it).second->getRecvBufferSize();
+			T* send_buffer = (*it).second->getSendBuffer();
+			T* recv_buffer = (*it).second->getRecvBuffer();
 
 			MPI_Request req[2];
 			MPI_Status status[2];
@@ -485,9 +475,6 @@ public:
 			// TODO: OPTIMIZATION: you need to wait only for receiving to execute following command
 			cLbmPtr->setDensityDistribution(recv_buffer, recv_origin, recv_size, normal);
 			cLbmPtr->wait();
-
-			delete[] send_buffer;
-			delete[] recv_buffer;
 		}
 	}
 	void computeNextStep(){
@@ -505,12 +492,16 @@ public:
 
 		// SIMULATION_STEP_ALPHA
 		// --> Simulation step alpha x0 boundary
-//		CVector<3,int> x0_origin(1,0,0);
-//		CVector<3,int> x0_size(1,_domain->getSize()[1],_domain->getSize()[2]);
-//		cLbmPtr->simulationStepAlphaRect(x0_origin, x0_size);
-
-		// --> in parallel(0): Communication of x0 boundary
-		// --> in parallel(0): Simulation step alpha x1 boundary
+//		CVector<3,int> x0_origin(1, 0, 0);
+//		CVector<3,int> x1_origin(_domain->getSize()[0]-1, 0, 0);
+//		CVector<3,int> x_size(1,_domain->getSize()[1],_domain->getSize()[2]);
+//		cLbmPtr->simulationStepAlphaRect(x0_origin, x_size);
+//
+//		// --> in parallel(0): Communication of x0 boundary
+//		// --> in parallel(0): Simulation step alpha x1 boundary
+//
+//		cLbmPtr->simulationStepAlphaRect(x1_origin, x_size);
+//		syncAlpha(MPI_COMM_DIRECTION_X);
 
 		// --> in parallel(1): Communication of x1 boundary
 		// --> in parallel(1): Simulation step alpha y0 boundary
