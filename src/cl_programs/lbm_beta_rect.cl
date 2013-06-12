@@ -795,7 +795,8 @@ __kernel void lbm_kernel_beta_rect(
 	current_dds[DOMAIN_WRAP(gid + DELTA_NEG_Z)] = dd17;	current_dds += DOMAIN_CELLS;
 	current_dds[gid] = dd18;
 #endif
-
+if (flag == FLAG_GHOST_LAYER)
+	return;
 #if STORE_VELOCITY
 	// store velocity
 	current_dds = &velocity[gid];

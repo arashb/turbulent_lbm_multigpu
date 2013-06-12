@@ -227,7 +227,6 @@ private:
 	}
 
 public:
-	size_t simulation_step_counter;
 	CError error;
 
 	std::list<int> lbm_opencl_number_of_work_items_list;		///< list with number of threads for each successively created kernel
@@ -720,7 +719,7 @@ public:
 
 	void reset()
 	{
-		simulation_step_counter = 0;
+		//simulation_step_counter = 0;
 
 #if DEBUG
 			std::cout << "Init Simulation: " << std::flush;
@@ -801,28 +800,6 @@ public:
 				lGlobalSize,
 				NULL
 		);
-	}
-	/**
-	 * start one simulation step (enqueue kernels)
-	 */
-	void simulationStep()
-	{
-		/*
-		 * collision kernels are inserted as 1d kernels because they work cell wise without neighboring information
-		 */
-		if (simulation_step_counter & 1)
-		{
-			simulationStepAlpha();
-			//simulationStepAlphaRect(CVector<3,int>(0,0,0), CVector<3,int>(this->domain_cells[0],this->domain_cells[1],this->domain_cells[2]));
-		}
-		else
-		{
-			simulationStepBeta();
-			//simulationStepBetaRect(CVector<3,int>(0,0,0), CVector<3,int>(this->domain_cells[0],this->domain_cells[1],this->domain_cells[2]));
-		}
-		cCommandQueue.enqueueBarrier();
-
-		simulation_step_counter++;
 	}
 
 	/**

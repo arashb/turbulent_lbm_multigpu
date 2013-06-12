@@ -490,7 +490,7 @@ __kernel void lbm_kernel_alpha_rect(
 			dd18 = eq_dd18(dd_param);
 			*current_dds = dd18;
 			break;
-
+// TODO: remove this. this is redundant.
 		case (FLAG_GHOST_LAYER):
 				break;
 	}

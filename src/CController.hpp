@@ -70,13 +70,8 @@ class CController
 	CCL::CDevices* cDevices;
 	CCL::CDevice* cDevice;
 	CCL::CCommandQueue* cCommandQueue;
-	//CCL::CDeviceInfo* cDeviceInfo;
 
-	// amount of vectors to omit while visualization of velicities
-	//int visualization_increment;
-
-	// true if debug mode is active
-	//bool debug_mode;
+	size_t _simulation_step_counter;
 
 	void outputDD(int dd_i)
 	{
@@ -240,6 +235,7 @@ public:
 		_domain(domain),
 		cLbmVisualization(NULL)
 	{
+		_simulation_step_counter = 0;
 		for(int i = 0; i < 3; i++)
 			for (int j = 0; j < 2; j++)
 				_BC[i][j] = BC[i][j];
@@ -252,23 +248,17 @@ public:
 		if (cPlatforms)
 			delete cPlatform;
 
-//		if (cPlatform)
-//			delete cPlatform;
-
 		if (cContext)
 			delete cContext;
 
 		if (cDevices)
 			delete cDevices;
 
-//		if (cDevice)
-//			delete cDevice;
-
 		if ( cCommandQueue )
 			delete cCommandQueue;
 
 
-		if (cLbmVisualization) ///< Visualization class
+		if (cLbmVisualization)
 			delete cLbmVisualization;
 
 		if (cLbmPtr)
@@ -458,64 +448,119 @@ public:
 			MPI_Waitall(2, req, status );
 		}
 	}
-	void computeNextStep(){
-		cLbmPtr->simulationStep();
-		if (cLbmPtr->simulation_step_counter & 1) {
-			storeDataBeta(MPI_COMM_DIRECTION_X);
-			syncBeta(MPI_COMM_DIRECTION_X);
-			setDataBeta(MPI_COMM_DIRECTION_X);
 
-			storeDataBeta(MPI_COMM_DIRECTION_Y);
-			syncBeta(MPI_COMM_DIRECTION_Y);
-			setDataBeta(MPI_COMM_DIRECTION_Y);
-
-			storeDataBeta(MPI_COMM_DIRECTION_Z);
-			syncBeta(MPI_COMM_DIRECTION_Z);
-			setDataBeta(MPI_COMM_DIRECTION_Z);
-		}
-		else {
-			storeDataAlpha(MPI_COMM_DIRECTION_X);
-			syncAlpha(MPI_COMM_DIRECTION_X);
-			setDataAlpha(MPI_COMM_DIRECTION_X);
-
-			storeDataAlpha(MPI_COMM_DIRECTION_Y);
-			syncAlpha(MPI_COMM_DIRECTION_Y);
-			setDataAlpha(MPI_COMM_DIRECTION_Y);
-
-			storeDataAlpha(MPI_COMM_DIRECTION_Z);
-			syncAlpha(MPI_COMM_DIRECTION_Z);
-			setDataAlpha(MPI_COMM_DIRECTION_Z);
-		}
-
+	void simulationStepAlpha() {
+		// TODO: Optimization: some cells are computed twice. Change the size of computations in each direction to avoid it.
 		// SIMULATION_STEP_ALPHA
-		// --> Simulation step alpha x0 boundary
-//		CVector<3,int> x0_origin(1, 0, 0);
-//		CVector<3,int> x1_origin(_domain->getSize()[0]-1, 0, 0);
-//		CVector<3,int> x_size(1,_domain->getSize()[1],_domain->getSize()[2]);
-//		cLbmPtr->simulationStepAlphaRect(x0_origin, x_size);
-//		cLbmPtr->simulationStepAlphaRect(x1_origin, x_size);
-//		storeData(MPI_COMM_DIRECTION_X);
-//		syncAlpha(MPI_COMM_DIRECTION_X);
-//		setData(MPI_COMM_DIRECTION_X);
-		// --> in parallel(0): Communication of x0 boundary
-		// --> in parallel(0): Store x0 boundary
-		// --> in parallel(0): MPI communication x0 boundary
-		// --> in parallel(0): Simulation step alpha x1 boundary
+		CVector<3,int> x_size(1						, _domain.getSize()[1]	, _domain.getSize()[2]	);
+		CVector<3,int> y_size(_domain.getSize()[0]	, 1						, _domain.getSize()[2]	);
+		CVector<3,int> z_size(_domain.getSize()[0]	, _domain.getSize()[1]	, 1						);
 
-		// --> in parallel(1): Communication of x1 boundary
-		// --> in parallel(1): Simulation step alpha y0 boundary
+		// --> Simulation step alpha x boundary
+		CVector<3,int> x0_origin(1, 0, 0);
+		CVector<3,int> x1_origin(_domain.getSize()[0]-2, 0, 0);
+		cLbmPtr->simulationStepAlphaRect(x0_origin, x_size);
+		cLbmPtr->simulationStepAlphaRect(x1_origin, x_size);
 
-		// --> in parallel(2): Communication of y0 boundary
-		// --> in parallel(2): Simulation step alpha y1 boundary
+		// --> Store x boundary
+		storeDataAlpha(MPI_COMM_DIRECTION_X);
+		// --> Communication x boundary
+		syncAlpha(MPI_COMM_DIRECTION_X);
+		// --> Set x boundary
+		setDataAlpha(MPI_COMM_DIRECTION_X);
 
-		// --> in parallel(3): Communication of y1 boundary
-		// --> in parallel(3): Simulation step alpha z0 boundary
+		// --> Simulation step alpha y boundary
+		CVector<3,int> y0_origin(0, 1, 0);
+		CVector<3,int> y1_origin(0,_domain.getSize()[1]-2, 0);
+		cLbmPtr->simulationStepAlphaRect(y0_origin, y_size);
+		cLbmPtr->simulationStepAlphaRect(y1_origin, y_size);
 
-		// --> in parallel(4): Communication of z0 boundary
-		// --> in parallel(4): Simulation step alpha z1 boundary
+		// --> Store y boundary
+		storeDataAlpha(MPI_COMM_DIRECTION_Y);
+		// --> Communication y boundary
+		syncAlpha(MPI_COMM_DIRECTION_Y);
+		// --> Set y boundary
+		setDataAlpha(MPI_COMM_DIRECTION_Y);
 
-		// --> in parallel(5): Communication of z1 boundary
-		// --> in parallel(012345): Computation of inner part
+		// --> Simulation step alpha z boundary
+		CVector<3,int> z0_origin(0, 0, 1);
+		CVector<3,int> z1_origin(0, 0, _domain.getSize()[2]-2);
+		cLbmPtr->simulationStepAlphaRect(z0_origin, z_size);
+		cLbmPtr->simulationStepAlphaRect(z1_origin, z_size);
+
+		// --> Store z boundary
+		storeDataAlpha(MPI_COMM_DIRECTION_Z);
+		// --> Communication z boundary
+		syncAlpha(MPI_COMM_DIRECTION_Z);
+		// --> Set z boundary
+		setDataAlpha(MPI_COMM_DIRECTION_Z);
+
+		// --> Computation of inner part
+		CVector<3,int> inner_origin(2, 2, 2);
+		CVector<3,int> inner_size(_domain.getSize()[0]	- 4, _domain.getSize()[1] - 4, _domain.getSize()[1] - 4);
+		cLbmPtr->simulationStepAlphaRect(inner_origin, inner_size);
+	}
+
+	void simulationStepBeta() {
+		// TODO: Optimization: some cells are computed twice. Change the size of computations in each direction to avoid it.
+		// SIMULATION_STEP_ALPHA
+		CVector<3,int> x_size(1						, _domain.getSize()[1]	, _domain.getSize()[2]	);
+		CVector<3,int> y_size(_domain.getSize()[0]	- 4, 1						, _domain.getSize()[2]	);
+		CVector<3,int> z_size(_domain.getSize()[0]	- 4, _domain.getSize()[1] - 4	, 1						);
+
+		// --> Simulation step alpha x boundary
+		CVector<3,int> x0_origin(1, 0, 0);
+		CVector<3,int> x1_origin(_domain.getSize()[0]-2, 0, 0);
+		cLbmPtr->simulationStepBetaRect(x0_origin, x_size);
+		cLbmPtr->simulationStepBetaRect(x1_origin, x_size);
+
+		// --> Store x boundary
+		storeDataBeta(MPI_COMM_DIRECTION_X);
+		// --> Communication x boundary
+		syncBeta(MPI_COMM_DIRECTION_X);
+		// --> Set x boundary
+		setDataBeta(MPI_COMM_DIRECTION_X);
+
+		// --> Simulation step alpha y boundary
+		CVector<3,int> y0_origin(2, 1, 0);
+		CVector<3,int> y1_origin(2,_domain.getSize()[1]-2, 0);
+		cLbmPtr->simulationStepBetaRect(y0_origin, y_size);
+		cLbmPtr->simulationStepBetaRect(y1_origin, y_size);
+
+		// --> Store y boundary
+		storeDataBeta(MPI_COMM_DIRECTION_Y);
+		// --> Communication y boundary
+		syncBeta(MPI_COMM_DIRECTION_Y);
+		// --> Set y boundary
+		setDataBeta(MPI_COMM_DIRECTION_Y);
+
+		// --> Simulation step alpha z boundary
+		CVector<3,int> z0_origin(2, 2, 1);
+		CVector<3,int> z1_origin(2, 2, _domain.getSize()[2]-2);
+		cLbmPtr->simulationStepBetaRect(z0_origin, z_size);
+		cLbmPtr->simulationStepBetaRect(z1_origin, z_size);
+
+		// --> Store z boundary
+		storeDataBeta(MPI_COMM_DIRECTION_Z);
+		// --> Communication z boundary
+		syncBeta(MPI_COMM_DIRECTION_Z);
+		// --> Set z boundary
+		setDataBeta(MPI_COMM_DIRECTION_Z);
+
+		// --> Computation of inner part
+		CVector<3,int> inner_origin(2, 2, 2);
+		CVector<3,int> inner_size(_domain.getSize()[0]	- 4, _domain.getSize()[1] - 4, _domain.getSize()[1] - 4);
+		cLbmPtr->simulationStepBetaRect(inner_origin, inner_size);
+	}
+
+	void computeNextStep(){
+		if (_simulation_step_counter & 1)
+			simulationStepAlpha();
+		else
+			simulationStepBeta();
+		cCommandQueue->enqueueBarrier();
+		_simulation_step_counter++;
+
 	}
 /*
  * This function starts the simulation for the particular subdomain corresponded to
