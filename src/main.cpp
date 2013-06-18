@@ -123,7 +123,7 @@ int main(int argc, char** argv)
 	int device_nr = 0;
 
 	char optchar;
-	while ((optchar = getopt(argc, argv, "x:y:z:d:vr:k:gG:pt:sl:R:T:X:Y:Z:S:u:c:")) > 0)
+	while ((optchar = getopt(argc, argv, "x:y:z:d:vr:k:gG:t:sl:R:T:X:Y:Z:S:u:c:n:m:p:")) > 0)
 	{
 		switch(optchar)
 		{
@@ -141,10 +141,6 @@ int main(int argc, char** argv)
 
 		case 'T':
 			number_of_threads_string = optarg;
-			break;
-
-		case 'p':
-			pause = true;
 			break;
 
 		case 'x':
@@ -184,7 +180,15 @@ int main(int argc, char** argv)
 		case 'r':
 			viscosity = atof(optarg);
 			break;
-
+		case 'n':
+		  domain_length[0] = atof(optarg);
+		  break;
+		case 'm':
+		  domain_length[1] = atof(optarg);
+		  break;
+		case 'p':
+		  domain_length[2] = atof(optarg);
+		  break;
 		case 'g':
 			do_visualisation = true;
 			break;
