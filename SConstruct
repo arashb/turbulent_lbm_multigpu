@@ -63,8 +63,6 @@ if (env['compiler'] == None or (env['compiler'] not in ['gnu', 'intel', 'open64'
 
 
 
-
-
 #
 # compile mode (debug/release)
 #
@@ -211,7 +209,8 @@ else:
 	print 'ERROR: mode'
 	Exit(1)
 
-
+if ARGUMENTS.get('profile', 0):
+	env.Append(CXXFLAGS=' -D_PROFILE=1')
 
 ###################################################################
 # DEPENDENCIES

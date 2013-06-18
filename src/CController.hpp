@@ -401,7 +401,7 @@ public:
 			loops = 100;
 
 		vector_checksum = 0;
-
+#if _PROFILE
 		// approximate bandwidth
 		double floats_per_cell = 0.0;
 
@@ -416,6 +416,7 @@ public:
 			floats_per_cell += 3;
 
 		CStopwatch cStopwatch;
+#endif
 
 		// setting up the visualization
 		std::string outputfilename = "./vtkOutput/OUTPUT";
@@ -424,7 +425,9 @@ public:
 			cLbmVisualization = new CLbmVisualizationVTK<T>(_UID,outputfilename);
 			cLbmVisualization->setup(cLbmPtr);
 		}
+#if _PROFILE
 		cStopwatch.start();
+#endif
 		for (int i = 0; i < loops; i++)
 		{
 			//simulation
@@ -434,15 +437,18 @@ public:
 
 		}
 		cLbmPtr->wait();
+#if _PROFILE
 		cStopwatch.stop();
-
 		std::cout << std::endl;
-
-		if (domain_size.elements() <= 512) {
-#if DEBUG
-				cLbmPtr->debug_print();
 #endif
+
+#if DEBUG
+		if (domain_size.elements() <= 512) {
+		  cLbmPtr->debug_print();
 		}
+#endif
+
+#if _PROFILE
 		std::cout << std::endl;
 
 		std::cout << "Cube: " << domain_size << std::endl;
@@ -471,6 +477,7 @@ public:
 		std::cout << std::endl;
 		std::cout << "exit" << std::endl;
 
+#endif
 		return EXIT_SUCCESS;
 	}
 
