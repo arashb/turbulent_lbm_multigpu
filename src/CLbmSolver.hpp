@@ -273,7 +273,7 @@ public:
 		store_density = p_store_density;
 		//debug = p_debug;
 
-		_cl_version = getOpenCLVersion();
+		_cl_version = OPENCL_VERSION_1_0_0;//getOpenCLVersion();
 		if ( _cl_version == OPENCL_VERSION_UNKNOWN)
 			throw "OpenCL Version is unknown!";
 
