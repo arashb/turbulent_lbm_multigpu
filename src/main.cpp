@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-
+#include "mpi.h"
 // standard
 #include <stdlib.h>
 #include <iostream>
@@ -25,8 +25,6 @@
 // externals
 #include <UnitTest++.h>
 #include "TestReporterStdout.h"
-
-#include "mpi.h"
 
 // internals
 #include "CDomain.hpp"

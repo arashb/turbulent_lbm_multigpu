@@ -18,13 +18,17 @@
 #ifndef CLATTICE_BOLTZMANN_HPP
 #define CLATTICE_BOLTZMANN_HPP
 
+#include "mpi.h"
 #include <stdlib.h>
 #include <iostream>
 #include <unistd.h>
+#include <string>
+#include <sstream>
+#include <fstream>
+
 #include "libcl/CCL.hpp"
 #include "libtools/CStopwatch.hpp"
 
-#include "mpi.h"
 #include "CDomain.hpp"
 #include "CLbmSolver.hpp"
 #include "libvis/ILbmVisualization.hpp"
@@ -65,13 +69,6 @@ class CController
 	CCL::CDevices* cDevices;
 	CCL::CDevice* cDevice;
 	CCL::CCommandQueue* cCommandQueue;
-	//CCL::CDeviceInfo* cDeviceInfo;
-
-	// amount of vectors to omit while visualization of velicities
-	//int visualization_increment;
-
-	// true if debug mode is active
-	//bool debug_mode;
 
 	void outputDD(int dd_i)
 	{
@@ -449,6 +446,28 @@ public:
 #endif
 
 #if _PROFILE
+		std::string prof_dir = "profileOutput";
+		std::stringstream prof_file_name;
+		prof_file_name << "./" << prof_dir << "/" << 
+		  "profile_" << ConfigSingleton::Instance()->subdomain_num.elements() << "_" << _UID << ".ini";
+		const std::string& tmp = prof_file_name.str();
+		const char* cstr = tmp.c_str();
+		std::ofstream prof_file (cstr, std::ios::out | std::ios::app );
+		if (prof_file.is_open())
+		  {
+		    prof_file << "[RESULTS]" << std::endl; 
+		    prof_file << "CUBE=" << domain_size << std::endl;
+		    prof_file << "SECONDS=" << cStopwatch.time << std::endl;
+		    double fps = (((double)loops) / cStopwatch.time);
+		    prof_file << "FPS=" << fps << std::endl;
+		    double mlups = ((double)fps*(double)cLbmPtr->domain_cells.elements())*(double)0.000001;
+		    prof_file << "MLUPS=" << mlups << std::endl;
+		    prof_file << "BANDWIDTH=" << (mlups*floats_per_cell*(double)sizeof(T)) << " MB/s (RW, bidirectional)" << std::endl;
+		    prof_file << std::endl;
+		
+		  }
+		else std::cout << "Unable to open file";
+#if DEBUG
 		std::cout << std::endl;
 
 		std::cout << "Cube: " << domain_size << std::endl;
@@ -465,15 +484,15 @@ public:
 		std::cout.precision(8);
 		std::cout.setf(std::ios::fixed,std::ios::floatfield);
 
-#if DEBUG
+
 			// The velocity checksum is only stored in debug mode!
 			vector_checksum = cLbmPtr->getVelocityChecksum();
 			std::cout << "Checksum: " << (vector_checksum*1000.0f) << std::endl;
-#endif
+
 
 		std::cout.precision(ss);
 		std::cout << std::resetiosflags(std::ios::fixed);
-
+#endif
 		std::cout << std::endl;
 		std::cout << "exit" << std::endl;
 
