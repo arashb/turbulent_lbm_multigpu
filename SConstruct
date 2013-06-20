@@ -122,7 +122,7 @@ env.Append(LIBS=['tinyxml2'])
 #
 # FREETYPE2
 #
-env.ParseConfig("pkg-config freetype2 --cflags --libs")
+#env.ParseConfig("pkg-config freetype2 --cflags --libs")
 
 #
 # SDL IMAGE
@@ -135,7 +135,7 @@ env.ParseConfig("pkg-config freetype2 --cflags --libs")
 #
 # xml
 #
-env.ParseConfig("pkg-config libxml-2.0 --cflags --libs")
+#env.ParseConfig("pkg-config libxml-2.0 --cflags --libs")
 
 if env['compiler'] == 'gnu':
 #	env.Append(LINKFLAGS=' -static-libgcc')
