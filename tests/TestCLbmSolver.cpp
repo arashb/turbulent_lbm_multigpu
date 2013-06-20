@@ -178,7 +178,7 @@ struct CLbmSolverFixture
 		 cLbm->wait();
 		for (int i = 0; i < 10; i++) {
 			// simulation
-			cLbm->simulationStep();
+		  //cLbm->simulationStep();
 			std::cout << "." << std::flush;
 		}
 		std::cout << std::endl;
@@ -418,7 +418,7 @@ struct CLbmSolverFixtureWrite {
 		 cLbm->wait();
 		for (int i = 0; i < 10; i++) {
 			// simulation
-			cLbm->simulationStep();
+		  //cLbm->simulationStep();
 			std::cout << "." << std::flush;
 		}
 		std::cout << std::endl;
