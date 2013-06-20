@@ -415,9 +415,9 @@ public:
 #endif
 		// setting up the visualization
 		std::string outputfilename = "OUTPUT";
-		std::stringstream ss;
-		ss << "./" << VTK_OUTPUT_DIR << "/" << outputfilename ;
-		std::string outputfile = ss.str();
+		std::stringstream ss_file;
+		ss_file << "./" << VTK_OUTPUT_DIR << "/" << outputfilename ;
+		std::string outputfile = ss_file.str();
 		if (ConfigSingleton::Instance()->do_visualization)
 		{
 			cLbmVisualization = new CLbmVisualizationVTK<T>(_UID,outputfile);

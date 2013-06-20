@@ -1,4 +1,5 @@
-import os, subprocess, sys, ConfigParser
+#!/usr/bin/python
+import os, subprocess, sys, ConfigParser, json
 
 keys = ['SECONDS', 'FPS', 'MLUPS', 'BANDWIDTH']
 SECTION_BASE = 'EXP'
@@ -28,7 +29,7 @@ def analyse(filenames):
         proc_key = config.getint( SECTION_BASE+str(1), 'NP' )
         # compute the average value of profiling metrics for the current profiling case
         for key in keys:
-             pres[key]= str(get_average_value( config, key, num_exp))
+             pres[key]= get_average_value( config, key, num_exp)
         gres[proc_key] = pres
     return gres
 
@@ -36,13 +37,21 @@ def execute(command):
     print "executing command: ", command
     os.system(command)
 
-def benchmark(max_num_proc = 1, num_exp = 1):
-    DOMAIN_LENGTH = 0.1;
-    for num_proc in range(1,max_num_proc+1):
-        x_size = 32*num_proc;
-        command_str = MPI_COMMAND + " -n " + str(num_proc)+ " " + LBM_COMMAND +  " -x " + str(x_size) +  " -X " +  str(num_proc) + " -l 100"
-        command_str +=  " -n " + str(DOMAIN_LENGTH*num_proc) + " -m " + str(DOMAIN_LENGTH) + " -p " + str(DOMAIN_LENGTH)
+def weak_scaling_benchmark_2d(max_num, num_exp, loops = 100, grid_size_increase_step = 32, base_domain_length = 0.1 ):
+    DOMAIN_LENGTH = base_domain_length
+    for num_increase in range(1,max_num+1):
+        num_proc = num_increase*num_increase
+        # computing the grid size for current benchmark
+        x_size = grid_size_increase_step*num_increase
+        y_size = x_size
+        # generating the string of execution command  
+        command_str = MPI_COMMAND + " -n " + str(num_proc)+ " " + LBM_COMMAND 
+        command_str += " -x " + str(x_size) +  " -X " +  str(num_increase) 
+        command_str += " -y " + str(y_size) +  " -Y " +  str(num_increase) 
+        command_str += " -l " + str(loops)
+        command_str +=  " -n " + str(DOMAIN_LENGTH*num_increase) + " -m " + str(DOMAIN_LENGTH*num_increase) + " -p " + str(DOMAIN_LENGTH)
         ini_filename = INI_FILE_DIR + "benchmark_" + str(num_proc)+ ".ini"
+        # performing the experiments
         for exp_counter in range(1,num_exp+1):
             f = open(ini_filename, 'a')
             f.write("["+SECTION_BASE+str(exp_counter)+"]\n")
@@ -50,6 +59,32 @@ def benchmark(max_num_proc = 1, num_exp = 1):
             f.write("\n")
             f.close()
             execute(command_str)
+
+def strong_scaling_benchmark_2d(max_num, num_exp, loops = 100, grid_size = 128, base_domain_length = 0.1 ):
+    DOMAIN_LENGTH = base_domain_length
+    for num_increase in range(1,max_num+1):
+        num_proc = num_increase*num_increase
+        # computing the grid size for current benchmark
+        x_size = grid_size
+        y_size = grid_size
+        # generating the string of execution command  
+        command_str = MPI_COMMAND + " -n " + str(num_proc)+ " " + LBM_COMMAND 
+        command_str += " -x " + str(x_size) +  " -X " +  str(num_increase) 
+        command_str += " -y " + str(y_size) +  " -Y " +  str(num_increase) 
+        command_str += " -l " + str(loops)
+        command_str +=  " -n " + str(DOMAIN_LENGTH) + " -m " + str(DOMAIN_LENGTH) + " -p " + str(DOMAIN_LENGTH)
+        ini_filename = INI_FILE_DIR + "benchmark_" + str(num_proc)+ ".ini"
+        # performing the experiments
+        for exp_counter in range(1,num_exp+1):
+            f = open(ini_filename, 'a')
+            f.write("["+SECTION_BASE+str(exp_counter)+"]\n")
+            f.write("NP : " + str(num_proc))
+            f.write("\n")
+            f.close()
+            execute(command_str)
+
+def benchmark(benchmark_strategy, max_num = 1, num_exp = 1):
+    benchmark_strategy(max_num, num_exp)
 
 def visualize(profiling_res):
     import pprint
@@ -73,25 +108,24 @@ def visualize(profiling_res):
             plt.grid(True)
             plt.plot(ngpus, values, marker='^', linestyle='--', color='g' )
             x1,x2,y1,y2 = plt.axis()
-            plt.axis((0,len(ngpus)+1,y1,y2))
+            plt.axis((min(ngpus)-1,max(ngpus)+1,y1,y2))
             filename = INI_FILE_DIR+'plot_'+ key+ '.png'
             fig.savefig(filename)
             print "saved graph: ", filename
-        # week/strong scaling
         # computing speedup
         speedup_values = []
         for val in runtime_values:
             speedup_values.append(runtime_values[0]/val)
         fig = plt.figure()
-        # TODO: implement also the strong scaling
-        plt.title('Week Scaling')
+        # TODO: implement diffent speedup for weak/strong scaling
+        plt.title('Speedup Scaling')
         plt.xlabel('# GPUs')
         plt.ylabel("speedup")
         plt.grid(True)
         #values = [res[key] for proc, res in sorted(profiling_res.iteritems())]
         plt.plot(ngpus, speedup_values, marker='^', linestyle='--', color='g' )
         x1,x2,y1,y2 = plt.axis()
-        plt.axis((0,len(ngpus)+1,y1,y2))
+        plt.axis((min(ngpus)-1,max(ngpus)+1,y1,y2))
         filename = INI_FILE_DIR+'plot_speedup.png'
         fig.savefig(filename)
         print "saved graph: ", filename
@@ -139,11 +173,24 @@ if __name__ == "__main__":
             else:
                 print "wrong input."
     if do_benchmark:
-        max_num_proc = int(sys.argv[1])
+        max_num = int(sys.argv[1])
         num_exp = int(sys.argv[2])
         MPI_COMMAND = sys.argv[3]
         LBM_COMMAND = sys.argv[4]
-        benchmark(max_num_proc, num_exp)
+        BENCHMARK_STRATEGY = str(sys.argv[5])
+        print "benchmark strategy: ", BENCHMARK_STRATEGY
+        if BENCHMARK_STRATEGY == "weak":
+            benchmark(weak_scaling_benchmark_2d, max_num, num_exp)
+        elif BENCHMARK_STRATEGY == "strong":
+            benchmark(strong_scaling_benchmark_2d, max_num, num_exp)
+        else:
+            print "Unknown benchmarking strategy!"
+            sys.exit(0)
     filenames = glob.glob(INI_FILE_DIR+"*.ini")
     res = analyse(filenames)
+    # saving the results in json format
+    analysation_file_name = INI_FILE_DIR + "results.txt"
+    with open(analysation_file_name,'w') as outfile:
+        json.dump(res,outfile, indent = 4)
+        print "saved analysation results in file:", analysation_file_name
     visualize(res)

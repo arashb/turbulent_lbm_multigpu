@@ -59,7 +59,7 @@ AddOption(	'--compiler',
 env['compiler'] = GetOption('compiler')
 
 if (env['compiler'] == None or (env['compiler'] not in ['gnu', 'intel', 'open64', 'openmpic++', 'mpicxx' ])):
-	env['compiler'] = 'openmpic++'
+	env['compiler'] = 'mpicxx'
 
 
 
