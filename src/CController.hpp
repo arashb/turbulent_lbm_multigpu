@@ -411,10 +411,8 @@ public:
 		// velocity vector is also stored
 		if (ConfigSingleton::Instance()->do_visualization || ConfigSingleton::Instance()->debug_mode)
 			floats_per_cell += 3;
-
 		CStopwatch cStopwatch;
 #endif
-
 		// setting up the visualization
 		std::string outputfilename = "./vtkOutput/OUTPUT";
 		if (ConfigSingleton::Instance()->do_visualization)
@@ -427,18 +425,15 @@ public:
 #endif
 		for (int i = 0; i < loops; i++)
 		{
+			computeNextStep();
 			//simulation
 			if (ConfigSingleton::Instance()->do_visualization)
 				cLbmVisualization->render(i);
-			computeNextStep();
-
 		}
 		cLbmPtr->wait();
 #if _PROFILE
 		cStopwatch.stop();
-		std::cout << std::endl;
 #endif
-
 #if DEBUG
 		if (domain_size.elements() <= 512) {
 		  cLbmPtr->debug_print();
@@ -446,57 +441,57 @@ public:
 #endif
 
 #if _PROFILE
-		std::string prof_dir = "profileOutput";
-		std::stringstream prof_file_name;
-		prof_file_name << "./" << prof_dir << "/" << 
-		  "profile_" << ConfigSingleton::Instance()->subdomain_num.elements() << "_" << _UID << ".ini";
-		const std::string& tmp = prof_file_name.str();
-		const char* cstr = tmp.c_str();
-		std::ofstream prof_file (cstr, std::ios::out | std::ios::app );
-		if (prof_file.is_open())
-		  {
-		    prof_file << "[RESULTS]" << std::endl; 
-		    prof_file << "CUBE=" << domain_size << std::endl;
-		    prof_file << "SECONDS=" << cStopwatch.time << std::endl;
-		    double fps = (((double)loops) / cStopwatch.time);
-		    prof_file << "FPS=" << fps << std::endl;
-		    double mlups = ((double)fps*(double)cLbmPtr->domain_cells.elements())*(double)0.000001;
-		    prof_file << "MLUPS=" << mlups << std::endl;
-		    prof_file << "BANDWIDTH=" << (mlups*floats_per_cell*(double)sizeof(T)) << " MB/s (RW, bidirectional)" << std::endl;
-		    prof_file << std::endl;
+		double ltime = cStopwatch.time;
+		double gtime;
+		//int MPI_Reduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm)
+		MPI_Reduce(&ltime, &gtime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+		if (_UID == 0) {
+		  double gfps = (((double)loops) / gtime);
+		  double gmlups = ((double)gfps*(double)ConfigSingleton::Instance()->domain_size.elements())*(double)0.000001;
+		  double gbandwidth = (gmlups*floats_per_cell*(double)sizeof(T));
+		  std::string prof_dir = "profileOutput";
+		  std::stringstream prof_file_name;
+		  // profileOutput/profile_<num_of_subdomains>.ini
+		  prof_file_name << "./" << prof_dir << "/" << 
+		    "profile_" << ConfigSingleton::Instance()->subdomain_num.elements()  //<< "_" << _UID
+				 << ".ini";
+		  const std::string& tmp = prof_file_name.str();
+		  const char* cstr = tmp.c_str();
+		  std::ofstream prof_file (cstr, std::ios::out | std::ios::app );
+		  if (prof_file.is_open())
+		    {
+		      //prof_file << "[RESULTS]" << std::endl; 
+		      prof_file << "CUBE : " << ConfigSingleton::Instance()->domain_size << std::endl;
+		      prof_file << "SECONDS : " << gtime << std::endl;
+		      prof_file << "FPS : " << gfps << std::endl;
+		      prof_file << "MLUPS : " << gmlups << std::endl;
+		      prof_file << "BANDWIDTH : " << gbandwidth // << " MB/s (RW, bidirectional)"
+				<< std::endl;
+		      prof_file << std::endl;
 		
-		  }
-		else std::cout << "Unable to open file";
+		    }
+		  else std::cout << "Unable to open file";
+		}
 #if DEBUG
 		std::cout << std::endl;
-
 		std::cout << "Cube: " << domain_size << std::endl;
 		std::cout << "Seconds: " << cStopwatch.time << std::endl;
 		double fps = (((double)loops) / cStopwatch.time);
 		std::cout << "FPS: " << fps << std::endl;
-
 		double mlups = ((double)fps*(double)cLbmPtr->domain_cells.elements())*(double)0.000001;
 		std::cout << "MLUPS: " << mlups << std::endl;
-
 		std::cout << "Bandwidth: " << (mlups*floats_per_cell*(double)sizeof(T)) << " MB/s (RW, bidirectional)" << std::endl;
-
 		std::streamsize ss = std::cout.precision();
 		std::cout.precision(8);
 		std::cout.setf(std::ios::fixed,std::ios::floatfield);
-
-
-			// The velocity checksum is only stored in debug mode!
-			vector_checksum = cLbmPtr->getVelocityChecksum();
-			std::cout << "Checksum: " << (vector_checksum*1000.0f) << std::endl;
-
-
+		// The velocity checksum is only stored in debug mode!
+		vector_checksum = cLbmPtr->getVelocityChecksum();
+		std::cout << "Checksum: " << (vector_checksum*1000.0f) << std::endl;
 		std::cout.precision(ss);
 		std::cout << std::resetiosflags(std::ios::fixed);
-#endif
-		std::cout << std::endl;
-		std::cout << "exit" << std::endl;
-
-#endif
+#endif // end of DEBUG
+		std::cout << "done." << std::endl;
+#endif // end of _PROFILE
 		return EXIT_SUCCESS;
 	}
 
@@ -536,17 +531,9 @@ public:
 		return _domain;
 	}
 
-//	void setDomain(CDomain<T> domain) {
-//		_domain = domain;
-//	}
-
 	int getUid() const {
 		return _UID;
 	}
-
-//	void setUid(int uid) {
-//		_UID = uid;
-//	}
 };
 
 #endif
