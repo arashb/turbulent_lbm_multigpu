@@ -414,10 +414,13 @@ public:
 		CStopwatch cStopwatch;
 #endif
 		// setting up the visualization
-		std::string outputfilename = "./vtkOutput/OUTPUT";
+		std::string outputfilename = "OUTPUT";
+		std::stringstream ss;
+		ss << "./" << VTK_OUTPUT_DIR << "/" << outputfilename ;
+		std::string outputfile = ss.str();
 		if (ConfigSingleton::Instance()->do_visualization)
 		{
-			cLbmVisualization = new CLbmVisualizationVTK<T>(_UID,outputfilename);
+			cLbmVisualization = new CLbmVisualizationVTK<T>(_UID,outputfile);
 			cLbmVisualization->setup(cLbmPtr);
 		}
 #if _PROFILE
@@ -449,11 +452,9 @@ public:
 		  double gfps = (((double)loops) / gtime);
 		  double gmlups = ((double)gfps*(double)ConfigSingleton::Instance()->domain_size.elements())*(double)0.000001;
 		  double gbandwidth = (gmlups*floats_per_cell*(double)sizeof(T));
-		  std::string prof_dir = "profileOutput";
 		  std::stringstream prof_file_name;
-		  // profileOutput/profile_<num_of_subdomains>.ini
-		  prof_file_name << "./" << prof_dir << "/" << 
-		    "profile_" << ConfigSingleton::Instance()->subdomain_num.elements()  //<< "_" << _UID
+		  prof_file_name << "./" << BENCHMARK_OUTPUT_DIR << "/" << 
+		    "benchmark_" << ConfigSingleton::Instance()->subdomain_num.elements()  //<< "_" << _UID
 				 << ".ini";
 		  const std::string& tmp = prof_file_name.str();
 		  const char* cstr = tmp.c_str();

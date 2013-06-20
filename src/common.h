@@ -18,6 +18,8 @@
 #define FLAG_GHOST_LAYER_BETA (FLAG_GHOST_LAYER | (1 << 4))
 
 //#define HALO_SIZE 0
+#define BENCHMARK_OUTPUT_DIR "benchmarkOutput"
+#define VTK_OUTPUT_DIR "vtkOutput"
 
 extern CVector<3,int> E0 	;
 extern CVector<3,int> E1	;
