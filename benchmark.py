@@ -9,7 +9,7 @@ LBM_COMMAND = "./build/lbm_opencl_dc_mpicxx_release"
 def get_average_value( config, key, num_exp ):
     sum = 0.0
     for exp in range(1,num_exp+1):
-        sum += float( config.get( SECTION_BASE+str(exp), key ) )
+        sum += config.getfloat( SECTION_BASE+str(exp), key ) 
     return sum / num_exp
             
 def analyse(filenames):
@@ -25,7 +25,7 @@ def analyse(filenames):
         # pres: contains the average values of the metrics for profiling case
         pres = dict()
         # get the key of current profiling case
-        proc_key = config.get( SECTION_BASE+str(1), 'NP' )
+        proc_key = config.getint( SECTION_BASE+str(1), 'NP' )
         # compute the average value of profiling metrics for the current profiling case
         for key in keys:
              pres[key]= str(get_average_value( config, key, num_exp))
@@ -138,11 +138,11 @@ if __name__ == "__main__":
                 do_benchmark = False
             else:
                 print "wrong input."
-    max_num_proc = int(sys.argv[1])
-    num_exp = int(sys.argv[2])
-    MPI_COMMAND = sys.argv[3]
-    LBM_COMMAND = sys.argv[4]
     if do_benchmark:
+        max_num_proc = int(sys.argv[1])
+        num_exp = int(sys.argv[2])
+        MPI_COMMAND = sys.argv[3]
+        LBM_COMMAND = sys.argv[4]
         benchmark(max_num_proc, num_exp)
     filenames = glob.glob(INI_FILE_DIR+"*.ini")
     res = analyse(filenames)
