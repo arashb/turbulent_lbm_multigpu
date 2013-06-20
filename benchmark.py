@@ -99,7 +99,7 @@ def visualize(profiling_res):
     except ImportError:
         print "Could not import numpy/matplotlib module"
         for key in keys:
-            values = [res[key] for proc, res in profiling_res.iteritems()]
+            values = [float(res[key]) for proc, res in sorted(profiling_res.iteritems())]
             print key, ":", values
 
 if __name__ == "__main__":
