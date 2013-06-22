@@ -19,6 +19,7 @@
 
 //#define HALO_SIZE 0
 #define BENCHMARK_OUTPUT_DIR "benchmarkOutput"
+#define PROFILE_OUTPUT_DIR "profileOutput"
 #define VTK_OUTPUT_DIR "vtkOutput"
 
 extern CVector<3,int> E0 	;
@@ -48,6 +49,7 @@ extern CVector<3,int> E18	;
 extern CVector<3,int> lbm_units[];
 
 typedef Singleton<CConfiguration<T> > ConfigSingleton;   // Global declaration
+typedef Singleton<CProfiler> ProfilerSingleton;   // Global declaration
 
 typedef enum {
 	OPENCL_VERSION_UNKNOWN = 0,

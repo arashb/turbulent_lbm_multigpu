@@ -210,7 +210,10 @@ else:
 	Exit(1)
 
 if ARGUMENTS.get('profile', 0):
-	env.Append(CXXFLAGS=' -D_PROFILE=1')
+	env.Append(CXXFLAGS=' -DPROFILE=1')
+
+if ARGUMENTS.get('benchmark', 0):
+	env.Append(CXXFLAGS=' -DBENCHMARK=1')
 
 ###################################################################
 # DEPENDENCIES

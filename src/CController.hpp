@@ -398,7 +398,7 @@ public:
 			loops = 100;
 
 		vector_checksum = 0;
-#if _PROFILE
+
 		// approximate bandwidth
 		double floats_per_cell = 0.0;
 
@@ -412,7 +412,7 @@ public:
 		if (ConfigSingleton::Instance()->do_visualization || ConfigSingleton::Instance()->debug_mode)
 			floats_per_cell += 3;
 		CStopwatch cStopwatch;
-#endif
+
 		// setting up the visualization
 		std::string outputfilename = "OUTPUT";
 		std::stringstream ss_file;
@@ -423,9 +423,8 @@ public:
 			cLbmVisualization = new CLbmVisualizationVTK<T>(_UID,outputfile);
 			cLbmVisualization->setup(cLbmPtr);
 		}
-#if _PROFILE
+
 		cStopwatch.start();
-#endif
 		for (int i = 0; i < loops; i++)
 		{
 			computeNextStep();
@@ -434,16 +433,14 @@ public:
 				cLbmVisualization->render(i);
 		}
 		cLbmPtr->wait();
-#if _PROFILE
 		cStopwatch.stop();
-#endif
 #if DEBUG
 		if (domain_size.elements() <= 512) {
 		  cLbmPtr->debug_print();
 		}
 #endif
 
-#if _PROFILE
+#if BENCHMARK
 		double ltime = cStopwatch.time;
 		double gtime;
 		//int MPI_Reduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm)
@@ -452,28 +449,28 @@ public:
 		  double gfps = (((double)loops) / gtime);
 		  double gmlups = ((double)gfps*(double)ConfigSingleton::Instance()->domain_size.elements())*(double)0.000001;
 		  double gbandwidth = (gmlups*floats_per_cell*(double)sizeof(T));
-		  std::stringstream prof_file_name;
-		  prof_file_name << "./" << BENCHMARK_OUTPUT_DIR << "/" << 
+		  std::stringstream benchmark_file_name;
+		  benchmark_file_name << "./" << BENCHMARK_OUTPUT_DIR << "/" << 
 		    "benchmark_" << ConfigSingleton::Instance()->subdomain_num.elements()  //<< "_" << _UID
 				 << ".ini";
-		  const std::string& tmp = prof_file_name.str();
+		  const std::string& tmp = benchmark_file_name.str();
 		  const char* cstr = tmp.c_str();
-		  std::ofstream prof_file (cstr, std::ios::out | std::ios::app );
-		  if (prof_file.is_open())
+		  std::ofstream benchmark_file (cstr, std::ios::out | std::ios::app );
+		  if (benchmark_file.is_open())
 		    {
-		      //prof_file << "[RESULTS]" << std::endl; 
-		      prof_file << "CUBE : " << ConfigSingleton::Instance()->domain_size << std::endl;
-		      prof_file << "SECONDS : " << gtime << std::endl;
-		      prof_file << "FPS : " << gfps << std::endl;
-		      prof_file << "MLUPS : " << gmlups << std::endl;
-		      prof_file << "BANDWIDTH : " << gbandwidth // << " MB/s (RW, bidirectional)"
+		      //benchmark_file << "[RESULTS]" << std::endl; 
+		      benchmark_file << "CUBE : " << ConfigSingleton::Instance()->domain_size << std::endl;
+		      benchmark_file << "SECONDS : " << gtime << std::endl;
+		      benchmark_file << "FPS : " << gfps << std::endl;
+		      benchmark_file << "MLUPS : " << gmlups << std::endl;
+		      benchmark_file << "BANDWIDTH : " << gbandwidth // << " MB/s (RW, bidirectional)"
 				<< std::endl;
-		      prof_file << std::endl;
+		      benchmark_file << std::endl;
 		
 		    }
 		  else std::cout << "Unable to open file";
 		}
-#if DEBUG
+#endif // end of BENCHMARK
 		std::cout << std::endl;
 		std::cout << "Cube: " << domain_size << std::endl;
 		std::cout << "Seconds: " << cStopwatch.time << std::endl;
@@ -485,14 +482,34 @@ public:
 		std::streamsize ss = std::cout.precision();
 		std::cout.precision(8);
 		std::cout.setf(std::ios::fixed,std::ios::floatfield);
+#if DEBUG
 		// The velocity checksum is only stored in debug mode!
 		vector_checksum = cLbmPtr->getVelocityChecksum();
 		std::cout << "Checksum: " << (vector_checksum*1000.0f) << std::endl;
+#endif // end of DEBUG
 		std::cout.precision(ss);
 		std::cout << std::resetiosflags(std::ios::fixed);
-#endif // end of DEBUG
+
 		std::cout << "done." << std::endl;
-#endif // end of _PROFILE
+
+#if PROFILE
+		std::stringstream profile_file_name;
+		profile_file_name << "./" << PROFILE_OUTPUT_DIR << "/" << 
+		  "profile_" << ConfigSingleton::Instance()->subdomain_num.elements()  << "_" << _UID
+				    << ".ini";
+		const std::string& tmp = profile_file_name.str();
+		const char* pcstr = tmp.c_str();
+		std::ofstream prof_file (pcstr, std::ios::out | std::ios::app );
+		if (prof_file.is_open()) {
+		  prof_file << "[METADATA]" << std::endl;
+		  prof_file << "TOTAL_NUM_PROC : " << ConfigSingleton::Instance()->subdomain_num.elements() << std::endl;
+		  prof_file << "CURRENT_PROC_ID : " << _UID << std::endl;
+		  prof_file << std::endl;
+		} else std::cout << "Unable to open file: " << pcstr << std::endl;
+		// const std::string& tmp = profile_file_name.str();
+		// const char* cstr = tmp.c_str();
+		ProfilerSingleton::Instance()->saveEvents(profile_file_name.str());
+#endif
 		return EXIT_SUCCESS;
 	}
 
