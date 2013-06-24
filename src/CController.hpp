@@ -18,13 +18,17 @@
 #ifndef CLATTICE_BOLTZMANN_HPP
 #define CLATTICE_BOLTZMANN_HPP
 
+#include "mpi.h"
 #include <stdlib.h>
 #include <iostream>
 #include <unistd.h>
+#include <string>
+#include <sstream>
+#include <fstream>
+
 #include "libcl/CCL.hpp"
 #include "libtools/CStopwatch.hpp"
 
-#include "mpi.h"
 #include "CDomain.hpp"
 #include "CLbmSolver.hpp"
 #include "libvis/ILbmVisualization.hpp"
@@ -65,13 +69,6 @@ class CController
 	CCL::CDevices* cDevices;
 	CCL::CDevice* cDevice;
 	CCL::CCommandQueue* cCommandQueue;
-	//CCL::CDeviceInfo* cDeviceInfo;
-
-	// amount of vectors to omit while visualization of velicities
-	//int visualization_increment;
-
-	// true if debug mode is active
-	//bool debug_mode;
 
 	void outputDD(int dd_i)
 	{
@@ -414,63 +411,105 @@ public:
 		// velocity vector is also stored
 		if (ConfigSingleton::Instance()->do_visualization || ConfigSingleton::Instance()->debug_mode)
 			floats_per_cell += 3;
-
 		CStopwatch cStopwatch;
 
 		// setting up the visualization
-		std::string outputfilename = "./vtkOutput/OUTPUT";
+		std::string outputfilename = "OUTPUT";
+		std::stringstream ss_file;
+		ss_file << "./" << VTK_OUTPUT_DIR << "/" << outputfilename ;
+		std::string outputfile = ss_file.str();
 		if (ConfigSingleton::Instance()->do_visualization)
 		{
-			cLbmVisualization = new CLbmVisualizationVTK<T>(_UID,outputfilename);
+			cLbmVisualization = new CLbmVisualizationVTK<T>(_UID,outputfile);
 			cLbmVisualization->setup(cLbmPtr);
 		}
+
 		cStopwatch.start();
 		for (int i = 0; i < loops; i++)
 		{
+			computeNextStep();
 			//simulation
 			if (ConfigSingleton::Instance()->do_visualization)
 				cLbmVisualization->render(i);
-			computeNextStep();
-
 		}
 		cLbmPtr->wait();
 		cStopwatch.stop();
-
-		std::cout << std::endl;
-
-		if (domain_size.elements() <= 512) {
 #if DEBUG
-				cLbmPtr->debug_print();
-#endif
+		if (domain_size.elements() <= 512) {
+		  cLbmPtr->debug_print();
 		}
-		std::cout << std::endl;
+#endif
 
+#if BENCHMARK
+		double ltime = cStopwatch.time;
+		double gtime;
+		//int MPI_Reduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm)
+		MPI_Reduce(&ltime, &gtime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+		if (_UID == 0) {
+		  double gfps = (((double)loops) / gtime);
+		  double gmlups = ((double)gfps*(double)ConfigSingleton::Instance()->domain_size.elements())*(double)0.000001;
+		  double gbandwidth = (gmlups*floats_per_cell*(double)sizeof(T));
+		  std::stringstream benchmark_file_name;
+		  benchmark_file_name << "./" << BENCHMARK_OUTPUT_DIR << "/" << 
+		    "benchmark_" << ConfigSingleton::Instance()->subdomain_num.elements()  //<< "_" << _UID
+				 << ".ini";
+		  const std::string& tmp = benchmark_file_name.str();
+		  const char* cstr = tmp.c_str();
+		  std::ofstream benchmark_file (cstr, std::ios::out | std::ios::app );
+		  if (benchmark_file.is_open())
+		    {
+		      //benchmark_file << "[RESULTS]" << std::endl; 
+		      benchmark_file << "CUBE : " << ConfigSingleton::Instance()->domain_size << std::endl;
+		      benchmark_file << "SECONDS : " << gtime << std::endl;
+		      benchmark_file << "FPS : " << gfps << std::endl;
+		      benchmark_file << "MLUPS : " << gmlups << std::endl;
+		      benchmark_file << "BANDWIDTH : " << gbandwidth // << " MB/s (RW, bidirectional)"
+				<< std::endl;
+		      benchmark_file << std::endl;
+		
+		    }
+		  else std::cout << "Unable to open file";
+		}
+#endif // end of BENCHMARK
+		std::cout << std::endl;
 		std::cout << "Cube: " << domain_size << std::endl;
 		std::cout << "Seconds: " << cStopwatch.time << std::endl;
 		double fps = (((double)loops) / cStopwatch.time);
 		std::cout << "FPS: " << fps << std::endl;
-
 		double mlups = ((double)fps*(double)cLbmPtr->domain_cells.elements())*(double)0.000001;
 		std::cout << "MLUPS: " << mlups << std::endl;
-
 		std::cout << "Bandwidth: " << (mlups*floats_per_cell*(double)sizeof(T)) << " MB/s (RW, bidirectional)" << std::endl;
-
 		std::streamsize ss = std::cout.precision();
 		std::cout.precision(8);
 		std::cout.setf(std::ios::fixed,std::ios::floatfield);
-
 #if DEBUG
-			// The velocity checksum is only stored in debug mode!
-			vector_checksum = cLbmPtr->getVelocityChecksum();
-			std::cout << "Checksum: " << (vector_checksum*1000.0f) << std::endl;
-#endif
-
+		// The velocity checksum is only stored in debug mode!
+		vector_checksum = cLbmPtr->getVelocityChecksum();
+		std::cout << "Checksum: " << (vector_checksum*1000.0f) << std::endl;
+#endif // end of DEBUG
 		std::cout.precision(ss);
 		std::cout << std::resetiosflags(std::ios::fixed);
 
-		std::cout << std::endl;
-		std::cout << "exit" << std::endl;
+		std::cout << "done." << std::endl;
 
+#if PROFILE
+		std::stringstream profile_file_name;
+		profile_file_name << "./" << PROFILE_OUTPUT_DIR << "/" << 
+		  "profile_" << ConfigSingleton::Instance()->subdomain_num.elements()  << "_" << _UID
+				    << ".ini";
+		const std::string& tmp = profile_file_name.str();
+		const char* pcstr = tmp.c_str();
+		std::ofstream prof_file (pcstr, std::ios::out | std::ios::app );
+		if (prof_file.is_open()) {
+		  prof_file << "[METADATA]" << std::endl;
+		  prof_file << "TOTAL_NUM_PROC : " << ConfigSingleton::Instance()->subdomain_num.elements() << std::endl;
+		  prof_file << "CURRENT_PROC_ID : " << _UID << std::endl;
+		  prof_file << std::endl;
+		} else std::cout << "Unable to open file: " << pcstr << std::endl;
+		// const std::string& tmp = profile_file_name.str();
+		// const char* cstr = tmp.c_str();
+		ProfilerSingleton::Instance()->saveEvents(profile_file_name.str());
+#endif
 		return EXIT_SUCCESS;
 	}
 
@@ -510,17 +549,9 @@ public:
 		return _domain;
 	}
 
-//	void setDomain(CDomain<T> domain) {
-//		_domain = domain;
-//	}
-
 	int getUid() const {
 		return _UID;
 	}
-
-//	void setUid(int uid) {
-//		_UID = uid;
-//	}
 };
 
 #endif

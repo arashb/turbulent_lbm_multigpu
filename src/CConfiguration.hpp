@@ -4,6 +4,7 @@
 #include "tinyxml2.h"
 #include <iostream>
 #include <iomanip>
+#include <list>
 
 /*
  * Class CConfiguration stores the necessary information for the simulation process.

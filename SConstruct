@@ -58,10 +58,8 @@ AddOption(	'--compiler',
 
 env['compiler'] = GetOption('compiler')
 
-if (env['compiler'] == None or (env['compiler'] not in ['gnu', 'intel', 'open64', 'openmpic++', 'mpic++' ])):
-	env['compiler'] = 'openmpic++'
-
-
+if (env['compiler'] == None or (env['compiler'] not in ['gnu', 'intel', 'open64', 'openmpic++', 'mpicxx' ])):
+	env['compiler'] = 'mpicxx'
 
 
 
@@ -124,7 +122,7 @@ env.Append(LIBS=['tinyxml2'])
 #
 # FREETYPE2
 #
-env.ParseConfig("pkg-config freetype2 --cflags --libs")
+#env.ParseConfig("pkg-config freetype2 --cflags --libs")
 
 #
 # SDL IMAGE
@@ -137,7 +135,7 @@ env.ParseConfig("pkg-config freetype2 --cflags --libs")
 #
 # xml
 #
-env.ParseConfig("pkg-config libxml-2.0 --cflags --libs")
+#env.ParseConfig("pkg-config libxml-2.0 --cflags --libs")
 
 if env['compiler'] == 'gnu':
 #	env.Append(LINKFLAGS=' -static-libgcc')
@@ -164,12 +162,12 @@ if env['compiler'] == 'openmpic++':
 	# activate OpenMPI C++ compiler
 	env.Replace(CXX = 'openmpic++')
 
-if env['compiler'] == 'mpic++':
+if env['compiler'] == 'mpicxx':
 	# eclipse specific flag
 	env.Append(CXXFLAGS=' -fmessage-length=0')
 
 	# activate OpenMPI C++ compiler
-	env.Replace(CXX = 'mpic++')
+	env.Replace(CXX = 'mpicxx')
 
 
 
@@ -203,7 +201,7 @@ elif env['mode'] == 'release':
 	elif env['compiler'] == 'openmpic++':
 		env.Append(CXXFLAGS=' -O3 -g -mtune=native')
 
-	elif env['compiler'] == 'mpic++':
+	elif env['compiler'] == 'mpicxx':
 		env.Append(CXXFLAGS=' -O3 -g -mtune=native')
 
 
@@ -211,7 +209,11 @@ else:
 	print 'ERROR: mode'
 	Exit(1)
 
+if ARGUMENTS.get('profile', 0):
+	env.Append(CXXFLAGS=' -DPROFILE=1')
 
+if ARGUMENTS.get('benchmark', 0):
+	env.Append(CXXFLAGS=' -DBENCHMARK=1')
 
 ###################################################################
 # DEPENDENCIES
