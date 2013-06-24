@@ -29,7 +29,9 @@
 #include "CCLErrors.hpp"
 #include "lib/CError.hpp"
 #include "lib/CFile.hpp"
+#include "libtools/CProfiler.hpp"
 #include "libmath/CVector.hpp"
+#include "../common.h"
 #include <sys/types.h>
 
 #ifdef C_GL_TEXTURE_HPP
@@ -1238,16 +1240,21 @@ public:
 							const CDevice &cDevice		///< existing device handler
 		)
 		{
+		  cl_command_queue_properties properties = 0;
+#if PROFILE
+		  properties |= CL_QUEUE_PROFILING_ENABLE;
+		  CCL::CDeviceInfo cDeviceInfo(cDevice);
+		  printf("device timer resolution: %zu nanoseconds\n", cDeviceInfo.profiling_timer_resolution);
+#endif
 			cl_int errcode_ret;
 			command_queue = clCreateCommandQueue(
 									cContext.context,
 									cDevice.device_id,
-									0,
+									properties,
 									&errcode_ret
 							);
 
 			CL_CHECK_ERROR(errcode_ret);
-
 			retain();
 		}
 
@@ -1741,14 +1748,33 @@ public:
 											const size_t *local_work_size		///< local work size
 		)
 		{
+		  cl_event* event = NULL;
+#if PROFILE
+		  event = new cl_event();
+#endif
 			CL_CHECK_ERROR(	clEnqueueNDRangeKernel(	command_queue,
 								cKernel.kernel,
 								work_dim,
 								global_work_offset,
 								global_work_size,
 								local_work_size,
-								0, NULL, NULL
+								0,
+								NULL,
+								event
 					));
+#if PROFILE
+			clWaitForEvents(1, event);
+			char kernel_name[128];
+			CL_CHECK_ERROR( clGetKernelInfo (cKernel.kernel,
+							 CL_KERNEL_FUNCTION_NAME,
+							 128,
+							 kernel_name,
+							 NULL
+							 ));
+			CProfilerEvent* profEvent = new CProfilerEvent(kernel_name, event);
+			ProfilerSingleton::Instance()->addProfilerEvent(profEvent);
+			delete event;
+#endif
 		}
 
 		/**
@@ -1947,7 +1973,7 @@ public:
 		/**
 		 * initialize device information from existing device
 		 */
-		inline CDeviceInfo(CDevice &cDevice)
+		inline CDeviceInfo(const CDevice &cDevice)
 			: CDevice(cDevice)
 		{
 			initCDeviceInfo();
@@ -1985,7 +2011,7 @@ public:
 		/**
 		 * load device information given by device_id
 		 */
-		inline void loadDeviceInfo(CDevice &cDevice)
+		inline void loadDeviceInfo(const CDevice &cDevice)
 		{
 			set(cDevice.device_id);	// set device id
 

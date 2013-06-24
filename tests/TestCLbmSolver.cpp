@@ -4,13 +4,16 @@
 #include <stdlib.h>
 #include <iostream>
 #include <unistd.h>
+
+typedef float T;
+
 #include "libcl/CCL.hpp"
 #include "libtools/CStopwatch.hpp"
 
 #include "CDomain.hpp"
 #include "CLbmSolver.hpp"
 
-typedef float T;
+
 
 struct CLbmSolverFixture
 {
