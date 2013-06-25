@@ -280,8 +280,27 @@ public:
 		for( ;it != ppp.second; it++){
 			// Store data from device to host
 			cLbmPtr->storeDensityDistribution(	(*it).second->getSendBuffer(),
-					(*it).second->getSendOrigin(),
-					(*it).second->getSendSize());
+                                          (*it).second->getSendOrigin(),
+                                          (*it).second->getSendSize()
+                                          );
+		}
+	}
+
+	void storeDataAlpha(MPI_COMM_DIRECTION direction, std::vector<cl_event*>& events) {
+		std::pair<comm_map_ptr, comm_map_ptr> ppp;
+		ppp = _comm_container.equal_range(direction);
+		comm_map_ptr it = ppp.first;
+		for( ;it != ppp.second; it++){
+			// Store data from device to host
+      cl_event* clevent = new cl_event();
+			cLbmPtr->storeDensityDistribution(	(*it).second->getSendBuffer(),
+                                          (*it).second->getSendOrigin(),
+                                          (*it).second->getSendSize(),
+                                          0,
+                                          NULL,
+                                          clevent
+                                          );
+      events.push_back(clevent);
 		}
 	}
 
@@ -295,7 +314,25 @@ public:
 					(*it).second->getRecvOrigin(),
 					(*it).second->getRecvSize());
 		}
-		cLbmPtr->wait();
+		//cLbmPtr->wait();
+	}
+
+	void setDataAlpha(MPI_COMM_DIRECTION direction, std::vector<cl_event*>& events) {
+		std::pair<comm_map_ptr, comm_map_ptr> ppp;
+		ppp = _comm_container.equal_range(direction);
+		comm_map_ptr it = ppp.first;
+		for( ;it != ppp.second; it++){
+			// Store data from host to device
+      cl_event* clevent = new cl_event();
+			cLbmPtr->setDensityDistribution((*it).second->getRecvBuffer(),
+                                      (*it).second->getRecvOrigin(),
+                                      (*it).second->getRecvSize(),
+                                      0,
+                                      NULL,
+                                      clevent
+                                      );
+      events.push_back(clevent);
+		}
 	}
 
 	void storeDataBeta(MPI_COMM_DIRECTION direction) {
@@ -453,17 +490,18 @@ public:
 	}
 
 	void simulationStepAlpha() {
-		// TODO: Optimization: some cells are computed twice. Change the size of computations in each direction to avoid it.
 		// SIMULATION_STEP_ALPHA
 		CVector<3,int> x_size(1						, _domain.getSize()[1]	, _domain.getSize()[2]	);
-		CVector<3,int> y_size(_domain.getSize()[0]	, 1						, _domain.getSize()[2]	);
-		CVector<3,int> z_size(_domain.getSize()[0]	, _domain.getSize()[1]	, 1						);
+		CVector<3,int> y_size(_domain.getSize()[0]	- 4, 1						, _domain.getSize()[2]	);
+		CVector<3,int> z_size(_domain.getSize()[0]	- 4, _domain.getSize()[1] - 4	, 1						);
 
 		// --> Simulation step alpha x boundary
 		CVector<3,int> x0_origin(1, 0, 0);
 		CVector<3,int> x1_origin(_domain.getSize()[0]-2, 0, 0);
-		cLbmPtr->simulationStepAlphaRect(x0_origin, x_size);
-		cLbmPtr->simulationStepAlphaRect(x1_origin, x_size);
+
+    cl_event cl_ss_x_events[2];   // events of simulation step alpha in x direction
+		cLbmPtr->simulationStepAlphaRect(x0_origin, x_size, 0, NULL, &cl_ss_x_events[0]);
+		cLbmPtr->simulationStepAlphaRect(x1_origin, x_size, 0, NULL, &cl_ss_x_events[1]);
 
 		// --> Store x boundary
 		storeDataAlpha(MPI_COMM_DIRECTION_X);
@@ -473,8 +511,8 @@ public:
 		setDataAlpha(MPI_COMM_DIRECTION_X);
 
 		// --> Simulation step alpha y boundary
-		CVector<3,int> y0_origin(0, 1, 0);
-		CVector<3,int> y1_origin(0,_domain.getSize()[1]-2, 0);
+		CVector<3,int> y0_origin(2, 1, 0);
+		CVector<3,int> y1_origin(2,_domain.getSize()[1]-2, 0);
 		cLbmPtr->simulationStepAlphaRect(y0_origin, y_size);
 		cLbmPtr->simulationStepAlphaRect(y1_origin, y_size);
 
@@ -486,8 +524,8 @@ public:
 		setDataAlpha(MPI_COMM_DIRECTION_Y);
 
 		// --> Simulation step alpha z boundary
-		CVector<3,int> z0_origin(0, 0, 1);
-		CVector<3,int> z1_origin(0, 0, _domain.getSize()[2]-2);
+		CVector<3,int> z0_origin(2, 2, 1);
+		CVector<3,int> z1_origin(2, 2, _domain.getSize()[2]-2);
 		cLbmPtr->simulationStepAlphaRect(z0_origin, z_size);
 		cLbmPtr->simulationStepAlphaRect(z1_origin, z_size);
 
@@ -505,7 +543,6 @@ public:
 	}
 
 	void simulationStepBeta() {
-		// TODO: Optimization: some cells are computed twice. Change the size of computations in each direction to avoid it.
 		// SIMULATION_STEP_ALPHA
 		CVector<3,int> x_size(1						, _domain.getSize()[1]	, _domain.getSize()[2]	);
 		CVector<3,int> y_size(_domain.getSize()[0]	- 4, 1						, _domain.getSize()[2]	);
@@ -514,8 +551,8 @@ public:
 		// --> Simulation step alpha x boundary
 		CVector<3,int> x0_origin(1, 0, 0);
 		CVector<3,int> x1_origin(_domain.getSize()[0]-2, 0, 0);
-		cLbmPtr->simulationStepBetaRect(x0_origin, x_size);
-		cLbmPtr->simulationStepBetaRect(x1_origin, x_size);
+		cLbmPtr->simulationStepBetaRect(x0_origin, x_size, 0, NULL, NULL);
+		cLbmPtr->simulationStepBetaRect(x1_origin, x_size, 0, NULL, NULL);
 
 		// --> Store x boundary
 		storeDataBeta(MPI_COMM_DIRECTION_X);

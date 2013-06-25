@@ -180,14 +180,17 @@ private:
 	}
 
 	inline void enqueueCopyRectKernel(CCL::CMem& src,CCL::CMem& dst,
-									  const int src_offset,
-									  CVector<3,int> src_origin,
-									  CVector<3,int> src_size,
-									  const int dst_offset,
-									  CVector<3,int> dst_origin,
-									  CVector<3,int> dst_size,
-									  CVector<3,int> block_size,
-									  bool withBarrier = true
+                                    const int src_offset,
+                                    CVector<3,int> src_origin,
+                                    CVector<3,int> src_size,
+                                    const int dst_offset,
+                                    CVector<3,int> dst_origin,
+                                    CVector<3,int> dst_size,
+                                    CVector<3,int> block_size,
+                                    bool withBarrier = true,
+                                    cl_uint num_events_in_wait_list = 0,
+                                    const cl_event *event_wait_list = NULL,
+                                    cl_event *event = NULL
 		)
 	{
 		// set kernel args
@@ -217,14 +220,18 @@ private:
 		lGlobalSize[1] = block_size[2];
 		// enqueue the CopyRect kernel
 		cCommandQueue.enqueueNDRangeKernel(	cKernelCopyRect,	// kernel
-											2,				// dimensions
-											NULL,			// global work offset
-											lGlobalSize,
-											NULL
-						);
+                                        2,				// dimensions
+                                        NULL,			// global work offset
+                                        lGlobalSize,
+                                        NULL//,
+                                        // num_events_in_wait_list,
+                                        // event_wait_list,
+                                        // event
+                                        );
 		if(withBarrier)
 			cCommandQueue.enqueueBarrier();
 	}
+
 
 public:
 	CError error;
@@ -770,6 +777,33 @@ public:
 		);
 	}
 
+	void simulationStepAlphaRect(CVector<3,int> origin, CVector<3,int> size,                                 
+                               cl_uint num_events_in_wait_list,
+                               const cl_event *event_wait_list,
+                               cl_event *event
+) {
+#if DEBUG
+		std::cout << "--> Running Alpha Rect kernel" << std::endl;
+#endif
+		cLbmKernelAlphaRect.setArg(9, origin[0]);
+		cLbmKernelAlphaRect.setArg(10, origin[1]);
+		cLbmKernelAlphaRect.setArg(11, origin[2]);
+		size_t lGlobalSize[3];
+		lGlobalSize[0] = size[0];
+		lGlobalSize[1] = size[1];
+		lGlobalSize[2] = size[2];
+		// TODO: think about finding the optimized local work group size
+		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelAlphaRect,	// kernel
+                                        3,						// dimensions
+                                        NULL,					// global work offset
+                                        lGlobalSize,
+                                        NULL,
+                                        num_events_in_wait_list,
+                                        event_wait_list,
+                                        event
+		);
+	}
+
 	void simulationStepBeta() {
 #if DEBUG
 			std::cout << "--> Running BETA kernel" << std::endl;
@@ -799,6 +833,33 @@ public:
 				NULL,					// global work offset
 				lGlobalSize,
 				NULL
+		);
+	}
+
+	void simulationStepBetaRect(CVector<3,int> origin, CVector<3,int> size,
+                               cl_uint num_events_in_wait_list,
+                               const cl_event *event_wait_list,
+                               cl_event *event
+                              ) {
+#if DEBUG
+			std::cout << "--> Running BETA Rect kernel" << std::endl;
+#endif
+			cLbmKernelBetaRect.setArg(9, origin[0]);
+			cLbmKernelBetaRect.setArg(10, origin[1]);
+			cLbmKernelBetaRect.setArg(11, origin[2]);
+			size_t lGlobalSize[3];
+			lGlobalSize[0] = size[0];
+			lGlobalSize[1] = size[1];
+			lGlobalSize[2] = size[2];
+			// TODO: think about finding the optimized local work group size
+		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelBetaRect,	// kernel
+				3,						// dimensions
+				NULL,					// global work offset
+				lGlobalSize,
+				NULL,
+        num_events_in_wait_list,
+        event_wait_list,
+        event
 		);
 	}
 
@@ -885,13 +946,92 @@ public:
 		}
 		clEnqueueBarrier(cCommandQueue.command_queue);
 		cCommandQueue.enqueueReadBuffer(	cBuffer,
-				CL_TRUE,	// sync reading
-				0,
-				cBuffer.getSize(),
-				dst);
+                                      CL_TRUE,	// sync reading
+                                      0,
+                                      cBuffer.getSize(),
+                                      dst);
 	}
 
-	void setDensityDistribution(T *src, CVector<3,int> origin, CVector<3,int> size)
+void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size,
+                              cl_uint num_events_in_wait_list,
+                              const cl_event *event_wait_list,
+                              cl_event *event
+)
+	{
+		CCL::CMem cBuffer;
+		cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(T)*size.elements()*SIZE_DD_HOST, NULL);
+
+		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) // OpenCL 1.1 and later
+		{
+			// TODO: implement the clEnqueueReadBufferRect
+		}
+		else if ( _cl_version >= OPENCL_VERSION_1_0_0) // OpenCL 1.0 and later
+		{
+			for (int f = 0; f < SIZE_DD_HOST; f++) {
+				enqueueCopyRectKernel(
+										cMemDensityDistributions,
+										cBuffer,
+										f*this->domain_cells_count,
+										origin,
+										this->domain_cells,
+										f*size.elements(),
+										CVector<3,int>(0,0,0),
+										size,
+										size,
+										false
+										);
+			}
+			cCommandQueue.enqueueBarrier();
+		}
+		else {	// if nothing in this world works for you then use this method since it is very slow
+
+			const int NUM_CELLS_X = this->domain_cells[0];
+			const int NUM_CELLS_Y = this->domain_cells[1];
+			const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
+
+			const int total_el = this->domain_cells_count;
+			const int total_block_el = size.elements();
+
+			size_t byte_size = size[0]*sizeof(T);
+			size_t current_src_offset;
+			size_t current_dst_offset = 0;
+			for (int k = 0 ; k < size[2]; k++ ) {
+				for (int j = 0; j < size[1]; j++ )
+				{
+					// cube position -> linear position
+					// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
+					current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
+					for (int i = 0; i < SIZE_DD_HOST; i++) {
+						// copying fi components
+						cCommandQueue.enqueueCopyBuffer(cMemDensityDistributions,
+								cBuffer,
+								(current_src_offset + i * total_el)*sizeof(T),
+								(current_dst_offset + i * total_block_el)*sizeof(T),
+								byte_size
+						);
+					}
+					current_dst_offset += size[0];
+				}
+			}
+
+		}
+		clEnqueueBarrier(cCommandQueue.command_queue);
+		cCommandQueue.enqueueReadBuffer(	cBuffer,
+                                      CL_FALSE,
+                                      0,
+                                      cBuffer.getSize(),
+                                      dst,
+                                      num_events_in_wait_list,
+                                      event_wait_list,
+                                      event
+                                      );
+	}
+
+  void setDensityDistribution(T *src, CVector<3,int> origin, CVector<3,int> size,
+                              cl_uint num_events_in_wait_list = 0,
+                              const cl_event *event_wait_list = NULL,
+                              cl_event *event = NULL
+                              )
 	{
 		CCL::CMem cBuffer;
 		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(T)*size.elements()*SIZE_DD_HOST, src);
@@ -903,15 +1043,18 @@ public:
 		{
 			for (int f = 0; f < SIZE_DD_HOST; f++) {
 				enqueueCopyRectKernel(  cBuffer,
-										cMemDensityDistributions,
-										f*size.elements(),
-										CVector<3,int>(0,0,0),
-										size,
-										f*this->domain_cells_count,
-										origin,
-										this->domain_cells,
-										size,
-										false
+                                cMemDensityDistributions,
+                                f*size.elements(),
+                                CVector<3,int>(0,0,0),
+                                size,
+                                f*this->domain_cells_count,
+                                origin,
+                                this->domain_cells,
+                                size,
+                                false,
+                                num_events_in_wait_list,
+                                event_wait_list,
+                                event
 										);
 			}
 			cCommandQueue.enqueueBarrier();
@@ -949,7 +1092,11 @@ public:
 		}
 	}
 
-	void setDensityDistribution(T *src, CVector<3,int> origin, CVector<3,int> size, CVector<3,int> norm)
+	void setDensityDistribution(T *src, CVector<3,int> origin, CVector<3,int> size, CVector<3,int> norm,
+                              cl_uint num_events_in_wait_list = 0,
+                              const cl_event *event_wait_list = NULL,
+                              cl_event *event = NULL
+                              )
 	{
 		CCL::CMem cBuffer;
 		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(T)*size.elements()*SIZE_DD_HOST, src);
@@ -962,16 +1109,19 @@ public:
 			for (int f = 0; f < SIZE_DD_HOST; f++) {
 				if( norm.dotProd(lbm_units[f]) > 0 ) {
 					enqueueCopyRectKernel(  cBuffer,
-											cMemDensityDistributions,
-											f*size.elements(),
-											CVector<3,int>(0,0,0),
-											size,
-											f*this->domain_cells_count,
-											origin,
-											this->domain_cells,
-											size,
-											false
-											);
+                                  cMemDensityDistributions,
+                                  f*size.elements(),
+                                  CVector<3,int>(0,0,0),
+                                  size,
+                                  f*this->domain_cells_count,
+                                  origin,
+                                  this->domain_cells,
+                                  size,
+                                  false,
+                                  num_events_in_wait_list,
+                                  event_wait_list,
+                                  event
+                                  );
 				}
 			}
 			cCommandQueue.enqueueBarrier();
@@ -1010,6 +1160,7 @@ public:
 			clEnqueueBarrier(cCommandQueue.command_queue);
 		}
 	}
+
 	/**
 	 * store velocity and density values to host memory
 	 * this is useful for a host memory based visualization

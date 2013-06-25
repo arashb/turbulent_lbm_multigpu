@@ -1526,6 +1526,31 @@ public:
 					));
 		}
 
+		/**
+		 * read from CL device to buffer located in host memory
+		 */
+		inline void enqueueReadBuffer(	CMem &cMem,				///< memory object
+										cl_bool block_write,	///< don't return until data is written
+										size_t offset,			///< offset to start writing from
+										size_t buffer_size,		///< size of buffer to write
+										void *buffer_ptr,		///< host memory pointer
+										cl_uint num_events_in_wait_list,	///< number of events in waiting list
+										const cl_event *event_wait_list,	///< list of events
+										cl_event* event			///< event for enqueueWriteBuffer
+		)
+		{
+			CL_CHECK_ERROR(	clEnqueueReadBuffer(	command_queue,
+								cMem.memobj,
+								block_write,
+								offset,
+								buffer_size,
+								buffer_ptr,
+								num_events_in_wait_list,
+								event_wait_list,
+								event
+					));
+		}
+
 
 		/**
 		 * read from CL device to buffer located in host memory
@@ -1777,6 +1802,32 @@ public:
 #endif
 		}
 
+
+		/**
+		 * enqueue nd range kernel
+		 */
+		inline void enqueueNDRangeKernel(	CKernel &cKernel,		///< enqueue a OpenCL kernel
+                                      cl_uint work_dim,		///< number of work dimensions (0, 1 or 2)
+                                      const size_t *global_work_offset,	///< global work offset
+                                      const size_t *global_work_size,		///< global work size
+                                      const size_t *local_work_size,		///< local work size
+                                      cl_uint num_events_in_wait_list,
+                                      const cl_event *event_wait_list,
+                                      cl_event *event
+                                      )
+		{
+			CL_CHECK_ERROR(	clEnqueueNDRangeKernel(	command_queue,
+								cKernel.kernel,
+								work_dim,
+								global_work_offset,
+								global_work_size,
+								local_work_size,
+								num_events_in_wait_list,
+								event_wait_list,
+								event
+					));
+		}
+
 		/**
 		 * enqueue nd range kernel
 		 */
@@ -1822,6 +1873,7 @@ public:
 								&event.event
 					));
 		}
+
 
 		/**
 		 * wait until all enqueued object from command queue are finished
