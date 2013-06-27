@@ -13,8 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-
 #ifndef CLATTICE_BOLTZMANN_HPP
 #define CLATTICE_BOLTZMANN_HPP
 
@@ -37,6 +35,7 @@
 #include "common.h"
 #include "CConfiguration.hpp"
 #include "Singleton.hpp"
+#include <stdint.h>
 
 #include <list>
 #include <map>
@@ -48,10 +47,30 @@ typedef float T;
 #define MPI_TAG_ALPHA_SYNC 0
 #define MPI_TAG_BETA_SYNC 1
 
-typedef std::multimap<MPI_COMM_DIRECTION, CComm<T>* > comm_map;
-typedef std::multimap<MPI_COMM_DIRECTION, CComm<T>* >::value_type comm_map_pair;
-typedef std::multimap<MPI_COMM_DIRECTION, CComm<T>* >::iterator comm_map_ptr;
+typedef std::map<MPI_COMM_DIRECTION, CComm<T>* > comm_map;
+typedef std::map<MPI_COMM_DIRECTION, CComm<T>* >::value_type comm_map_pair;
+typedef std::map<MPI_COMM_DIRECTION, CComm<T>* >::iterator comm_map_ptr;
 
+template <typename T>
+class CController;
+
+struct arg_block_syncbeta
+{
+  CController<T>* controller;
+  MPI_COMM_DIRECTION direction;
+  MPI_Request** req_send;
+  MPI_Request** req_recv;
+  cl_event ue_sync;
+};
+
+struct arg_block{
+  int arg0; 
+};
+
+void CL_CALLBACK callback_profile(cl_event ev, cl_int event_status,
+                                  void * user_data);
+void CL_CALLBACK callback_syncbeta(cl_event ev, cl_int event_status,
+                                   void * user_data);
 /*
  * Class CConroller is responsible for controlling and managing of simulation and visualization
  * of a subdomain from the whole grid.
@@ -273,103 +292,114 @@ public:
 		}
 	}
 
-	void storeDataAlpha(MPI_COMM_DIRECTION direction) {
-		std::pair<comm_map_ptr, comm_map_ptr> ppp;
-		ppp = _comm_container.equal_range(direction);
-		comm_map_ptr it = ppp.first;
-		for( ;it != ppp.second; it++){
-			// Store data from device to host
-			cLbmPtr->storeDensityDistribution(	(*it).second->getSendBuffer(),
-                                          (*it).second->getSendOrigin(),
-                                          (*it).second->getSendSize()
+	inline void storeDataAlpha(MPI_COMM_DIRECTION direction) {
+    if ( _comm_container.find(direction) == _comm_container.end() ) 
+      return;
+#if DEBUG
+    DEBUGPRINT("--> store data alpha: %s\n", get_string_direction(direction) )
+#endif
+    CComm<T>* comm = _comm_container[direction];
+    cLbmPtr->storeDensityDistribution(	comm->getSendBuffer(),
+                                          comm->getSendOrigin(),
+                                          comm->getSendSize()
                                           );
-		}
 	}
 
-	void storeDataAlpha(MPI_COMM_DIRECTION direction, std::vector<cl_event*>& events) {
-		std::pair<comm_map_ptr, comm_map_ptr> ppp;
-		ppp = _comm_container.equal_range(direction);
-		comm_map_ptr it = ppp.first;
-		for( ;it != ppp.second; it++){
-			// Store data from device to host
-      cl_event* clevent = new cl_event();
-			cLbmPtr->storeDensityDistribution(	(*it).second->getSendBuffer(),
-                                          (*it).second->getSendOrigin(),
-                                          (*it).second->getSendSize(),
-                                          0,
-                                          NULL,
-                                          clevent
-                                          );
-      events.push_back(clevent);
-		}
-	}
-
-	void setDataAlpha(MPI_COMM_DIRECTION direction) {
-		std::pair<comm_map_ptr, comm_map_ptr> ppp;
-		ppp = _comm_container.equal_range(direction);
-		comm_map_ptr it = ppp.first;
-		for( ;it != ppp.second; it++){
-			// Store data from host to device
-			cLbmPtr->setDensityDistribution((*it).second->getRecvBuffer(),
-					(*it).second->getRecvOrigin(),
-					(*it).second->getRecvSize());
-		}
+	inline void setDataAlpha(MPI_COMM_DIRECTION direction) {
+    if ( _comm_container.find(direction) == _comm_container.end() ) 
+      return;
+#if DEBUG
+    DEBUGPRINT("--> set data alpha: %s\n", get_string_direction(direction) )
+#endif
+    CComm<T>* comm = _comm_container[direction];
+			cLbmPtr->setDensityDistribution(comm->getRecvBuffer(),
+					comm->getRecvOrigin(),
+					comm->getRecvSize());
 		//cLbmPtr->wait();
 	}
 
-	void setDataAlpha(MPI_COMM_DIRECTION direction, std::vector<cl_event*>& events) {
-		std::pair<comm_map_ptr, comm_map_ptr> ppp;
-		ppp = _comm_container.equal_range(direction);
-		comm_map_ptr it = ppp.first;
-		for( ;it != ppp.second; it++){
-			// Store data from host to device
-      cl_event* clevent = new cl_event();
-			cLbmPtr->setDensityDistribution((*it).second->getRecvBuffer(),
-                                      (*it).second->getRecvOrigin(),
-                                      (*it).second->getRecvSize(),
-                                      0,
-                                      NULL,
-                                      clevent
-                                      );
-      events.push_back(clevent);
-		}
+	inline void storeDataBeta(MPI_COMM_DIRECTION direction) {
+    // Store data from device to host
+    if ( _comm_container.find(direction) == _comm_container.end() ) 
+      return;
+#if DEBUG
+    DEBUGPRINT("--> store data beta: %s\n", get_string_direction(direction) )
+#endif
+    CComm<T>* comm = _comm_container[direction];
+    // the send and receive origin and size values in beta sync is the opposite values of
+    // CComm object of current communication, since the ghost layer data
+    // will be sent back to their origin
+    cLbmPtr->storeDensityDistribution( comm->getSendBuffer(),
+        comm->getRecvOrigin(),
+        comm->getRecvSize());
 	}
 
-	void storeDataBeta(MPI_COMM_DIRECTION direction) {
-		std::pair<comm_map_ptr, comm_map_ptr> ppp;
-		ppp = _comm_container.equal_range(direction);
-		comm_map_ptr it = ppp.first;
-		for( ;it != ppp.second; it++){
-			// Store data from device to host
-			// the send and receive origin and size values in beta sync is the opposite values of
-			// CComm object of current communication, since the ghost layer data
-			// will be sent back to their origin
-			cLbmPtr->storeDensityDistribution(	(*it).second->getSendBuffer(),
-					(*it).second->getRecvOrigin(),
-					(*it).second->getRecvSize());
-		}
+	inline bool storeDataBeta(MPI_COMM_DIRECTION direction, 
+                            cl_uint num_events_in_wait_list,
+                            const cl_event *event_wait_list,
+                            cl_event *event              
+                            ) 
+  {
+    if ( _comm_container.find(direction) == _comm_container.end() ) 
+      return false;
+#if DEBUG
+    DEBUGPRINT("--> store data beta: %s\n", get_string_direction(direction) )
+#endif
+    CComm<T>* comm = _comm_container[direction];
+    cLbmPtr->storeDensityDistribution(	comm->getSendBuffer(),
+                                        comm->getRecvOrigin(),
+                                        comm->getRecvSize(),
+                                        num_events_in_wait_list,
+                                        event_wait_list,
+                                        event
+                                        );
+    return true;
 	}
 
-	void setDataBeta(MPI_COMM_DIRECTION direction) {
-		std::pair<comm_map_ptr, comm_map_ptr> ppp;
-		ppp = _comm_container.equal_range(direction);
-		comm_map_ptr it = ppp.first;
-		for( ;it != ppp.second; it++){
-			// Store data from host to device
-			// the send and receive origin and size values in beta sync is the opposite values of
-			// CComm object of current communication, since the ghost layer data
-			// will be sent back to their origin
-			cLbmPtr->setDensityDistribution((*it).second->getRecvBuffer(),
-					(*it).second->getSendOrigin(),
-					(*it).second->getSendSize(),
-					(*it).second->getCommDirection());
-		}
+  inline	void setDataBeta(MPI_COMM_DIRECTION direction) {
+    if ( _comm_container.find(direction) == _comm_container.end() ) 
+      return;
+#if DEBUG
+    DEBUGPRINT("--> set data beta: %s\n", get_string_direction(direction) )
+#endif
+    CComm<T>* comm = _comm_container[direction];
+    // the send and receive origin and size values in beta sync is the opposite values of
+    // CComm object of current communication, since the ghost layer data
+    // will be sent back to their origin
+    cLbmPtr->setDensityDistribution(comm->getRecvBuffer(),
+        comm->getSendOrigin(),
+        comm->getSendSize(),
+        comm->getCommDirection());
 		cLbmPtr->wait();
+	}
+    
+    inline	void setDataBeta(MPI_COMM_DIRECTION direction,
+        cl_uint num_events_in_wait_list,
+        const cl_event *event_wait_list,
+        cl_event *event              
+        ) {
+    if ( _comm_container.find(direction) == _comm_container.end() ) 
+      return;
+#if DEBUG
+    DEBUGPRINT("--> set data beta: %s\n", get_string_direction(direction) )
+#endif
+        CComm<T>* comm = _comm_container[direction];
+    // the send and receive origin and size values in beta sync is the opposite values of
+    // CComm object of current communication, since the ghost layer data
+    // will be sent back to their origin
+    cLbmPtr->setDensityDistribution(comm->getRecvBuffer(),
+        comm->getSendOrigin(),
+        comm->getSendSize(),
+        comm->getCommDirection(),
+        num_events_in_wait_list,
+        event_wait_list,
+        event);
+    //		cLbmPtr->wait();
 	}
 
 	void syncAlpha() {
 #if DEBUG
-			std::cout << "--> Sync alpha" << std::endl;
+    DEBUGPRINT( "--> Sync alpha\n")
 #endif
 		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking way.
 		comm_map_ptr it = _comm_container.begin();
@@ -401,22 +431,41 @@ public:
 
 	void syncAlpha(MPI_COMM_DIRECTION direction) {
 #if DEBUG
-			std::cout << "--> Sync alpha: " << direction <<  std::endl;
+    DEBUGPRINT("--> Sync alpha: %s\n", get_string_direction(direction))
 #endif
 		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking way.
 		// iterating over all communication objects for a specific direction
-		std::pair<comm_map_ptr, comm_map_ptr> ppp;
-		ppp = _comm_container.equal_range(direction);
-		comm_map_ptr it = ppp.first;
-		for( ;it != ppp.second; it++){
+    MPI_COMM_DIRECTION lower_bound;
+    MPI_COMM_DIRECTION upper_bound;
+    switch(direction) {
+      case MPI_COMM_DIRECTION_X: 
+        lower_bound = MPI_COMM_DIRECTION_X_0;
+        upper_bound = MPI_COMM_DIRECTION_X_1;
+        break;
+      case MPI_COMM_DIRECTION_Y: 
+        lower_bound = MPI_COMM_DIRECTION_Y_0;
+        upper_bound = MPI_COMM_DIRECTION_Y_1;
+        break;
+      case MPI_COMM_DIRECTION_Z: 
+        lower_bound = MPI_COMM_DIRECTION_Z_0;
+        upper_bound = MPI_COMM_DIRECTION_Z_1;
+        break;
+      default:
+        lower_bound = direction;
+        upper_bound = direction;
+        break;
+    }
+    comm_map_ptr it,itlow,itup;
+    itlow = _comm_container.lower_bound(lower_bound);
+    itup =  _comm_container.upper_bound(upper_bound);
+		for( it= itlow;it != itup; it++){
 			int dst_rank = (*it).second->getDstId();
 			int send_buffer_size = (*it).second->getSendBufferSize();
 			int recv_buffer_size = (*it).second->getRecvBufferSize();
 			T* send_buffer = (*it).second->getSendBuffer();
 			T* recv_buffer = (*it).second->getRecvBuffer();
-
-			MPI_Request req[2];
-			MPI_Status status[2];
+      MPI_Request req[2];
+      MPI_Status status[2];
 			if (typeid(T) == typeid(float)){
 				MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[0]);
 				MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, &req[1]);
@@ -430,9 +479,10 @@ public:
 		}
 	}
 
+
 	void syncBeta() {
 #if DEBUG
-			std::cout << "--> Sync beta" << std::endl;
+    DEBUGPRINT( "--> Sync beta\n")
 #endif
 		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking form.
 		comm_map_ptr it = _comm_container.begin();
@@ -460,20 +510,41 @@ public:
 
 	void syncBeta(MPI_COMM_DIRECTION direction) {
 #if DEBUG
-		std::cout << "--> Sync beta: " << direction <<  std::endl;
+		DEBUGPRINT( "--> Sync beta: %s\n", get_string_direction(direction))
 #endif
 		// TODO: OPTIMIZATION: communication of different neighbors can be done in Non-blocking form.
 		// iterating over all communication objects for a specific direction
-		std::pair<comm_map_ptr, comm_map_ptr> ppp;
-		ppp = _comm_container.equal_range(direction);
-		comm_map_ptr it = ppp.first;
-		for( ;it != ppp.second; it++) {
+    MPI_COMM_DIRECTION lower_bound;
+    MPI_COMM_DIRECTION upper_bound;
+    switch(direction) {
+      case MPI_COMM_DIRECTION_X: 
+        lower_bound = MPI_COMM_DIRECTION_X_0;
+        upper_bound = MPI_COMM_DIRECTION_X_1;
+        break;
+      case MPI_COMM_DIRECTION_Y: 
+        lower_bound = MPI_COMM_DIRECTION_Y_0;
+        upper_bound = MPI_COMM_DIRECTION_Y_1;
+        break;
+      case MPI_COMM_DIRECTION_Z: 
+        lower_bound = MPI_COMM_DIRECTION_Z_0;
+        upper_bound = MPI_COMM_DIRECTION_Z_1;
+        break;
+      default:
+        lower_bound = direction;
+        upper_bound = direction;
+    }
+    comm_map_ptr it,itlow,itup;
+    itlow = _comm_container.lower_bound(lower_bound);
+    itup =  _comm_container.upper_bound(upper_bound);
+		// std::pair<comm_map_ptr, comm_map_ptr> ppp;
+		// ppp = _comm_container.equal_range(direction);
+		// comm_map_ptr it = ppp.first;
+		for( it = itlow ;it != itup; it++) {
 			int dst_rank = (*it).second->getDstId();
 			int send_buffer_size = (*it).second->getSendBufferSize();//send_size.elements()*cLbmPtr->SIZE_DD_HOST;
 			int recv_buffer_size = (*it).second->getRecvBufferSize();
 			T* send_buffer = (*it).second->getSendBuffer();
 			T* recv_buffer = (*it).second->getRecvBuffer();
-
 			MPI_Request req[2];
 			MPI_Status status[2];
 			if (typeid(T) == typeid(float)){
@@ -487,6 +558,57 @@ public:
 			}
 			MPI_Waitall(2, req, status );
 		}
+	}
+
+  inline void syncAlpha(MPI_COMM_DIRECTION direction, MPI_Request** req_send, MPI_Request** req_recv) {
+    if ( _comm_container.find(direction) == _comm_container.end() ) 
+      return;
+#if DEBUG
+    DEBUGPRINT( "--> Sync alpha: %s\n", get_string_direction(direction))
+#endif
+    *req_send = (MPI_Request*) malloc(1*sizeof(MPI_Request));
+    *req_recv = (MPI_Request*) malloc(1*sizeof(MPI_Request));
+    CComm<T>* comm = _comm_container[direction];
+			int dst_rank = comm->getDstId();
+			int send_buffer_size = comm->getSendBufferSize();
+			int recv_buffer_size = comm->getRecvBufferSize();
+			T* send_buffer = comm->getSendBuffer();
+			T* recv_buffer = comm->getRecvBuffer();
+			if (typeid(T) == typeid(float)){
+				MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, *req_send);
+				MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, *req_recv);
+			}else if (typeid(T) == typeid(double)) {
+    MPI_Isend(send_buffer, send_buffer_size, MPI_DOUBLE, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, *req_send);
+    MPI_Irecv(recv_buffer, recv_buffer_size, MPI_DOUBLE, dst_rank, MPI_TAG_ALPHA_SYNC, MPI_COMM_WORLD, *req_recv);
+			} else {
+				throw "Type id of MPI send/receive buffer is unknown!";
+			}
+	}
+
+	inline void syncBeta(MPI_COMM_DIRECTION direction, MPI_Request** req_send, MPI_Request** req_recv) {
+    if ( _comm_container.find(direction) == _comm_container.end() ) 
+      return;
+#if DEBUG
+		DEBUGPRINT("--> Sync beta: %s\n", get_string_direction(direction))
+#endif
+
+    *req_send = (MPI_Request*) malloc(1*sizeof(MPI_Request));
+    *req_recv = (MPI_Request*) malloc(1*sizeof(MPI_Request));
+    CComm<T>* comm = _comm_container[direction];
+    int dst_rank = comm->getDstId();
+    int send_buffer_size = comm->getSendBufferSize();//send_size.elements()*cLbmPtr->SIZE_DD_HOST;
+    int recv_buffer_size = comm->getRecvBufferSize();
+    T* send_buffer = comm->getSendBuffer();
+    T* recv_buffer = comm->getRecvBuffer();
+    if (typeid(T) == typeid(float)) {
+       MPI_Isend(send_buffer, send_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, *req_send);
+       MPI_Irecv(recv_buffer, recv_buffer_size, MPI_FLOAT, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, *req_recv);
+    } else if (typeid(T) == typeid(double)) {
+       MPI_Isend(send_buffer, send_buffer_size, MPI_DOUBLE, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, *req_send);
+       MPI_Irecv(recv_buffer, recv_buffer_size, MPI_DOUBLE, dst_rank, MPI_TAG_BETA_SYNC, MPI_COMM_WORLD, *req_recv);
+    } else {
+       throw "Type id of MPI send/receive buffer is unknown!";
+    }
 	}
 
 	void simulationStepAlpha() {
@@ -504,11 +626,39 @@ public:
 		cLbmPtr->simulationStepAlphaRect(x1_origin, x_size, 0, NULL, &cl_ss_x_events[1]);
 
 		// --> Store x boundary
-		storeDataAlpha(MPI_COMM_DIRECTION_X);
+		storeDataAlpha(MPI_COMM_DIRECTION_X_0);
+		storeDataAlpha(MPI_COMM_DIRECTION_X_1);
+
 		// --> Communication x boundary
-		syncAlpha(MPI_COMM_DIRECTION_X);
-		// --> Set x boundary
-		setDataAlpha(MPI_COMM_DIRECTION_X);
+    MPI_Request* req_send_x0 = NULL;
+    MPI_Request* req_recv_x0 = NULL;
+
+		syncAlpha(MPI_COMM_DIRECTION_X_0, &req_send_x0, &req_recv_x0);
+    if( req_send_x0 ) {
+      MPI_Status stat_send;
+      MPI_Wait( req_send_x0, &stat_send);
+    }
+    if( req_recv_x0 ) {
+      MPI_Status stat_recv;
+      MPI_Wait( req_recv_x0, &stat_recv);
+    }
+
+    MPI_Request* req_send_x1 = NULL;
+    MPI_Request* req_recv_x1 = NULL;
+
+		syncAlpha(MPI_COMM_DIRECTION_X_1, &req_send_x1, &req_recv_x1);
+    if( req_send_x1 ) {
+      MPI_Status stat_send;
+      MPI_Wait( req_send_x1, &stat_send);
+    }
+    if( req_recv_x1 ) {
+      MPI_Status stat_recv;
+      MPI_Wait( req_recv_x1, &stat_recv);
+    }
+
+    // --> Set x boundary
+		setDataAlpha(MPI_COMM_DIRECTION_X_0);
+		setDataAlpha(MPI_COMM_DIRECTION_X_1);
 
 		// --> Simulation step alpha y boundary
 		CVector<3,int> y0_origin(2, 1, 0);
@@ -517,11 +667,13 @@ public:
 		cLbmPtr->simulationStepAlphaRect(y1_origin, y_size);
 
 		// --> Store y boundary
-		storeDataAlpha(MPI_COMM_DIRECTION_Y);
+		storeDataAlpha(MPI_COMM_DIRECTION_Y_0);
+		storeDataAlpha(MPI_COMM_DIRECTION_Y_1);
 		// --> Communication y boundary
 		syncAlpha(MPI_COMM_DIRECTION_Y);
-		// --> Set y boundary
-		setDataAlpha(MPI_COMM_DIRECTION_Y);
+    // --> Set y boundary
+		setDataAlpha(MPI_COMM_DIRECTION_Y_0);
+		setDataAlpha(MPI_COMM_DIRECTION_Y_1);
 
 		// --> Simulation step alpha z boundary
 		CVector<3,int> z0_origin(2, 2, 1);
@@ -530,17 +682,20 @@ public:
 		cLbmPtr->simulationStepAlphaRect(z1_origin, z_size);
 
 		// --> Store z boundary
-		storeDataAlpha(MPI_COMM_DIRECTION_Z);
+		storeDataAlpha(MPI_COMM_DIRECTION_Z_0);
+		storeDataAlpha(MPI_COMM_DIRECTION_Z_1);
 		// --> Communication z boundary
 		syncAlpha(MPI_COMM_DIRECTION_Z);
-		// --> Set z boundary
-		setDataAlpha(MPI_COMM_DIRECTION_Z);
+    // --> Set z boundary
+		setDataAlpha(MPI_COMM_DIRECTION_Z_0);
+		setDataAlpha(MPI_COMM_DIRECTION_Z_1);
 
 		// --> Computation of inner part
 		CVector<3,int> inner_origin(2, 2, 2);
 		CVector<3,int> inner_size(_domain.getSize()[0]	- 4, _domain.getSize()[1] - 4, _domain.getSize()[2] - 4);
 		cLbmPtr->simulationStepAlphaRect(inner_origin, inner_size);
 	}
+
 
 	void simulationStepBeta() {
 		// SIMULATION_STEP_ALPHA
@@ -551,15 +706,77 @@ public:
 		// --> Simulation step alpha x boundary
 		CVector<3,int> x0_origin(1, 0, 0);
 		CVector<3,int> x1_origin(_domain.getSize()[0]-2, 0, 0);
-		cLbmPtr->simulationStepBetaRect(x0_origin, x_size, 0, NULL, NULL);
-		cLbmPtr->simulationStepBetaRect(x1_origin, x_size, 0, NULL, NULL);
+    cl_int err;
+    cl_event ue_ss_trigger = clCreateUserEvent(cContext->context, &err);
+
+    cl_event ev_ss_x0;
+    cl_event ev_ss_x1;
+    cLbmPtr->simulationStepBetaRect(x0_origin, x_size, 1, &ue_ss_trigger, &ev_ss_x0);
+		cLbmPtr->simulationStepBetaRect(x1_origin, x_size, 1, &ue_ss_trigger, &ev_ss_x1);
 
 		// --> Store x boundary
-		storeDataBeta(MPI_COMM_DIRECTION_X);
-		// --> Communication x boundary
-		syncBeta(MPI_COMM_DIRECTION_X);
-		// --> Set x boundary
-		setDataBeta(MPI_COMM_DIRECTION_X);
+    cl_event ev_store_x0;
+    cl_event ev_store_x1;
+
+    bool b_ss_x0 = storeDataBeta(MPI_COMM_DIRECTION_X_0, 1, &ev_ss_x0, &ev_store_x0);
+    bool b_ss_x1 = storeDataBeta(MPI_COMM_DIRECTION_X_1, 1, &ev_ss_x1, &ev_store_x1);
+
+    MPI_Request* req_send_x0 = NULL;
+    MPI_Request* req_recv_x0 = NULL;
+    MPI_Request* req_send_x1 = NULL;
+    MPI_Request* req_recv_x1 = NULL;
+
+    struct arg_block_syncbeta ipargs_syncbeta_x0;
+    ipargs_syncbeta_x0.controller = this;
+    ipargs_syncbeta_x0.direction = MPI_COMM_DIRECTION_X_0;
+    ipargs_syncbeta_x0.req_send = &req_send_x0;
+    ipargs_syncbeta_x0.req_recv = &req_recv_x0;
+    ipargs_syncbeta_x0.ue_sync =  clCreateUserEvent(cContext->context, &err);
+
+    if (b_ss_x0)
+      clSetEventCallback(ev_store_x0, CL_COMPLETE,
+                         &callback_syncbeta,(void *)&ipargs_syncbeta_x0);
+
+    struct arg_block_syncbeta ipargs_syncbeta_x1;
+    ipargs_syncbeta_x1.controller = this;
+    ipargs_syncbeta_x1.direction = MPI_COMM_DIRECTION_X_1;
+    ipargs_syncbeta_x1.req_send = &req_send_x1;
+    ipargs_syncbeta_x1.req_recv = &req_recv_x1;
+    ipargs_syncbeta_x1.ue_sync =  clCreateUserEvent(cContext->context, &err);
+
+    if (b_ss_x1) 
+      clSetEventCallback(ev_store_x1, CL_COMPLETE,
+                         &callback_syncbeta,(void *)&ipargs_syncbeta_x1);
+
+    err = clSetUserEventStatus(ue_ss_trigger, CL_SUCCESS);
+    cLbmPtr->wait();
+
+    if( _BC[0][0] == FLAG_GHOST_LAYER  ) {
+      DEBUGPRINT("enter_waitx0_send\n");
+      MPI_Status stat_send;
+      MPI_CHECK_ERROR(MPI_Wait( req_send_x0, &stat_send));
+      DEBUGPRINT("waitx0_send\n");
+
+      DEBUGPRINT("enter_waitx0_recv\n");
+      MPI_Status stat_recv;
+      MPI_CHECK_ERROR(MPI_Wait( req_recv_x0, &stat_recv));
+      DEBUGPRINT("waitx0_recv\n");
+    }
+    if( _BC[0][1] == FLAG_GHOST_LAYER) {
+      DEBUGPRINT("enter_waitx1_send\n")
+      MPI_Status stat_send;
+      MPI_CHECK_ERROR(MPI_Wait( req_send_x1, &stat_send));
+      DEBUGPRINT("waitx1_send\n")
+
+      DEBUGPRINT("enter_waitx1_recv\n")
+      MPI_Status stat_recv;
+      MPI_CHECK_ERROR(MPI_Wait( req_recv_x1, &stat_recv));
+      DEBUGPRINT("waitx1_recv\n")
+    }
+
+		// // --> Set x boundary
+		setDataBeta(MPI_COMM_DIRECTION_X_0, 1, &ipargs_syncbeta_x0.ue_sync, NULL);
+		setDataBeta(MPI_COMM_DIRECTION_X_1, 1, &ipargs_syncbeta_x1.ue_sync, NULL);
 
 		// --> Simulation step alpha y boundary
 		CVector<3,int> y0_origin(2, 1, 0);
@@ -568,11 +785,13 @@ public:
 		cLbmPtr->simulationStepBetaRect(y1_origin, y_size);
 
 		// --> Store y boundary
-		storeDataBeta(MPI_COMM_DIRECTION_Y);
+		storeDataBeta(MPI_COMM_DIRECTION_Y_0);
+		storeDataBeta(MPI_COMM_DIRECTION_Y_1);
 		// --> Communication y boundary
 		syncBeta(MPI_COMM_DIRECTION_Y);
 		// --> Set y boundary
-		setDataBeta(MPI_COMM_DIRECTION_Y);
+		setDataBeta(MPI_COMM_DIRECTION_Y_0);
+		setDataBeta(MPI_COMM_DIRECTION_Y_1);
 
 		// --> Simulation step alpha z boundary
 		CVector<3,int> z0_origin(2, 2, 1);
@@ -581,11 +800,13 @@ public:
 		cLbmPtr->simulationStepBetaRect(z1_origin, z_size);
 
 		// --> Store z boundary
-		storeDataBeta(MPI_COMM_DIRECTION_Z);
+		storeDataBeta(MPI_COMM_DIRECTION_Z_0);
+		storeDataBeta(MPI_COMM_DIRECTION_Z_0);
 		// --> Communication z boundary
 		syncBeta(MPI_COMM_DIRECTION_Z);
 		// --> Set z boundary
-		setDataBeta(MPI_COMM_DIRECTION_Z);
+		setDataBeta(MPI_COMM_DIRECTION_Z_0);
+		setDataBeta(MPI_COMM_DIRECTION_Z_1);
 
 		// --> Computation of inner part
 		CVector<3,int> inner_origin(2, 2, 2);
@@ -769,5 +990,40 @@ public:
 		return _UID;
 	}
 };
+
+void CL_CALLBACK callback_syncbeta(cl_event ev, cl_int event_status,
+                                    void * user_data)
+{
+  arg_block_syncbeta* ipargs = (arg_block_syncbeta*) user_data;
+#if DEBUG
+  DEBUGPRINT( "--> callback DEBUG beta: %d\n", ipargs->direction)
+#endif
+#if DEBUG
+  DEBUGPRINT( "--> callback sync beta: %s\n", get_string_direction(ipargs->direction))
+#endif
+  ipargs->controller->syncBeta(ipargs->direction, ipargs->req_send, ipargs->req_recv);
+  CL_CHECK_ERROR(clSetUserEventStatus(ipargs->ue_sync, CL_SUCCESS));
+  std::cout << "DEBUGER" << std::endl;
+}
+
+void CL_CALLBACK callback_profile(cl_event ev, cl_int event_status,
+                                  void * user_data) {
+
+  arg_block* ipargs = (arg_block*) user_data;
+  int evID = ipargs->arg0;
+  std::cout << "CALLBACK FUNCITON " << std::endl;
+  cl_ulong ev_start_time=(cl_ulong)0;
+  cl_ulong ev_end_time=(cl_ulong)0;
+  size_t return_bytes;  cl_ulong run_time;
+  printf(" Event callback %d %d \n",(int)event_status, evID);
+  CL_CHECK_ERROR( clGetEventProfilingInfo( ev, CL_PROFILING_COMMAND_QUEUED,
+                                           sizeof(cl_ulong),  &ev_start_time, &return_bytes));
+  CL_CHECK_ERROR( clGetEventProfilingInfo( ev, CL_PROFILING_COMMAND_END,
+                                           sizeof(cl_ulong),  &ev_end_time,   &return_bytes));
+  run_time = (ev_end_time - ev_start_time);
+  std::cout << "kernel start "<<  ev_start_time <<" nanaosecs\n";
+  std::cout << "kernel end "<<  ev_end_time <<" nanaosecs\n";
+  std::cout << "kernel runtime "<<  run_time <<" nanaosecs\n";
+}
 
 #endif

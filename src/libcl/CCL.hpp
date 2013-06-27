@@ -1379,6 +1379,31 @@ public:
 										size_t offset,			///< offset to start writing from
 										size_t buffer_size,		///< size of buffer to write
 										const void *buffer_ptr,	///< host memory pointer
+										cl_uint num_events_in_wait_list,	///< number of events in waiting list
+										const cl_event *event_wait_list,	///< list of events
+										cl_event* event			///< event for enqueueWriteBuffer
+		)
+		{
+			CL_CHECK_ERROR(	clEnqueueWriteBuffer(	command_queue,
+								cMem.memobj,
+								block_write,
+								offset,
+								buffer_size,
+								buffer_ptr,
+								num_events_in_wait_list,
+								event_wait_list,
+								event
+					));
+		}
+
+		/**
+		 * enqueue writing a buffer
+		 */
+		inline void enqueueWriteBuffer(	CMem &cMem,				///< memory object
+										cl_bool block_write,	///< don't return until data is written
+										size_t offset,			///< offset to start writing from
+										size_t buffer_size,		///< size of buffer to write
+										const void *buffer_ptr,	///< host memory pointer
 										CEvent &event			///< event for enqueueWriteBuffer
 		)
 		{
@@ -1624,7 +1649,7 @@ public:
 								region,
 								buffer_row_pitch,
 								buffer_slice_pitch,
-								host_row_pitch0,
+								host_row_pitch,
 								host_slice_pitch,
 								buffer_ptr,
 								0,

@@ -107,7 +107,6 @@ int main(int argc, char** argv)
 	int loops = -1;
 
 	bool do_visualisation = false;
-	bool pause = false;
 	bool take_frame_screenshots = false;
 	bool unit_test = false;
 	size_t computation_kernel_count = 128;

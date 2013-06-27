@@ -136,7 +136,7 @@ public:
 			CVector<3,int> send_origin(1,0,0);
 			CVector<3,int> recv_origin(0,0,0);
 			CVector<3,int> comm_direction(1,0,0);
-			_lbm_controller->addCommunication(MPI_COMM_DIRECTION_X, new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+			_lbm_controller->addCommunication(MPI_COMM_DIRECTION_X_0, new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
 		}
 		if (BC[0][1] == FLAG_GHOST_LAYER) {
 			int comm_destination = id + 1;
@@ -145,7 +145,7 @@ public:
 			CVector<3,int> send_origin(_subdomain_size[0] - 2, 0, 0);
 			CVector<3,int> recv_origin(_subdomain_size[0] - 1, 0, 0);
 			CVector<3,int> comm_direction(-1,0,0);
-			_lbm_controller->addCommunication(MPI_COMM_DIRECTION_X, new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+			_lbm_controller->addCommunication(MPI_COMM_DIRECTION_X_1, new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
 		}
 		if (BC[1][0] == FLAG_GHOST_LAYER) {
 			int comm_destination = id - _subdomain_nums[0];
@@ -154,7 +154,7 @@ public:
 			CVector<3,int> send_origin(0,1,0);
 			CVector<3,int> recv_origin(0,0,0);
 			CVector<3,int> comm_direction(0,1,0);
-			_lbm_controller->addCommunication(MPI_COMM_DIRECTION_Y, new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+			_lbm_controller->addCommunication(MPI_COMM_DIRECTION_Y_0, new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
 		}
 		if (BC[1][1] == FLAG_GHOST_LAYER) {
 			int comm_destination = id + _subdomain_nums[0];
@@ -163,7 +163,7 @@ public:
 			CVector<3,int> send_origin(0, _subdomain_size[1] - 2, 0);
 			CVector<3,int> recv_origin(0, _subdomain_size[1] - 1, 0);
 			CVector<3,int> comm_direction(0,-1,0);
-			_lbm_controller->addCommunication(MPI_COMM_DIRECTION_Y, new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+			_lbm_controller->addCommunication(MPI_COMM_DIRECTION_Y_1, new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
 		}
 		if (BC[2][0] == FLAG_GHOST_LAYER) {
 			int comm_destination = id - _subdomain_nums[0]*_subdomain_nums[1];
@@ -172,7 +172,7 @@ public:
 			CVector<3,int> send_origin(0,0,1);
 			CVector<3,int> recv_origin(0,0,0);
 			CVector<3,int> comm_direction(0,0,1);
-			_lbm_controller->addCommunication(MPI_COMM_DIRECTION_Z, new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+			_lbm_controller->addCommunication(MPI_COMM_DIRECTION_Z_0, new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
 		}
 		if (BC[2][1] == FLAG_GHOST_LAYER) {
 			int comm_destination = id + _subdomain_nums[0]*_subdomain_nums[1];
@@ -181,7 +181,7 @@ public:
 			CVector<3,int> send_origin(0, 0, _subdomain_size[2] - 2);
 			CVector<3,int> recv_origin(0, 0, _subdomain_size[2] - 1);
 			CVector<3,int> comm_direction(0,0,-1);
-			_lbm_controller->addCommunication(MPI_COMM_DIRECTION_Z, new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
+			_lbm_controller->addCommunication(MPI_COMM_DIRECTION_Z_1, new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
 		}
 		// TODO: this geometry is hard coded right now. reimplement it in general form.
 		if ( ny == _subdomain_nums[1] - 1) {

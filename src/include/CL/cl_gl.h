@@ -1,5 +1,5 @@
 /**********************************************************************************
- * Copyright (c) 2008-2009 The Khronos Group Inc.
+ * Copyright (c) 2008-2010 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and/or associated documentation files (the
@@ -21,7 +21,7 @@
  * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
  **********************************************************************************/
 
-/* $Revision: 10327 $ on $Date: 2010-02-11 00:24:35 +0530 (Thu, 11 Feb 2010) $ */
+/* $Revision: 11708 $ on $Date: 2010-06-13 23:36:24 -0700 (Sun, 13 Jun 2010) $ */
 
 /*
  * cl_gl.h contains Khronos-approved (KHR) OpenCL extensions which have
@@ -34,6 +34,7 @@
 
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
+#include <OpenGL/CGLDevice.h>
 #else
 #include <CL/cl.h>
 #endif	
@@ -45,6 +46,7 @@ extern "C" {
 typedef cl_uint     cl_gl_object_type;
 typedef cl_uint     cl_gl_texture_info;
 typedef cl_uint     cl_gl_platform_info;
+typedef struct __GLsync *cl_GLsync;
 
 /* cl_gl_object_type */
 #define CL_GL_OBJECT_BUFFER             0x2000
@@ -138,6 +140,13 @@ clGetGLContextInfoKHR(const cl_context_properties * /* properties */,
                       size_t                        /* param_value_size */,
                       void *                        /* param_value */,
                       size_t *                      /* param_value_size_ret */) CL_API_SUFFIX__VERSION_1_0;
+
+typedef CL_API_ENTRY cl_int (CL_API_CALL *clGetGLContextInfoKHR_fn)(
+    const cl_context_properties * properties,
+    cl_gl_context_info            param_name,
+    size_t                        param_value_size,
+    void *                        param_value,
+    size_t *                      param_value_size_ret);
 
 #ifdef __cplusplus
 }
