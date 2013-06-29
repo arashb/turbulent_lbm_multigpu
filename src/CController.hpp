@@ -315,7 +315,7 @@ public:
 			cLbmPtr->setDensityDistribution(comm->getRecvBuffer(),
 					comm->getRecvOrigin(),
 					comm->getRecvSize());
-		//cLbmPtr->wait();
+		cLbmPtr->wait();
 	}
 
 	inline void storeDataBeta(MPI_COMM_DIRECTION direction) {
