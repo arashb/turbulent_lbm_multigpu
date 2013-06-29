@@ -801,7 +801,7 @@ public:
 
 		// --> Store z boundary
 		storeDataBeta(MPI_COMM_DIRECTION_Z_0);
-		storeDataBeta(MPI_COMM_DIRECTION_Z_0);
+		storeDataBeta(MPI_COMM_DIRECTION_Z_1);
 		// --> Communication z boundary
 		syncBeta(MPI_COMM_DIRECTION_Z);
 		// --> Set z boundary
