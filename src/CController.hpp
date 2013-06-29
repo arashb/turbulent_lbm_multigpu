@@ -500,7 +500,7 @@ public:
 
 		// --> Computation of inner part
 		CVector<3,int> inner_origin(2, 2, 2);
-		CVector<3,int> inner_size(_domain.getSize()[0]	- 4, _domain.getSize()[1] - 4, _domain.getSize()[1] - 4);
+		CVector<3,int> inner_size(_domain.getSize()[0]	- 4, _domain.getSize()[1] - 4, _domain.getSize()[2] - 4);
 		cLbmPtr->simulationStepAlphaRect(inner_origin, inner_size);
 	}
 
@@ -552,7 +552,7 @@ public:
 
 		// --> Computation of inner part
 		CVector<3,int> inner_origin(2, 2, 2);
-		CVector<3,int> inner_size(_domain.getSize()[0]	- 4, _domain.getSize()[1] - 4, _domain.getSize()[1] - 4);
+		CVector<3,int> inner_size(_domain.getSize()[0]	- 4, _domain.getSize()[1] - 4, _domain.getSize()[2] - 4);
 		cLbmPtr->simulationStepBetaRect(inner_origin, inner_size);
 	}
 
