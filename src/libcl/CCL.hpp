@@ -1237,10 +1237,14 @@ public:
 		 * initialize existing command queue
 		 */
 		inline void init(	const CContext &cContext,	///< existing context handler
-							const CDevice &cDevice		///< existing device handler
+                      const CDevice &cDevice,		///< existing device handler
+                      const bool outOfOrder = false ///< Out-Of-Order command queue
 		)
 		{
 		  cl_command_queue_properties properties = 0;
+      if (outOfOrder)
+        properties |= CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE;
+
 #if PROFILE
 		  properties |= CL_QUEUE_PROFILING_ENABLE;
 		  CCL::CDeviceInfo cDeviceInfo(cDevice);
@@ -1272,10 +1276,11 @@ public:
 		 * initialize command queue from existing context and device
 		 */
 		inline CCommandQueue(	const CContext &cContext,	///< existing context handler
-								const CDevice &cDevice		///< existing device handler
+                          const CDevice &cDevice,		///< existing device handler
+                          const bool outOfOrder = false
 		)
 		{
-			init(cContext, cDevice);
+			init(cContext, cDevice, outOfOrder);
 		}
 
 		inline CCommandQueue()
