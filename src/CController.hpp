@@ -202,15 +202,18 @@ class CController
 			return -1;
 		}
 
-		cDevice = &((*cDevices)[ConfigSingleton::Instance()->device_nr]);
-		//cDeviceInfo = new CCL::CDeviceInfo(*cDevice);
+		int dev_nr = 0;
+		if( _UID & 1 )
+		  dev_nr = 1;
+
+		cDevice = &((*cDevices)[/* ConfigSingleton::Instance()->device_nrd*/dev_nr]);
 
 		// load information about first device - e.g. max_work_group_size
 #if DEBUG
 		std::cout << "loading device information" << std::endl;
 		CCL::CDeviceInfo cDeviceInfo(*cDevice);
 
-		std::cout << "Device " << (ConfigSingleton::Instance()->device_nr) << ":" << std::endl;
+		std::cout << "Device " << dev_nr<< ":" << std::endl;
 		std::cout << "        Name: " << cDeviceInfo.name << std::endl;
 		std::cout << "     Profile: " << cDeviceInfo.profile << std::endl;
 		std::cout << "     Version: " << cDeviceInfo.version << std::endl;
