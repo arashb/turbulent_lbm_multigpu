@@ -708,6 +708,16 @@ public:
     err = clSetUserEventStatus(ue_ss_trigger_x, CL_SUCCESS);
     cLbmPtr->wait();
 
+    // --> Simulation step beta y boundary
+    cl_event ev_ss_y0;
+    cl_event ev_ss_y1;
+		CVector<3,int> y0_origin(2, 1, 0);
+		CVector<3,int> y1_origin(2,_domain.getSize()[1]-2, 0);
+		cLbmPtr->simulationStepAlphaRect(y0_origin, y_size, 1, &ev_ss_x1, &ev_ss_y0);
+		cLbmPtr->simulationStepAlphaRect(y1_origin, y_size, 1, &ev_ss_x1, &ev_ss_y1);
+
+    clFlush(cCommandQueue->command_queue);
+
     if( _BC[0][0] == FLAG_GHOST_LAYER  ) {
       clWaitForEvents(1, &ipargs_syncalpha_x0.ue_sync);
 
@@ -731,19 +741,13 @@ public:
     }
 
 
-    // --> Simulation step beta y boundary
-    cl_event ev_ss_y0;
-    cl_event ev_ss_y1;
-		CVector<3,int> y0_origin(2, 1, 0);
-		CVector<3,int> y1_origin(2,_domain.getSize()[1]-2, 0);
-		cLbmPtr->simulationStepAlphaRect(y0_origin, y_size, 1, &ue_ss_trigger_y, &ev_ss_y0);
-		cLbmPtr->simulationStepAlphaRect(y1_origin, y_size, 1, &ue_ss_trigger_y, &ev_ss_y1);
-
 		// --> Store y boundary
+    cl_event store_wait_list_y0[2] = {ev_ss_y0, ue_ss_trigger_y};
+    cl_event store_wait_list_y1[2] = {ev_ss_y1, ue_ss_trigger_y};
     cl_event ev_store_y0;
     cl_event ev_store_y1;
-		bool b_ss_y0 = storeDataAlpha(MPI_COMM_DIRECTION_Y_0, 1, &ev_ss_y0, &ev_store_y0);
-		bool b_ss_y1 = storeDataAlpha(MPI_COMM_DIRECTION_Y_1, 1, &ev_ss_y1, &ev_store_y1);
+		bool b_ss_y0 = storeDataAlpha(MPI_COMM_DIRECTION_Y_0, 2, store_wait_list_y0, &ev_store_y0);
+		bool b_ss_y1 = storeDataAlpha(MPI_COMM_DIRECTION_Y_1, 2, store_wait_list_y1, &ev_store_y1);
 
     // --> Sync y boundary
     MPI_Request* req_send_y0 = NULL;
@@ -776,6 +780,16 @@ public:
     err = clSetUserEventStatus(ue_ss_trigger_y, CL_SUCCESS);
     cLbmPtr->wait();
 
+		// --> Simulation step beta z boundary
+    cl_event ev_ss_z0;
+    cl_event ev_ss_z1;
+		CVector<3,int> z0_origin(2, 2, 1);
+		CVector<3,int> z1_origin(2, 2, _domain.getSize()[2]-2);
+		cLbmPtr->simulationStepAlphaRect(z0_origin, z_size, 1, &ev_ss_y1, &ev_ss_z0);
+		cLbmPtr->simulationStepAlphaRect(z1_origin, z_size, 1, &ev_ss_y1, &ev_ss_z1);
+
+    clFlush(cCommandQueue->command_queue);
+
     if( _BC[1][0] == FLAG_GHOST_LAYER  ) {
      clWaitForEvents(1, &ipargs_syncalpha_y0.ue_sync);
 
@@ -799,19 +813,14 @@ public:
     }
 
 
-		// --> Simulation step beta z boundary
-    cl_event ev_ss_z0;
-    cl_event ev_ss_z1;
-		CVector<3,int> z0_origin(2, 2, 1);
-		CVector<3,int> z1_origin(2, 2, _domain.getSize()[2]-2);
-		cLbmPtr->simulationStepAlphaRect(z0_origin, z_size, 1, &ue_ss_trigger_z, &ev_ss_z0);
-		cLbmPtr->simulationStepAlphaRect(z1_origin, z_size, 1, &ue_ss_trigger_z, &ev_ss_z1);
 
 		// --> Store z boundary
+    cl_event store_wait_list_z0[2] = {ev_ss_z0, ue_ss_trigger_z};
+    cl_event store_wait_list_z1[2] = {ev_ss_z1, ue_ss_trigger_z};
     cl_event ev_store_z0;
     cl_event ev_store_z1;
-		bool b_ss_z0 = storeDataAlpha(MPI_COMM_DIRECTION_Z_0, 1, &ev_ss_z0, &ev_store_z0);
-		bool b_ss_z1 = storeDataAlpha(MPI_COMM_DIRECTION_Z_1, 1, &ev_ss_z1, &ev_store_z1);
+		bool b_ss_z0 = storeDataAlpha(MPI_COMM_DIRECTION_Z_0, 2, store_wait_list_z0, &ev_store_z0);
+		bool b_ss_z1 = storeDataAlpha(MPI_COMM_DIRECTION_Z_1, 2, store_wait_list_z1, &ev_store_z1);
 
     // --> Sync z boundary
     MPI_Request* req_send_z0 = NULL;
@@ -949,6 +958,16 @@ public:
     err = clSetUserEventStatus(ue_ss_trigger_x, CL_SUCCESS);
     cLbmPtr->wait();
 
+		// --> Simulation step beta y boundary
+    cl_event ev_ss_y0;
+    cl_event ev_ss_y1;
+		CVector<3,int> y0_origin(2, 1, 0);
+		CVector<3,int> y1_origin(2,_domain.getSize()[1]-2, 0);
+		cLbmPtr->simulationStepBetaRect(y0_origin, y_size, 1, &ev_ss_x1, &ev_ss_y0);
+		cLbmPtr->simulationStepBetaRect(y1_origin, y_size, 1, &ev_ss_x1, &ev_ss_y1);
+
+    clFlush(cCommandQueue->command_queue);
+
     if( _BC[0][0] == FLAG_GHOST_LAYER  ) {
       clWaitForEvents(1, &ipargs_syncbeta_x0.ue_sync);
 
@@ -971,19 +990,13 @@ public:
       MPI_CHECK_ERROR(MPI_Wait( req_send_x1, &stat_send));
     }
 
-		// --> Simulation step beta y boundary
-    cl_event ev_ss_y0;
-    cl_event ev_ss_y1;
-		CVector<3,int> y0_origin(2, 1, 0);
-		CVector<3,int> y1_origin(2,_domain.getSize()[1]-2, 0);
-		cLbmPtr->simulationStepBetaRect(y0_origin, y_size, 1, &ue_ss_trigger_y, &ev_ss_y0);
-		cLbmPtr->simulationStepBetaRect(y1_origin, y_size, 1, &ue_ss_trigger_y, &ev_ss_y1);
-
 		// --> Store y boundary
+    cl_event store_wait_list_y0[2] = {ev_ss_y0, ue_ss_trigger_y};
+    cl_event store_wait_list_y1[2] = {ev_ss_y1, ue_ss_trigger_y};
     cl_event ev_store_y0;
     cl_event ev_store_y1;
-		bool b_ss_y0 = storeDataBeta(MPI_COMM_DIRECTION_Y_0, 1, &ev_ss_y0, &ev_store_y0);
-		bool b_ss_y1 = storeDataBeta(MPI_COMM_DIRECTION_Y_1, 1, &ev_ss_y1, &ev_store_y1);
+		bool b_ss_y0 = storeDataBeta(MPI_COMM_DIRECTION_Y_0, 2, store_wait_list_y0, &ev_store_y0);
+		bool b_ss_y1 = storeDataBeta(MPI_COMM_DIRECTION_Y_1, 2, store_wait_list_y1, &ev_store_y1);
 
     // --> Sync y boundary
     MPI_Request* req_send_y0 = NULL;
@@ -1016,6 +1029,16 @@ public:
     err = clSetUserEventStatus(ue_ss_trigger_y, CL_SUCCESS);
     cLbmPtr->wait();
 
+		// --> Simulation step beta z boundary
+    cl_event ev_ss_z0;
+    cl_event ev_ss_z1;
+		CVector<3,int> z0_origin(2, 2, 1);
+		CVector<3,int> z1_origin(2, 2, _domain.getSize()[2]-2);
+		cLbmPtr->simulationStepBetaRect(z0_origin, z_size, 1, &ev_ss_y1, &ev_ss_z0);
+		cLbmPtr->simulationStepBetaRect(z1_origin, z_size, 1, &ev_ss_y1, &ev_ss_z1);
+
+    clFlush(cCommandQueue->command_queue);
+
     if( _BC[1][0] == FLAG_GHOST_LAYER  ) {
      clWaitForEvents(1, &ipargs_syncbeta_y0.ue_sync);
 
@@ -1038,19 +1061,13 @@ public:
       MPI_CHECK_ERROR(MPI_Wait( req_send_y1, &stat_send));
     }
 
-		// --> Simulation step beta z boundary
-    cl_event ev_ss_z0;
-    cl_event ev_ss_z1;
-		CVector<3,int> z0_origin(2, 2, 1);
-		CVector<3,int> z1_origin(2, 2, _domain.getSize()[2]-2);
-		cLbmPtr->simulationStepBetaRect(z0_origin, z_size, 1, &ue_ss_trigger_z, &ev_ss_z0);
-		cLbmPtr->simulationStepBetaRect(z1_origin, z_size, 1, &ue_ss_trigger_z, &ev_ss_z1);
-
 		// --> Store z boundary
+    cl_event store_wait_list_z0[2] = {ev_ss_z0, ue_ss_trigger_z};
+    cl_event store_wait_list_z1[2] = {ev_ss_z1, ue_ss_trigger_z};
     cl_event ev_store_z0;
     cl_event ev_store_z1;
-		bool b_ss_z0 = storeDataBeta(MPI_COMM_DIRECTION_Z_0, 1, &ev_ss_z0, &ev_store_z0);
-		bool b_ss_z1 = storeDataBeta(MPI_COMM_DIRECTION_Z_1, 1, &ev_ss_z1, &ev_store_z1);
+		bool b_ss_z0 = storeDataBeta(MPI_COMM_DIRECTION_Z_0, 2, store_wait_list_z0, &ev_store_z0);
+		bool b_ss_z1 = storeDataBeta(MPI_COMM_DIRECTION_Z_1, 2, store_wait_list_z1, &ev_store_z1);
 
     // --> Sync z boundary
     MPI_Request* req_send_z0 = NULL;
