@@ -37,7 +37,7 @@ def execute(command):
     print "executing command: ", command
     os.system(command)
 
-def weak_scaling_benchmark_2d(max_num, num_exp, loops = 100, grid_size_increase_step = 32, base_domain_length = 0.1 ):
+def weak_scaling_benchmark_2d(max_num, num_exp, loops = 100, grid_size_increase_step = 1024, base_domain_length = 0.1 ):
     DOMAIN_LENGTH = base_domain_length
     for num_increase in range(1,max_num+1):
         num_proc = num_increase*num_increase
@@ -203,8 +203,8 @@ if __name__ == "__main__":
         BENCHMARK_STRATEGY = str(sys.argv[5])
         print "benchmark strategy: ", BENCHMARK_STRATEGY
         if BENCHMARK_STRATEGY == "weak":
-            # benchmark(weak_scaling_benchmark_2d, max_num, num_exp)
-            benchmark(weak_scaling_benchmark_1d, max_num, num_exp)
+            benchmark(weak_scaling_benchmark_2d, max_num, num_exp)
+            #benchmark(weak_scaling_benchmark_1d, max_num, num_exp)
         elif BENCHMARK_STRATEGY == "strong":
             benchmark(strong_scaling_benchmark_2d, max_num, num_exp)
         else:
