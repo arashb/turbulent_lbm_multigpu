@@ -1,5 +1,5 @@
  /*
- * Copyright 2010 Martin Schreiber, Arash Bakhtiari
+ * Copyright 2013 Martin Schreiber, Arash Bakhtiari
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,14 @@ TODO:
 * Benchmark
 TODO:
 * Release Notes
-| version | description |
-|---------+-------------|
-| v1.0    |             |
+| version | description                                                              |
+|---------+--------------------------------------------------------------------------|
+| v1.0    | - support of multi-gpu (no overlapping of communicaiton and computation) |
+|         | - support of arbitrary number of subdomains in each dimension            |
+|---------+--------------------------------------------------------------------------|
+| v1.1    | - automatic benchmarking of code                                         |
+|---------+--------------------------------------------------------------------------|
+
 
 
 * LEGACY README
