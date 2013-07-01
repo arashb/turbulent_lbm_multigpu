@@ -174,8 +174,12 @@ class CController
 			std::cerr << "invalid device number - use option \"-d -1\" to list all devices" << std::endl;
 			return -1;
 		}
+		int dev_nr = 0;
+		if( _UID & 1 )
+		  dev_nr = 1;
 
-		cDevice = &((*cDevices)[ConfigSingleton::Instance()->device_nr]);
+		cDevice = &((*cDevices)[/* ConfigSingleton::Instance()->device_nrd*/dev_nr]);
+		// cDevice = &((*cDevices)[ConfigSingleton::Instance()->device_nr]);
 		//cDeviceInfo = new CCL::CDeviceInfo(*cDevice);
 
 		// load information about first device - e.g. max_work_group_size
