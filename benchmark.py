@@ -204,8 +204,8 @@ if __name__ == "__main__":
         BENCHMARK_STRATEGY = str(sys.argv[5])
         print "benchmark strategy: ", BENCHMARK_STRATEGY
         if BENCHMARK_STRATEGY == "weak":
-            #benchmark(weak_scaling_benchmark_1d, max_num, num_exp)
-            benchmark(weak_scaling_benchmark_2d, max_num, num_exp)
+            #benchmark(weak_scaling_benchmark_2d, max_num, num_exp)
+            benchmark(weak_scaling_benchmark_1d, max_num, num_exp)
         elif BENCHMARK_STRATEGY == "strong":
             benchmark(strong_scaling_benchmark_2d, max_num, num_exp)
         else:
