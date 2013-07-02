@@ -16,5 +16,8 @@ cleanbenchmark:
 cleanprofile:
 	rm  profileOutput/*.ini
 
+cleanlog: 
+	rm output_log/*.log
+
 clean:
-	rm -rf build/* vtkOutput/*.vtk benchmarkOutput/*.ini profileOutput/*.ini
+	rm -rf build/* vtkOutput/*.vtk benchmarkOutput/*.ini profileOutput/*.ini output_log/*.log

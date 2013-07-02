@@ -656,7 +656,7 @@ public:
 
 	void simulationStepAlpha() {
 #if DEBUG
-	  DEBUGPRINT("###### Simulation Step ALPHA ###### " );
+	  DEBUGPRINT("###### Simulation Step ALPHA ######\n" );
 #endif 
 
 		// SIMULATION_STEP_ALPHA
@@ -911,7 +911,7 @@ public:
 
 	void simulationStepBeta() {
 #if DEBUG
-	  DEBUGPRINT("###### Simulation Step BETA ###### " );
+	  DEBUGPRINT("###### Simulation Step BETA ######\n" );
 #endif 
 		// SIMULATION_STEP_BETA
 		CVector<3,int> x_size(1						, _domain.getSize()[1]	, _domain.getSize()[2]	);
@@ -1158,7 +1158,7 @@ public:
 
 	void computeNextStep(){
 #if DEBUG
-	  DEBUGPRINT("LOOP: %d", _simulation_step_counter);
+	  DEBUGPRINT("LOOP: %d\n", _simulation_step_counter);
 #endif
 		if (_simulation_step_counter & 1)
 			simulationStepAlpha();
