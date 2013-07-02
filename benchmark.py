@@ -3,7 +3,7 @@ import os, subprocess, sys, ConfigParser, json
 
 keys = ['SECONDS', 'FPS', 'MLUPS', 'BANDWIDTH']
 SECTION_BASE = 'EXP'
-INI_FILE_DIR = "./benchmarkOutput/"
+INI_FILE_DIR = "./output/benchmark/"
 MPI_COMMAND = "mpirun"
 LBM_COMMAND = "./build/lbm_opencl_dc_mpicxx_release"
 

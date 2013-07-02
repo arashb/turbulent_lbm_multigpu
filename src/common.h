@@ -8,8 +8,16 @@
 #ifndef COMMON_H_
 #define COMMON_H_
 #include "mpi.h"
+#include <sys/time.h>
+#include <time.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string>
+#include <sstream>
+#include <fstream>
 #include "CConfiguration.hpp"
 #include "Singleton.hpp"
+
 
 #define FLAG_OBSTACLE	(1 << 0)
 #define FLAG_FLUID	(1 << 1)
@@ -18,9 +26,12 @@
 #define FLAG_GHOST_LAYER_BETA (FLAG_GHOST_LAYER | (1 << 4))
 
 //#define HALO_SIZE 0
-#define BENCHMARK_OUTPUT_DIR "benchmarkOutput"
-#define PROFILE_OUTPUT_DIR "profileOutput"
-#define VTK_OUTPUT_DIR "vtkOutput"
+#define BENCHMARK_OUTPUT_DIR "output/benchmark"
+#define PROFILE_OUTPUT_DIR "output/profile"
+#define VTK_OUTPUT_DIR "output/vtk"
+#define LOG_OUTPUT_DIR "output/log"
+
+#define LOG_OUTPUT_FILE_PREFIX "log"
 
 extern CVector<3,int> E0 	;
 extern CVector<3,int> E1	;
@@ -90,6 +101,7 @@ const char* get_string_direction(MPI_COMM_DIRECTION direction) {
   return dir.c_str();
 }
 
+#ifndef LOG_TO_FILE
 #define  DEBUGPRINT(...) \
   { \
   int my_rank; \
@@ -99,6 +111,30 @@ const char* get_string_direction(MPI_COMM_DIRECTION direction) {
   fprintf(stderr, "P %d: ", my_rank); \
   fprintf(stderr, __VA_ARGS__); \
   }
+#else
+#define  DEBUGPRINT(...)			\
+  { \
+  int my_rank; \
+  int num_procs;                           \
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank); \
+  MPI_Comm_size(MPI_COMM_WORLD, &num_procs); \
+  char buffer[30]; \
+  struct timeval tv; \
+  time_t curtime; \
+  gettimeofday(&tv, NULL); \
+  curtime=tv.tv_sec; \
+  strftime(buffer,30,"%m-%d-%Y  %T.",localtime(&curtime));\
+  std::string outputfilename = LOG_OUTPUT_DIR; \
+  std::stringstream ss_file; \
+  ss_file << "./"  << LOG_OUTPUT_DIR  << "/" << LOG_OUTPUT_FILE_PREFIX << "_" << num_procs<< "_" << my_rank << ".log";	\
+  std::string outputfile = ss_file.str(); \
+  FILE* file = fopen(outputfile.c_str(),"a");	\
+  fprintf(file, "P %d: ", my_rank); \
+  fprintf(file, "%s %ld\t",buffer,tv.tv_usec);	\
+  fprintf(file, __VA_ARGS__); \
+  fclose(file); \
+  }
+#endif
 
 
 
@@ -118,4 +154,5 @@ static const char * mpiGetErrorString(cl_int errorNum)
 	       			<< "', line: " << __LINE__		\
 	       			<< " - " << mpiGetErrorString(val_a) << std::endl;	\
 	}
+
 #endif /* COMMON_H_ */

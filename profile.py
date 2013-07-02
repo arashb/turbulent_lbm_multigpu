@@ -3,7 +3,7 @@ import os, subprocess, sys, ConfigParser, json
 
 keys = ['NAME', 'START', 'END', 'DURATION']
 SECTION_BASE = 'EVENT'
-INI_FILE_DIR = "./profileOutput/"
+INI_FILE_DIR = "./output/profile/"
 
 METADATA_SECTION = 'METADATA'
 

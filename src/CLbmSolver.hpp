@@ -285,7 +285,7 @@ public:
 			throw "OpenCL Version is unknown!";
 
 #if DEBUG
-		DEBUGPRINT("CL_VERSION %d\n",_cl_version)
+		DEBUGPRINT("CL_VERSION %d\n",_cl_version);
 #endif
 		// setting the boundary conditions
 		for(int i = 0; i < 3; i++)
@@ -759,7 +759,11 @@ public:
 
 	void simulationStepAlphaRect(CVector<3,int> origin, CVector<3,int> size) {
 #if DEBUG
-		DEBUGPRINT("--> Running Alpha Rect kernel\n")
+	  std::stringstream ss;
+	  ss << "--> Running Alpha Rect kernel\t";
+	  ss << "ORIGIN: " << origin << "\tSIZE: " << size << std::endl; 
+	  std::string str = ss.str();
+	  DEBUGPRINT(str.c_str());
 #endif
 		cLbmKernelAlphaRect.setArg(9, origin[0]);
 		cLbmKernelAlphaRect.setArg(10, origin[1]);
@@ -783,7 +787,11 @@ public:
                                cl_event *event
 ) {
 #if DEBUG
-		DEBUGPRINT("--> Running Alpha Rect kernel\n")
+	  std::stringstream ss;
+	  ss << "--> Running Alpha Rect kernel\t";
+	  ss << "ORIGIN: " << origin << "\tSIZE: " << size << std::endl; 
+	  std::string str = ss.str();
+	  DEBUGPRINT(str.c_str());
 #endif
 		cLbmKernelAlphaRect.setArg(9, origin[0]);
 		cLbmKernelAlphaRect.setArg(10, origin[1]);
@@ -806,7 +814,7 @@ public:
 
 	void simulationStepBeta() {
 #if DEBUG
-    DEBUGPRINT( "--> Running BETA kernel\n")
+    DEBUGPRINT( "--> Running BETA Rect kernel\n")
 #endif
 		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelBeta,	// kernel
 				1,						// dimensions
@@ -818,7 +826,11 @@ public:
 
 	void simulationStepBetaRect(CVector<3,int> origin, CVector<3,int> size) {
 #if DEBUG
-    DEBUGPRINT( "--> Running BETA Rect kernel\n")
+	  std::stringstream ss;
+	  ss << "--> Running Beta Rect kernel\t";
+	  ss << "ORIGIN: " << origin << "\tSIZE: " << size << std::endl; 
+	  std::string str = ss.str();
+	  DEBUGPRINT(str.c_str());
 #endif
 			cLbmKernelBetaRect.setArg(9, origin[0]);
 			cLbmKernelBetaRect.setArg(10, origin[1]);
@@ -842,7 +854,12 @@ public:
                                cl_event *event
                               ) {
 #if DEBUG
-    DEBUGPRINT( "--> Running BETA Rect kernel\n")
+	  std::stringstream ss;
+	  ss << "--> Running Beta Rect kernel\t";
+	  ss << "ORIGIN: " << origin << "\tSIZE: " << size << std::endl; 
+	  std::string str = ss.str();
+	  DEBUGPRINT(str.c_str());
+
 #endif
 			cLbmKernelBetaRect.setArg(9, origin[0]);
 			cLbmKernelBetaRect.setArg(10, origin[1]);

@@ -8,13 +8,18 @@ cleandoc:
 	rm -rf ./docs/html ./docs/latex
 
 cleanvtk:
-	rm  vtkOutput/*.vtk
+	rm  ./output/vtk/*.vtk
 
 cleanbenchmark:
-	rm  benchmarkOutput/*.ini
+	rm  ./output/benchmark/*.ini
 
 cleanprofile:
-	rm  profileOutput/*.ini
+	rm  ./output/profile/*.ini
 
-clean:
-	rm -rf build/* vtkOutput/*.vtk benchmarkOutput/*.ini profileOutput/*.ini
+cleanlog: 
+	rm  ./output/log/*.log
+
+cleanbuild:
+	rm -rf build/*
+
+clean: cleanbuild cleanlog cleanprofile cleanbenchmark cleanvtk  
