@@ -255,6 +255,21 @@ class CController
 		return 0;
 	}
 
+  inline int get_boundary_condition(MPI_COMM_DIRECTION direction) {
+    int dir;
+    switch(direction) {
+      case MPI_COMM_DIRECTION_X_0: dir = _BC[0][0]; break;
+      case MPI_COMM_DIRECTION_X_1: dir = _BC[0][1]; break;
+      case MPI_COMM_DIRECTION_Y_0: dir = _BC[1][0]; break;
+      case MPI_COMM_DIRECTION_Y_1: dir = _BC[1][1]; break;
+      case MPI_COMM_DIRECTION_Z_0: dir = _BC[2][0]; break;
+      case MPI_COMM_DIRECTION_Z_1: dir = _BC[2][1]; break;
+      default:
+        dir = -1; break;
+    }
+    return dir;
+  }
+
 public:
 
 	CController(int UID, CDomain<T> domain, int BC[3][2])	:
@@ -298,8 +313,8 @@ public:
 	}
 
 	inline void storeDataAlpha(MPI_COMM_DIRECTION direction) {
-    if ( _comm_container.find(direction) == _comm_container.end() ) 
-      return;
+    if ( get_boundary_condition(direction) != FLAG_GHOST_LAYER ) 
+      return;    
 #if DEBUG
     DEBUGPRINT("--> store data alpha: %s\n", get_string_direction(direction) )
 #endif
@@ -311,8 +326,8 @@ public:
 	}
 
 	inline void storeDataBeta(MPI_COMM_DIRECTION direction) {
-    if ( _comm_container.find(direction) == _comm_container.end() ) 
-      return;
+    if ( get_boundary_condition(direction) != FLAG_GHOST_LAYER ) 
+      return;    
 #if DEBUG
     DEBUGPRINT("--> store data beta: %s\n", get_string_direction(direction) )
 #endif
@@ -326,8 +341,8 @@ public:
 	}
 
 	inline void setDataAlpha(MPI_COMM_DIRECTION direction) {
-    if ( _comm_container.find(direction) == _comm_container.end() ) 
-      return;
+    if ( get_boundary_condition(direction) != FLAG_GHOST_LAYER ) 
+      return;    
 #if DEBUG
     DEBUGPRINT("--> set data alpha: %s\n", get_string_direction(direction) )
 #endif
@@ -339,8 +354,8 @@ public:
 	}
 
   inline	void setDataBeta(MPI_COMM_DIRECTION direction) {
-    if ( _comm_container.find(direction) == _comm_container.end() ) 
-      return;
+    if ( get_boundary_condition(direction) != FLAG_GHOST_LAYER ) 
+      return;    
 #if DEBUG
     DEBUGPRINT("--> set data beta: %s\n", get_string_direction(direction) )
 #endif
@@ -362,8 +377,8 @@ public:
                             cl_event *event              
                             ) 
   {
-    if ( _comm_container.find(direction) == _comm_container.end() ) 
-      return false;
+    if ( get_boundary_condition(direction) != FLAG_GHOST_LAYER ) 
+      return false;    
 #if DEBUG
     DEBUGPRINT("--> store data alpha: %s\n", get_string_direction(direction) )
 #endif
@@ -384,8 +399,8 @@ public:
                             cl_event *event              
                             ) 
   {
-    if ( _comm_container.find(direction) == _comm_container.end() ) 
-      return false;
+    if ( get_boundary_condition(direction) != FLAG_GHOST_LAYER ) 
+      return false;    
 #if DEBUG
     DEBUGPRINT("--> store data beta: %s\n", get_string_direction(direction) )
 #endif
@@ -405,8 +420,8 @@ public:
                            const cl_event *event_wait_list,
                            cl_event *event              
                            ) {
-    if ( _comm_container.find(direction) == _comm_container.end() ) 
-      return;
+    if ( get_boundary_condition(direction) != FLAG_GHOST_LAYER ) 
+      return;    
 #if DEBUG
     DEBUGPRINT("--> set data alpha: %s\n", get_string_direction(direction) )
 #endif
@@ -424,8 +439,8 @@ public:
                            const cl_event *event_wait_list,
                            cl_event *event              
                            ) {
-    if ( _comm_container.find(direction) == _comm_container.end() ) 
-      return;
+    if ( get_boundary_condition(direction) != FLAG_GHOST_LAYER ) 
+      return;    
 #if DEBUG
     DEBUGPRINT("--> set data beta: %s\n", get_string_direction(direction) )
 #endif
