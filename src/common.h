@@ -106,9 +106,12 @@ const char* get_string_direction(MPI_COMM_DIRECTION direction) {
   { \
   int my_rank; \
   int num_procs;                           \
+  char processor_name[MPI_MAX_PROCESSOR_NAME];\
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank); \
   MPI_Comm_size(MPI_COMM_WORLD, &num_procs); \
-  fprintf(stderr, "P %d: ", my_rank); \
+  int name_len; \
+  MPI_Get_processor_name(processor_name, &name_len); \
+  fprintf(stderr, "H: %s P %d: ", processor_name, my_rank);	\
   fprintf(stderr, __VA_ARGS__); \
   }
 #else
@@ -116,8 +119,11 @@ const char* get_string_direction(MPI_COMM_DIRECTION direction) {
   { \
   int my_rank; \
   int num_procs;                           \
+  char processor_name[MPI_MAX_PROCESSOR_NAME];\
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank); \
   MPI_Comm_size(MPI_COMM_WORLD, &num_procs); \
+  int name_len; \
+  MPI_Get_processor_name(processor_name, &name_len); \
   char buffer[30]; \
   struct timeval tv; \
   time_t curtime; \
@@ -129,7 +135,7 @@ const char* get_string_direction(MPI_COMM_DIRECTION direction) {
   ss_file << "./"  << LOG_OUTPUT_DIR  << "/" << LOG_OUTPUT_FILE_PREFIX << "_" << num_procs<< "_" << my_rank << ".log";	\
   std::string outputfile = ss_file.str(); \
   FILE* file = fopen(outputfile.c_str(),"a");	\
-  fprintf(file, "P %d: ", my_rank); \
+  fprintf(file, "H: %s P %d: ", processor_name,  my_rank);	\
   fprintf(file, "%s %ld\t",buffer,tv.tv_usec);	\
   fprintf(file, __VA_ARGS__); \
   fclose(file); \
