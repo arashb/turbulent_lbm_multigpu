@@ -896,19 +896,19 @@ public:
     delete req_send_z1;
     delete req_recv_z1;
 
-    clReleaseEvent(ue_ss_trigger_x);
-    clReleaseEvent(ev_ss_x0);
-    clReleaseEvent(ev_ss_x1);
-    clReleaseEvent(ev_store_x0);
-    clReleaseEvent(ev_store_x1);
-    clReleaseEvent(ev_ss_y0);
-    clReleaseEvent(ev_ss_y1);
-    clReleaseEvent(ev_store_y0);
-    clReleaseEvent(ev_store_y1);
-    clReleaseEvent(ev_ss_z0);
-    clReleaseEvent(ev_ss_z1);
-    clReleaseEvent(ev_store_z0);
-    clReleaseEvent(ev_store_z1);
+//     clReleaseEvent(ue_ss_trigger_x);
+//     clReleaseEvent(ev_ss_x0);
+//     clReleaseEvent(ev_ss_x1);
+//     clReleaseEvent(ev_store_x0);
+//     clReleaseEvent(ev_store_x1);
+//     clReleaseEvent(ev_ss_y0);
+//     clReleaseEvent(ev_ss_y1);
+//     clReleaseEvent(ev_store_y0);
+//     clReleaseEvent(ev_store_y1);
+//     clReleaseEvent(ev_ss_z0);
+//     clReleaseEvent(ev_ss_z1);
+//     clReleaseEvent(ev_store_z0);
+//     clReleaseEvent(ev_store_z1);
 
     MPI_CHECK_ERROR(MPI_Barrier(MPI_COMM_WORLD));
 	}
@@ -1142,19 +1142,19 @@ public:
     delete req_recv_z0;
     delete req_send_z1;
     delete req_recv_z1;
-    clReleaseEvent(ue_ss_trigger_x);
-    clReleaseEvent(ev_ss_x0);
-    clReleaseEvent(ev_ss_x1);
-    clReleaseEvent(ev_store_x0);
-    clReleaseEvent(ev_store_x1);
-    clReleaseEvent(ev_ss_y0);
-    clReleaseEvent(ev_ss_y1);
-    clReleaseEvent(ev_store_y0);
-    clReleaseEvent(ev_store_y1);
-    clReleaseEvent(ev_ss_z0);
-    clReleaseEvent(ev_ss_z1);
-    clReleaseEvent(ev_store_z0);
-    clReleaseEvent(ev_store_z1);
+//     clReleaseEvent(ue_ss_trigger_x);
+//     clReleaseEvent(ev_ss_x0);
+//     clReleaseEvent(ev_ss_x1);
+//     clReleaseEvent(ev_store_x0);
+//     clReleaseEvent(ev_store_x1);
+//     clReleaseEvent(ev_ss_y0);
+//     clReleaseEvent(ev_ss_y1);
+//     clReleaseEvent(ev_store_y0);
+//     clReleaseEvent(ev_store_y1);
+//     clReleaseEvent(ev_ss_z0);
+//     clReleaseEvent(ev_ss_z1);
+//     clReleaseEvent(ev_store_z0);
+//     clReleaseEvent(ev_store_z1);
 
     MPI_CHECK_ERROR(MPI_Barrier(MPI_COMM_WORLD));
 	}
