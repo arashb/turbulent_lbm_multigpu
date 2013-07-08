@@ -678,7 +678,6 @@ public:
 
     cl_int err;
     cl_event ue_ss_trigger_x = clCreateUserEvent(cContext->context, &err);
-
     cl_event ev_ss_x0;
     cl_event ev_ss_x1;
 		// --> Simulation step alpha x boundary
@@ -690,6 +689,7 @@ public:
 		// --> Store x boundary
     cl_event ev_store_x0;
     cl_event ev_store_x1;
+
     bool b_ss_x0 = storeDataAlpha(MPI_COMM_DIRECTION_X_0, 1, &ev_ss_x0, &ev_store_x0);
     bool b_ss_x1 = storeDataAlpha(MPI_COMM_DIRECTION_X_1, 1, &ev_ss_x1, &ev_store_x1);
 
@@ -730,6 +730,7 @@ public:
 		cLbmPtr->simulationStepAlphaRect(y1_origin, y_size, 1, &ev_ss_y0, &ev_ss_y1);
 
 		// --> Store y boundary
+
     cl_event ev_store_y0;
     cl_event ev_store_y1;
 		bool b_ss_y0 = storeDataAlpha(MPI_COMM_DIRECTION_Y_0, 1, &ev_ss_y0, &ev_store_y0);
@@ -886,16 +887,28 @@ public:
     delete req_recv_x0;
     delete req_send_x1;
     delete req_recv_x1;
-
     delete req_send_y0;
     delete req_recv_y0;
     delete req_send_y1;
     delete req_recv_y1;
-
     delete req_send_z0;
     delete req_recv_z0;
     delete req_send_z1;
     delete req_recv_z1;
+
+    clReleaseEvent(ue_ss_trigger_x);
+    clReleaseEvent(ev_ss_x0);
+    clReleaseEvent(ev_ss_x1);
+    clReleaseEvent(ev_store_x0);
+    clReleaseEvent(ev_store_x1);
+    clReleaseEvent(ev_ss_y0);
+    clReleaseEvent(ev_ss_y1);
+    clReleaseEvent(ev_store_y0);
+    clReleaseEvent(ev_store_y1);
+    clReleaseEvent(ev_ss_z0);
+    clReleaseEvent(ev_ss_z1);
+    clReleaseEvent(ev_store_z0);
+    clReleaseEvent(ev_store_z1);
 
     MPI_CHECK_ERROR(MPI_Barrier(MPI_COMM_WORLD));
 	}
@@ -1116,21 +1129,32 @@ public:
       MPI_Status stat_send;
       MPI_CHECK_ERROR(MPI_Wait( req_send_z1, &stat_send));
     }
-    
+    cLbmPtr->wait();
     delete req_send_x0;
     delete req_recv_x0;
     delete req_send_x1;
     delete req_recv_x1;
-
     delete req_send_y0;
     delete req_recv_y0;
     delete req_send_y1;
     delete req_recv_y1;
-
     delete req_send_z0;
     delete req_recv_z0;
     delete req_send_z1;
     delete req_recv_z1;
+    clReleaseEvent(ue_ss_trigger_x);
+    clReleaseEvent(ev_ss_x0);
+    clReleaseEvent(ev_ss_x1);
+    clReleaseEvent(ev_store_x0);
+    clReleaseEvent(ev_store_x1);
+    clReleaseEvent(ev_ss_y0);
+    clReleaseEvent(ev_ss_y1);
+    clReleaseEvent(ev_store_y0);
+    clReleaseEvent(ev_store_y1);
+    clReleaseEvent(ev_ss_z0);
+    clReleaseEvent(ev_ss_z1);
+    clReleaseEvent(ev_store_z0);
+    clReleaseEvent(ev_store_z1);
 
     MPI_CHECK_ERROR(MPI_Barrier(MPI_COMM_WORLD));
 	}
