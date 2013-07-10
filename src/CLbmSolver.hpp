@@ -77,7 +77,8 @@ private:
 	static const size_t SIZE_DD_HOST_BYTES = SIZE_DD_HOST*sizeof(T);
 	int _BC[3][2]; 		///< Boundary conditions. First index specifys the dimension and second the upper or the lower boundary.
 	// opencl handlers
-	CCL::CCommandQueue &cCommandQueue;
+	CCL::CCommandQueue &cq_computation;
+	CCL::CCommandQueue &cq_communication;
 	CCL::CContext &cContext;
 	CCL::CDevice &cDevice;
 	CCL::CDeviceInfo cDeviceInfo; 
@@ -179,7 +180,9 @@ private:
 		return cl_version;
 	}
 
-	inline void enqueueCopyRectKernel(CCL::CMem& src,CCL::CMem& dst,
+  inline void enqueueCopyRectKernel( CCL::CCommandQueue& command_queue,
+					  CCL::CMem& src,
+					  CCL::CMem& dst,
                                     const int src_offset,
                                     CVector<3,int> src_origin,
                                     CVector<3,int> src_size,
@@ -190,7 +193,9 @@ private:
                                     bool withBarrier = true,
                                     cl_uint num_events_in_wait_list = 0,
                                     const cl_event *event_wait_list = NULL,
-                                    cl_event *event = NULL
+					  cl_event *event = NULL
+					 
+					  
 		)
 	{
 		// set kernel args
@@ -219,7 +224,8 @@ private:
 		lGlobalSize[0] = block_size[1];
 		lGlobalSize[1] = block_size[2];
 		// enqueue the CopyRect kernel
-		cCommandQueue.enqueueNDRangeKernel(	cKernelCopyRect,	// kernel
+		command_queue.enqueueNDRangeKernel(	
+						    cKernelCopyRect,	// kernel
                                         2,				// dimensions
                                         NULL,			// global work offset
                                         lGlobalSize,
@@ -229,7 +235,7 @@ private:
                                         event
                                         );
 		if(withBarrier)
-			cCommandQueue.enqueueBarrier();
+			cq_computation.enqueueBarrier();
 	}
 
 
@@ -245,6 +251,7 @@ public:
 	//
 	CLbmSolver(	int UID,
 				CCL::CCommandQueue &p_cCommandQueue,
+			CCL::CCommandQueue &p_cCommandQueue_communication,
 				CCL::CContext &p_cContext,
 				CCL::CDevice &p_cDevice,
 				int BC[3][2],
@@ -262,7 +269,8 @@ public:
 		) :CLbmSkeleton<T>(CDomain<T>(domain)),
 		drivenCavityVelocity(100.0, 0, 0, 1),
 		_UID(UID),
-		cCommandQueue(p_cCommandQueue),
+		cq_computation(p_cCommandQueue),
+		cq_communication(p_cCommandQueue_communication),
 		cContext(p_cContext),
 		cDevice(p_cDevice),
 		cDeviceInfo(p_cDevice),
@@ -731,14 +739,14 @@ public:
 #if DEBUG
 			std::cout << "Init Simulation: " << std::flush;
 #endif
-		cCommandQueue.enqueueNDRangeKernel(	cKernelInit,	// kernel
+		cq_computation.enqueueNDRangeKernel(	cKernelInit,	// kernel
 											1,				// dimensions
 											NULL,			// global work offset
 											&cKernelInit_GlobalWorkGroupSize,
 											&cKernelInit_WorkGroupSize
 						);
 
-		cCommandQueue.enqueueBarrier();
+		cq_computation.enqueueBarrier();
 
 #if DEBUG
 			std::cout << "OK" << std::endl;
@@ -749,7 +757,7 @@ public:
 #if DEBUG
 		DEBUGPRINT( "--> Running Alpha kernel\n")
 #endif
-		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelAlpha,	// kernel
+		cq_computation.enqueueNDRangeKernel(	cLbmKernelAlpha,	// kernel
 				1,						// dimensions
 				NULL,					// global work offset
 				&cLbmKernelAlpha_GlobalWorkGroupSize,
@@ -773,7 +781,7 @@ public:
 		lGlobalSize[1] = size[1];
 		lGlobalSize[2] = size[2];
 		// TODO: think about finding the optimized local work group size
-		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelAlphaRect,	// kernel
+		cq_computation.enqueueNDRangeKernel(	cLbmKernelAlphaRect,	// kernel
 				3,						// dimensions
 				NULL,					// global work offset
 				lGlobalSize,
@@ -801,7 +809,7 @@ public:
 		lGlobalSize[1] = size[1];
 		lGlobalSize[2] = size[2];
 		// TODO: think about finding the optimized local work group size
-		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelAlphaRect,	// kernel
+		cq_computation.enqueueNDRangeKernel(	cLbmKernelAlphaRect,	// kernel
                                         3,						// dimensions
                                         NULL,					// global work offset
                                         lGlobalSize,
@@ -816,7 +824,7 @@ public:
 #if DEBUG
     DEBUGPRINT( "--> Running BETA Rect kernel\n")
 #endif
-		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelBeta,	// kernel
+		cq_computation.enqueueNDRangeKernel(	cLbmKernelBeta,	// kernel
 				1,						// dimensions
 				NULL,					// global work offset
 				&cLbmKernelBeta_GlobalWorkGroupSize,
@@ -840,7 +848,7 @@ public:
 			lGlobalSize[1] = size[1];
 			lGlobalSize[2] = size[2];
 			// TODO: think about finding the optimized local work group size
-		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelBetaRect,	// kernel
+		cq_computation.enqueueNDRangeKernel(	cLbmKernelBetaRect,	// kernel
 				3,						// dimensions
 				NULL,					// global work offset
 				lGlobalSize,
@@ -869,7 +877,7 @@ public:
 			lGlobalSize[1] = size[1];
 			lGlobalSize[2] = size[2];
 			// TODO: think about finding the optimized local work group size
-		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelBetaRect,	// kernel
+		cq_computation.enqueueNDRangeKernel(	cLbmKernelBetaRect,	// kernel
 				3,						// dimensions
 				NULL,					// global work offset
 				lGlobalSize,
@@ -885,7 +893,7 @@ public:
 	 */
 	void wait()
 	{
-		cCommandQueue.finish();
+		cq_computation.finish();
 	}
 
 	/**
@@ -895,7 +903,8 @@ public:
 	{
 		size_t byte_size = cMemDensityDistributions.getSize();
 
-		cCommandQueue.enqueueReadBuffer(	cMemDensityDistributions,
+		cq_computation.enqueueReadBuffer(	
+						 cMemDensityDistributions,
 							CL_TRUE,	// sync reading
 							0,
 							byte_size,
@@ -914,7 +923,7 @@ public:
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0) // OpenCL 1.0 and later
 		{
 			for (int f = 0; f < SIZE_DD_HOST; f++) {
-				enqueueCopyRectKernel(
+			  enqueueCopyRectKernel(cq_computation,
 										cMemDensityDistributions,
 										cBuffer,
 										f*this->domain_cells_count,
@@ -927,7 +936,7 @@ public:
 										false
 										);
 			}
-			cCommandQueue.enqueueBarrier();
+			cq_computation.enqueueBarrier();
 		}
 		else {	// if nothing in this world works for you then use this method since it is very slow
 
@@ -949,7 +958,7 @@ public:
 					current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
 					for (int i = 0; i < SIZE_DD_HOST; i++) {
 						// copying fi components
-						cCommandQueue.enqueueCopyBuffer(cMemDensityDistributions,
+						cq_computation.enqueueCopyBuffer(cMemDensityDistributions,
 								cBuffer,
 								(current_src_offset + i * total_el)*sizeof(T),
 								(current_dst_offset + i * total_block_el)*sizeof(T),
@@ -961,8 +970,8 @@ public:
 			}
 
 		}
-		clEnqueueBarrier(cCommandQueue.command_queue);
-		cCommandQueue.enqueueReadBuffer(	cBuffer,
+		clEnqueueBarrier(cq_computation.command_queue);
+		cq_computation.enqueueReadBuffer(	cBuffer,
                                       CL_TRUE,	// sync reading
                                       0,
                                       cBuffer.getSize(),
@@ -985,7 +994,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0) // OpenCL 1.0 and later
 		{
 			for (int f = 0; f < SIZE_DD_HOST; f++) {
-				enqueueCopyRectKernel(
+			  enqueueCopyRectKernel(cq_communication,
 										cMemDensityDistributions,
 										cBuffer,
 										f*this->domain_cells_count,
@@ -998,13 +1007,13 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 										false,
                     num_events_in_wait_list,
                     event_wait_list,
-                    &ev_cpy
+										&ev_cpy
 										);
 			}
-			cCommandQueue.enqueueBarrier();
+			cq_communication.enqueueBarrier();
 		}
-		clEnqueueBarrier(cCommandQueue.command_queue);
-		cCommandQueue.enqueueReadBuffer(	cBuffer,
+		clEnqueueBarrier(cq_communication.command_queue);
+		cq_communication.enqueueReadBuffer(	cBuffer,
                                       CL_FALSE,
                                       0,
                                       cBuffer.getSize(),
@@ -1025,7 +1034,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 		CCL::CMem cBuffer;
     cl_event ev_write;
 		cBuffer.create(cContext,CL_MEM_READ_WRITE, buffer_size, NULL);
-    cCommandQueue.enqueueWriteBuffer(cBuffer,
+    cq_communication.enqueueWriteBuffer(cBuffer,
                                      CL_FALSE,
                                      0,
                                      buffer_size,
@@ -1041,7 +1050,8 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
 		{
 			for (int f = 0; f < SIZE_DD_HOST; f++) {
-				enqueueCopyRectKernel(  cBuffer,
+			  enqueueCopyRectKernel( cq_communication, 
+						      cBuffer,
                                 cMemDensityDistributions,
                                 f*size.elements(),
                                 CVector<3,int>(0,0,0),
@@ -1053,10 +1063,10 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
                                 false,
                                 1,
                                 &ev_write,
-                                event
-										);
+						 event
+						 );
 			}
-			cCommandQueue.enqueueBarrier();
+			cq_communication.enqueueBarrier();
 		}
 	}
 
@@ -1070,7 +1080,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 		CCL::CMem cBuffer;
     cl_event ev_write;
 		cBuffer.create(cContext,CL_MEM_READ_WRITE, buffer_size, NULL);
-    cCommandQueue.enqueueWriteBuffer(cBuffer,
+    cq_communication.enqueueWriteBuffer(cBuffer,
                                      CL_FALSE,
                                      0,
                                      buffer_size,
@@ -1087,7 +1097,8 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 		{
 			for (int f = 0; f < SIZE_DD_HOST; f++) {
 				if( norm.dotProd(lbm_units[f]) > 0 ) {
-					enqueueCopyRectKernel(  cBuffer,
+				  enqueueCopyRectKernel(cq_communication,  
+							      cBuffer,
                                   cMemDensityDistributions,
                                   f*size.elements(),
                                   CVector<3,int>(0,0,0),
@@ -1099,11 +1110,11 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
                                   false,
                                   1,
                                   &ev_write,
-                                  event
+								event
                                   );
 				}
 			}
-			cCommandQueue.enqueueBarrier();
+			cq_communication.enqueueBarrier();
 		}
 	}
 
@@ -1116,7 +1127,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 	void storeVelocity(T *dst)
 	{
 		size_t byte_size = cMemVelocity.getSize();
-		cCommandQueue.enqueueReadBuffer(	cMemVelocity,
+		cq_computation.enqueueReadBuffer(	cMemVelocity,
 							CL_TRUE,	// sync reading
 							0,
 							byte_size,
@@ -1140,7 +1151,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
 		{
 			for (int dim = 0; dim < 3; dim++) {
-				enqueueCopyRectKernel(  cMemVelocity,
+			  enqueueCopyRectKernel( cq_computation, cMemVelocity,
 										cBuffer,
 										dim*this->domain_cells_count,
 										origin,
@@ -1152,7 +1163,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 										false
 										);
 			}
-			cCommandQueue.enqueueBarrier();
+			cq_computation.enqueueBarrier();
 		}
 		else {	// if nothing in this world works for you then use this method since it is very slow
 			const int NUM_CELLS_X = this->domain_cells[0];
@@ -1172,21 +1183,21 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 					// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
 					current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
 					// reading x components
-					cCommandQueue.enqueueCopyBuffer(cMemVelocity,
+					cq_computation.enqueueCopyBuffer(cMemVelocity,
 							cBuffer,
 							current_src_offset*sizeof(T),
 							current_dst_offset*sizeof(T),
 							byte_size
 					);
 					// reading y components
-					cCommandQueue.enqueueCopyBuffer(cMemVelocity,
+					cq_computation.enqueueCopyBuffer(cMemVelocity,
 							cBuffer,
 							(current_src_offset + total_el)*sizeof(T),
 							(current_dst_offset + total_block_el)*sizeof(T),
 							byte_size
 					);
 					// reading z components
-					cCommandQueue.enqueueCopyBuffer(cMemVelocity,
+					cq_computation.enqueueCopyBuffer(cMemVelocity,
 							cBuffer,
 							(current_src_offset + 2*total_el)*sizeof(T),
 							(current_dst_offset + 2*total_block_el)*sizeof(T),
@@ -1196,9 +1207,9 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 				}
 
 			}
-			clEnqueueBarrier(cCommandQueue.command_queue);
+			clEnqueueBarrier(cq_computation.command_queue);
 		}
-		cCommandQueue.enqueueReadBuffer(	cBuffer,
+		cq_computation.enqueueReadBuffer(	cBuffer,
 				CL_TRUE,	// sync reading
 				0,
 				cBuffer.getSize(),
@@ -1223,7 +1234,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
 		{
 			for (int dim = 0; dim < 3; dim++) {
-				enqueueCopyRectKernel(  cBuffer,
+			  enqueueCopyRectKernel(  cq_computation, cBuffer,
 										cMemVelocity,
 										dim*size.elements(),
 										CVector<3,int>(0,0,0),
@@ -1235,7 +1246,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 										false
 										);
 			}
-			cCommandQueue.enqueueBarrier();
+			cq_computation.enqueueBarrier();
 		}
 		else {	// if nothing in this world works for you then use this method since it is very slow
 			const int NUM_CELLS_X = this->domain_cells[0];
@@ -1255,21 +1266,21 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 					// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
 					current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
 					// reading x components
-					cCommandQueue.enqueueCopyBuffer(cBuffer,
+					cq_computation.enqueueCopyBuffer(cBuffer,
 							cMemVelocity,
 							current_dst_offset*sizeof(T),
 							current_src_offset*sizeof(T),
 							byte_size
 					);
 					// reading y components
-					cCommandQueue.enqueueCopyBuffer(cBuffer,
+					cq_computation.enqueueCopyBuffer(cBuffer,
 							cMemVelocity,
 							(current_dst_offset + total_block_el)*sizeof(T),
 							(current_src_offset + total_el)*sizeof(T),
 							byte_size
 					);
 					// reading z components
-					cCommandQueue.enqueueCopyBuffer(cBuffer,
+					cq_computation.enqueueCopyBuffer(cBuffer,
 							cMemVelocity,
 							(current_dst_offset + 2*total_block_el)*sizeof(T),
 							(current_src_offset + 2*total_el)*sizeof(T),
@@ -1278,7 +1289,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 					current_dst_offset += size[0];
 				}
 			}
-			clEnqueueBarrier(cCommandQueue.command_queue);
+			clEnqueueBarrier(cq_computation.command_queue);
 		}
 	}
 	/**
@@ -1290,7 +1301,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 	{
 		size_t byte_size = cMemDensity.getSize();
 
-		cCommandQueue.enqueueReadBuffer(	cMemDensity,
+		cq_computation.enqueueReadBuffer(	cMemDensity,
 							CL_TRUE,	// sync reading
 							0,
 							byte_size,
@@ -1313,7 +1324,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
 			size_t host_origin[3] = {0,0,0};
 			size_t region[3] = {size[0], size[1], size[2]};
-			cCommandQueue.enqueueReadBufferRect(
+			cq_computation.enqueueReadBufferRect(
 					cMemDensity,
 					CL_TRUE,
 					buffer_origin,
@@ -1328,7 +1339,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 		}
 		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
 		{
-			enqueueCopyRectKernel(  cMemDensity,
+		  enqueueCopyRectKernel(  cq_computation, cMemDensity,
 									cBuffer,
 									0,
 									origin,
@@ -1355,7 +1366,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 				for (int j = 0; j < size[1]; j++ )
 				{
 					current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
-					cCommandQueue.enqueueCopyBuffer(cMemDensity,
+					cq_computation.enqueueCopyBuffer(cMemDensity,
 							cBuffer,
 							current_src_offset*sizeof(T),
 							current_dst_offset*sizeof(T),
@@ -1364,10 +1375,10 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 					current_dst_offset += size[0];
 				}
 			}
-			clEnqueueBarrier(cCommandQueue.command_queue);
+			clEnqueueBarrier(cq_computation.command_queue);
 
 		}
-		cCommandQueue.enqueueReadBuffer(	cBuffer,
+		cq_computation.enqueueReadBuffer(	cBuffer,
 				CL_TRUE,	// sync reading
 				0,
 				cBuffer.getSize(),
@@ -1387,7 +1398,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
 			size_t host_origin[3] = {0,0,0};
 			size_t region[3] = {size[0], size[1], size[2]};
-			cCommandQueue.enqueueWriteBufferRect(
+			cq_computation.enqueueWriteBufferRect(
 					cMemDensity,
 					CL_TRUE,
 					buffer_origin,
@@ -1406,7 +1417,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 
 			if ( _cl_version >= OPENCL_VERSION_1_0_0)
 			{
-				enqueueCopyRectKernel(  cBuffer,
+			  enqueueCopyRectKernel( cq_computation, cBuffer,
 						cMemDensity,
 						0,
 						CVector<3,int>(0,0,0),
@@ -1432,7 +1443,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 					for (int j = 0; j < size[1]; j++ )
 					{
 						current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
-						cCommandQueue.enqueueCopyBuffer(cBuffer,
+						cq_computation.enqueueCopyBuffer(cBuffer,
 								cMemDensity,
 								current_dst_offset*sizeof(T),
 								current_src_offset*sizeof(T),
@@ -1441,7 +1452,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 						current_dst_offset += size[0];
 					}
 				}
-				clEnqueueBarrier(cCommandQueue.command_queue);
+				clEnqueueBarrier(cq_computation.command_queue);
 			}
 		}
 	}
@@ -1449,7 +1460,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 	{
 		size_t byte_size = cMemDensity.getSize();
 
-		cCommandQueue.enqueueReadBuffer(	cMemCellFlags,
+		cq_computation.enqueueReadBuffer(	cMemCellFlags,
 							CL_TRUE,	// sync reading
 							0,
 							byte_size,
@@ -1462,7 +1473,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
 			size_t host_origin[3] = {0,0,0};
 			size_t region[3] = {size[0], size[1], size[2]};
-			cCommandQueue.enqueueReadBufferRect(
+			cq_computation.enqueueReadBufferRect(
 					cMemCellFlags,
 					CL_TRUE,
 					buffer_origin,
@@ -1482,7 +1493,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 
 			if ( _cl_version >= OPENCL_VERSION_1_0_0)
 			{
-				enqueueCopyRectKernel(  cMemCellFlags,
+			  enqueueCopyRectKernel( cq_computation, cMemCellFlags,
 						cBuffer,
 						0,
 						origin,
@@ -1506,7 +1517,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 						// cube position -> linear position
 						// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
 						current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
-						cCommandQueue.enqueueCopyBuffer(cMemCellFlags,
+						cq_computation.enqueueCopyBuffer(cMemCellFlags,
 								cBuffer,
 								current_src_offset*sizeof(int),
 								current_dst_offset*sizeof(int),
@@ -1514,9 +1525,9 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 						current_dst_offset += size[0];
 					}
 				}
-				clEnqueueBarrier(cCommandQueue.command_queue);
+				clEnqueueBarrier(cq_computation.command_queue);
 			}
-			cCommandQueue.enqueueReadBuffer(	cBuffer,
+			cq_computation.enqueueReadBuffer(	cBuffer,
 					CL_TRUE,	// sync reading
 					0,
 					cBuffer.getSize(),
@@ -1531,7 +1542,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
 			size_t host_origin[3] = {0,0,0};
 			size_t region[3] = {size[0], size[1], size[2]};
-			cCommandQueue.enqueueWriteBufferRect(
+			cq_computation.enqueueWriteBufferRect(
 					cMemCellFlags,
 					CL_TRUE,
 					buffer_origin,
@@ -1550,7 +1561,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 
 			if ( _cl_version >= OPENCL_VERSION_1_0_0) // OpenCL 1.0 and later
 			{
-				enqueueCopyRectKernel(  cBuffer,
+			  enqueueCopyRectKernel(  cq_computation, cBuffer,
 						cMemCellFlags,
 						0,
 						CVector<3,int>(0,0,0),
@@ -1574,7 +1585,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 						// cube position -> linear position
 						// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
 						current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
-						cCommandQueue.enqueueCopyBuffer(cBuffer,
+						cq_computation.enqueueCopyBuffer(cBuffer,
 								cMemCellFlags,
 								current_dst_offset*sizeof(int),
 								current_src_offset*sizeof(int),
@@ -1582,7 +1593,7 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 						current_dst_offset += size[0];
 					}
 				}
-				clEnqueueBarrier(cCommandQueue.command_queue);
+				clEnqueueBarrier(cq_computation.command_queue);
 			}
 		}
 	}
@@ -1593,7 +1604,7 @@ private:
 		size_t char_size = cMem.getSize();
 		char *buffer = new char[char_size];
 
-		cCommandQueue.enqueueReadBuffer(	cMem,
+		cq_computation.enqueueReadBuffer(	cMem,
 							CL_TRUE,	// sync reading
 							0,
 							char_size,
@@ -1621,7 +1632,7 @@ private:
 
 		T *buffer = new T[T_size];
 
-		cCommandQueue.enqueueReadBuffer(	cMem,
+		cq_computation.enqueueReadBuffer(	cMem,
 							CL_TRUE,	// sync reading
 							0,
 							byte_size,
@@ -1692,7 +1703,7 @@ public:
 
 		T *buffer = new T[T_size];
 
-		cCommandQueue.enqueueReadBuffer(	cMem,
+		cq_computation.enqueueReadBuffer(	cMem,
 							CL_TRUE,	// sync reading
 							0,
 							byte_size,

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<lbm-configuration>
+  <!-- configuration data related to physcis of the simulation -->
+  <physics>
+    <viscosity>0.001308</viscosity>
+    <gravitation>
+      <x>0</x>
+      <y>-9.81</y>
+      <z>0</z>
+    </gravitation>
+  </physics>
+  <!-- configuration data related to simulation grid -->
+  <grid>
+    <!-- grid resolution in x, y and z direction --> 
+    <domain-size>
+      <x>1024</x>
+      <y>1024</y>
+      <z>32</z>
+    </domain-size>
+    <!-- number of subdomains  in x, y and z direction --> 
+    <subdomain-num>
+      <x>1</x>
+      <y>1</y>
+      <z>1</z>
+    </subdomain-num>
+    <domian-length>
+      <x>0.1</x>
+      <y>0.1</y>
+      <z>0.1</z>
+    </domian-length>
+  </grid>
+  <!-- configuration data related to simulation process -->
+  <simulation>
+    <loops>2</loops>
+    <!-- timestep default: -1 for automatic detection -->
+    <timestep>-1.0</timestep>
+    <visualization>
+      <VTK>1</VTK>
+    </visualization>
+    <validate>0</validate>
+  </simulation>
+  <!-- configuration data related to computing device (e.g. GPU) -->
+  <device>
+    <!-- number of kernels to run -->
+    <kernel-count>128</kernel-count>
+    <!-- select device or -1 list available devices -->
+    <device-number>0</device-number>
+  </device>
+</lbm-configuration>

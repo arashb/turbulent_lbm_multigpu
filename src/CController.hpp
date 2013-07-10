@@ -94,7 +94,8 @@ class CController
 	CCL::CContext* cContext;
 	CCL::CDevices* cDevices;
 	CCL::CDevice* cDevice;
-	CCL::CCommandQueue* cCommandQueue;
+	CCL::CCommandQueue* cq_computation;
+  CCL::CCommandQueue* cq_communication;
 	size_t _simulation_step_counter;
 
 	void outputDD(int dd_i)
@@ -224,11 +225,12 @@ class CController
 		std::cout << "creating command queue" << std::endl;
 #endif
 		// initialize queue
-		cCommandQueue = new CCL::CCommandQueue(*cContext, *cDevice);
+		cq_computation = new CCL::CCommandQueue(*cContext, *cDevice);
+		cq_communication = new CCL::CCommandQueue(*cContext, *cDevice);
 
 		//CVector<3,int> halo_domain(_domain[0]+2,_domain[1]+2,_domain[2]+2);
 		// INIT LATTICE BOLTZMANN!
-		cLbmPtr = new CLbmSolver<T>(	_UID, *cCommandQueue, *cContext, *cDevice,
+		cLbmPtr = new CLbmSolver<T>(	_UID, *cq_computation, *cq_communication, *cContext, *cDevice,
 				_BC,
 				_domain,
 				ConfigSingleton::Instance()->gravitation,	// gravitation vector
@@ -296,8 +298,11 @@ public:
 		if (cDevices)
 			delete cDevices;
 
-		if ( cCommandQueue )
-			delete cCommandQueue;
+		if ( cq_computation )
+			delete cq_computation;
+
+		if ( cq_communication )
+			delete cq_communication;
 
 
 		if (cLbmVisualization)
@@ -977,8 +982,6 @@ public:
 		cLbmPtr->simulationStepBetaRect(y0_origin, y_size, 1, &ev_ss_x1, &ev_ss_y0);
 		cLbmPtr->simulationStepBetaRect(y1_origin, y_size, 1, &ev_ss_y0, &ev_ss_y1);
 
-		//    clFlush(cCommandQueue->command_queue);
-
 		// --> Store y boundary
     cl_event ev_store_y0;
     cl_event ev_store_y1;
@@ -1167,7 +1170,7 @@ public:
 			simulationStepAlpha();
 		else
 			simulationStepBeta();
-		cCommandQueue->enqueueBarrier();
+		cq_computation->enqueueBarrier();
 		_simulation_step_counter++;
 
 	}
