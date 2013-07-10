@@ -95,10 +95,20 @@ private:
 	size_t cLbmKernelAlpha_GlobalWorkGroupSize;
 	size_t cLbmKernelAlpha_MaxRegisters;
 
+	CCL::CKernel cLbmKernelAlphaBoundary;
+	size_t cLbmKernelAlphaBoundary_WorkGroupSize;
+	size_t cLbmKernelAlphaBoundary_GlobalWorkGroupSize;
+	size_t cLbmKernelAlphaBoundary_MaxRegisters;
+
 	CCL::CKernel cLbmKernelBeta;
 	size_t cLbmKernelBeta_WorkGroupSize;
 	size_t cLbmKernelBeta_GlobalWorkGroupSize;
 	size_t cLbmKernelBeta_MaxRegisters;
+
+	CCL::CKernel cLbmKernelBetaBoundary;
+	size_t cLbmKernelBetaBoundary_WorkGroupSize;
+	size_t cLbmKernelBetaBoundary_GlobalWorkGroupSize;
+	size_t cLbmKernelBetaBoundary_MaxRegisters;
 
 	// COLLISION KERNELS RECT
 	CCL::CKernel cLbmKernelAlphaRect;
@@ -347,6 +357,8 @@ public:
 		INIT_WORK_GROUP_SIZE(cKernelInit);
 		INIT_WORK_GROUP_SIZE(cLbmKernelAlpha);
 		INIT_WORK_GROUP_SIZE(cLbmKernelBeta);
+		INIT_WORK_GROUP_SIZE(cLbmKernelAlphaBoundary);
+		INIT_WORK_GROUP_SIZE(cLbmKernelBetaBoundary)
 		INIT_WORK_GROUP_SIZE(cLbmKernelAlphaRect);
 		INIT_WORK_GROUP_SIZE(cLbmKernelBetaRect);
 		INIT_WORK_GROUP_SIZE(cKernelCopyRect);
@@ -507,6 +519,39 @@ public:
 			std::cout << "KernelAlpha:	local_work_group_size: " << cLbmKernelAlpha_WorkGroupSize << "		max_registers: " << cLbmKernelAlpha_MaxRegisters << std::endl;
 #endif
 		/*
+		 * ALPHA BOUNDARIES
+		 */
+		sprintf(charbuf, "%i", (int)cLbmKernelAlphaBoundary_WorkGroupSize);
+		cProgramDefinesPostfixString = "#define LOCAL_WORK_GROUP_SIZE	(";
+		cProgramDefinesPostfixString += charbuf;
+		cProgramDefinesPostfixString +=  ")";
+
+		// cProgramCompileOptionsString = "-Werror -I./";
+		cProgramCompileOptionsString = "-I./";
+		if (cLbmKernelAlphaBoundary_MaxRegisters != 0)
+		{
+			/* TODO: check for cl_nv_compiler_options extension */
+			cProgramCompileOptionsString += " -cl-nv-maxrregcount=";
+			cProgramCompileOptionsString += cLbmKernelAlphaBoundary_MaxRegisters;
+		}
+
+		cLbmKernelAlphaBoundary_GlobalWorkGroupSize = domain_cells_count;
+		if (cLbmKernelAlphaBoundary_GlobalWorkGroupSize % cLbmKernelAlphaBoundary_WorkGroupSize != 0)
+			cLbmKernelAlphaBoundary_GlobalWorkGroupSize = (cKernelInit_GlobalWorkGroupSize / cLbmKernelAlphaBoundary_WorkGroupSize + 1) * cLbmKernelAlphaBoundary_WorkGroupSize;
+
+		CCL::CProgram cProgramAlphaBoundary;
+		cProgramAlphaBoundary.load(cContext, cl_program_defines.str()+cProgramDefinesPostfixString, "src/cl_programs/lbm_alpha_boundary.cl");
+		cProgramAlphaBoundary.build(cDevice, cProgramCompileOptionsString.c_str());
+		if (cProgramAlphaBoundary.error())
+		{
+			error << "failed to compile lbm_alpha_boundary.cl" << CError::endl;
+			error << cProgramAlphaBoundary.error.getString() << CError::endl;
+			return;
+		}
+	#if DEBUG
+				std::cout << "KernelAlphaBoundaries:	local_work_group_size: " << cLbmKernelAlphaBoundary_WorkGroupSize << "		max_registers: " << cLbmKernelAlphaBoundary_MaxRegisters << std::endl;
+	#endif
+		/*
 		 * BETA
 		 */
 		sprintf(charbuf, "%i", (int)cLbmKernelBeta_WorkGroupSize);
@@ -539,6 +584,41 @@ public:
 		}
 #if DEBUG
 		std::cout << "KernelBeta:	local_work_group_size: " << cLbmKernelBeta_WorkGroupSize << "		max_registers: " << cLbmKernelBeta_MaxRegisters << std::endl;
+#endif
+
+		/*
+		 * BETA BOUNDARIES
+		 */
+		sprintf(charbuf, "%i", (int)cLbmKernelBetaBoundary_WorkGroupSize);
+		cProgramDefinesPostfixString = "#define LOCAL_WORK_GROUP_SIZE	(";
+		cProgramDefinesPostfixString += charbuf;
+		cProgramDefinesPostfixString +=  ")";
+
+		//cProgramCompileOptionsString = "-Werror -I./";
+		cProgramCompileOptionsString = "-I./";
+		if (cLbmKernelBetaBoundary_MaxRegisters != 0)
+		{
+			/* TODO: check for cl_nv_compiler_options extension */
+			cProgramCompileOptionsString += " -cl-nv-maxrregcount=";
+			cProgramCompileOptionsString += cLbmKernelBetaBoundary_MaxRegisters;
+		}
+
+		cLbmKernelBetaBoundary_GlobalWorkGroupSize = domain_cells_count;
+		if (cLbmKernelBetaBoundary_GlobalWorkGroupSize % cLbmKernelBetaBoundary_WorkGroupSize != 0)
+			cLbmKernelBetaBoundary_GlobalWorkGroupSize = (cKernelInit_GlobalWorkGroupSize / cLbmKernelBetaBoundary_WorkGroupSize + 1) * cLbmKernelBetaBoundary_WorkGroupSize;
+
+		CCL::CProgram cProgramBetaBoundary;
+		cProgramBetaBoundary.load(cContext, cl_program_defines.str()+cProgramDefinesPostfixString, "src/cl_programs/lbm_beta_boundary.cl");
+		cProgramBetaBoundary.build(cDevice, cProgramCompileOptionsString.c_str());
+		if (cProgramBetaBoundary.error())
+		{
+			error << "failed to compile lbm_beta.cl" << CError::endl;
+			error << cProgramBetaBoundary.error.getString() << CError::endl;
+
+			return;
+		}
+#if DEBUG
+		std::cout << "KernelBetaBoundary:	local_work_group_size: " << cLbmKernelBetaBoundary_WorkGroupSize << "		max_registers: " << cLbmKernelBetaBoundary_MaxRegisters << std::endl;
 #endif
 
 		/*
@@ -718,6 +798,28 @@ public:
 		cLbmKernelBetaRect.setArg(7, this->gravitation[2]);
 		cLbmKernelBetaRect.setArg(8, paramDrivenCavityVelocity[0]);
 
+		// collision and propagation kernels (alpha and beta boundaries)
+		cLbmKernelAlphaBoundary.create(cProgramAlphaBoundary, "lbm_kernel_alpha_boundary");
+		cLbmKernelAlphaBoundary.setArg(0, cMemDensityDistributions);
+		cLbmKernelAlphaBoundary.setArg(1, cMemCellFlags);
+		cLbmKernelAlphaBoundary.setArg(2, cMemVelocity);
+		cLbmKernelAlphaBoundary.setArg(3, cMemDensity);
+		cLbmKernelAlphaBoundary.setArg(4, this->inv_tau);
+		cLbmKernelAlphaBoundary.setArg(5, this->gravitation[0]);
+		cLbmKernelAlphaBoundary.setArg(6, this->gravitation[1]);
+		cLbmKernelAlphaBoundary.setArg(7, this->gravitation[2]);
+		cLbmKernelAlphaBoundary.setArg(8, paramDrivenCavityVelocity[0]);
+
+		cLbmKernelBetaBoundary.create(cProgramBetaBoundary, "lbm_kernel_beta_boundary");
+		cLbmKernelBetaBoundary.setArg(0, cMemDensityDistributions);
+		cLbmKernelBetaBoundary.setArg(1, cMemCellFlags);
+		cLbmKernelBetaBoundary.setArg(2, cMemVelocity);
+		cLbmKernelBetaBoundary.setArg(3, cMemDensity);
+		cLbmKernelBetaBoundary.setArg(4, this->inv_tau);
+		cLbmKernelBetaBoundary.setArg(5, this->gravitation[0]);
+		cLbmKernelBetaBoundary.setArg(6, this->gravitation[1]);
+		cLbmKernelBetaBoundary.setArg(7, this->gravitation[2]);
+		cLbmKernelBetaBoundary.setArg(8, paramDrivenCavityVelocity[0]);
 		// copy rect kernel
 		cKernelCopyRect.create(cProgramCopyRect, "copy_buffer_rect");
 
@@ -754,6 +856,24 @@ public:
 				NULL,					// global work offset
 				&cLbmKernelAlpha_GlobalWorkGroupSize,
 				&cLbmKernelAlpha_WorkGroupSize
+		);
+	}
+
+	void simulationStepAlphaBoundaries(	cl_uint num_events_in_wait_list,
+            							const cl_event *event_wait_list,
+            							cl_event *event)
+	{
+#if DEBUG
+		DEBUGPRINT( "--> Running Alpha kernel boundaries\n")
+#endif
+		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelAlphaBoundary,	// kernel
+				1,						// dimensions
+				NULL,					// global work offset
+				&cLbmKernelAlpha_GlobalWorkGroupSize,
+				&cLbmKernelAlphaBoundary_WorkGroupSize,
+                num_events_in_wait_list,
+                event_wait_list,
+                event
 		);
 	}
 
@@ -812,7 +932,8 @@ public:
 		);
 	}
 
-	void simulationStepBeta() {
+	void simulationStepBeta()
+	{
 #if DEBUG
     DEBUGPRINT( "--> Running BETA Rect kernel\n")
 #endif
@@ -821,6 +942,23 @@ public:
 				NULL,					// global work offset
 				&cLbmKernelBeta_GlobalWorkGroupSize,
 				&cLbmKernelBeta_WorkGroupSize
+		);
+	}
+
+	void simulationStepBetaBoundaries(cl_uint num_events_in_wait_list,
+									  const cl_event *event_wait_list,
+									  cl_event *event) {
+#if DEBUG
+    DEBUGPRINT( "--> Running BETA Rect kernel boundaries\n")
+#endif
+		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelBetaBoundary,	// kernel
+				1,						// dimensions
+				NULL,					// global work offset
+				&cLbmKernelBeta_GlobalWorkGroupSize,
+				&cLbmKernelBeta_WorkGroupSize,
+                num_events_in_wait_list,
+                event_wait_list,
+                event
 		);
 	}
 

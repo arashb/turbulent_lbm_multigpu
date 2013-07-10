@@ -1159,17 +1159,296 @@ public:
     MPI_CHECK_ERROR(MPI_Barrier(MPI_COMM_WORLD));
 	}
 
+	void simulationStepAlphaBoundary() {
+#if DEBUG
+		DEBUGPRINT("###### Simulation Step ALPHA boundary method ######\n" );
+#endif
+
+		cLbmPtr->simulationStepAlphaBoundaries(0, NULL, NULL);
+		cLbmPtr->wait();
+
+	    MPI_Request* req_send_x0 = NULL;
+	    MPI_Request* req_recv_x0 = NULL;
+	    MPI_Request* req_send_x1 = NULL;
+	    MPI_Request* req_recv_x1 = NULL;
+	    MPI_Request* req_send_y0 = NULL;
+	    MPI_Request* req_recv_y0 = NULL;
+	    MPI_Request* req_send_y1 = NULL;
+	    MPI_Request* req_recv_y1 = NULL;
+	    MPI_Request* req_send_z0 = NULL;
+	    MPI_Request* req_recv_z0 = NULL;
+	    MPI_Request* req_send_z1 = NULL;
+	    MPI_Request* req_recv_z1 = NULL;
+
+		if (_BC[0][0] == FLAG_GHOST_LAYER) {
+			storeDataAlpha(MPI_COMM_DIRECTION_X_0);
+			syncAlpha(MPI_COMM_DIRECTION_X_0, &req_send_x0, &req_recv_x0);
+		}
+
+		if (_BC[0][1] == FLAG_GHOST_LAYER) {
+			storeDataAlpha(MPI_COMM_DIRECTION_X_1);
+			syncAlpha(MPI_COMM_DIRECTION_X_1, &req_send_x1, &req_recv_x1);
+		}
+
+		if (_BC[1][0] == FLAG_GHOST_LAYER) {
+			storeDataAlpha(MPI_COMM_DIRECTION_Y_0);
+			syncAlpha(MPI_COMM_DIRECTION_Y_0, &req_send_y0, &req_recv_y0);
+		}
+
+		if (_BC[1][1] == FLAG_GHOST_LAYER) {
+			storeDataAlpha(MPI_COMM_DIRECTION_Y_1);
+			syncAlpha(MPI_COMM_DIRECTION_Y_1, &req_send_y1, &req_recv_y1);
+		}
+
+		if (_BC[2][0] == FLAG_GHOST_LAYER) {
+			storeDataAlpha(MPI_COMM_DIRECTION_Z_0);
+			syncAlpha(MPI_COMM_DIRECTION_Z_0, &req_send_z0, &req_recv_z0);
+		}
+
+		if (_BC[2][1] == FLAG_GHOST_LAYER) {
+			storeDataAlpha(MPI_COMM_DIRECTION_Z_1);
+			syncAlpha(MPI_COMM_DIRECTION_Z_1, &req_send_z1, &req_recv_z1);
+		}
+
+		// --> Computation of inner part
+		CVector<3, int> inner_origin(2, 2, 2);
+		CVector<3, int> inner_size(_domain.getSize()[0] - 4,
+				_domain.getSize()[1] - 4, _domain.getSize()[2] - 4);
+		cLbmPtr->simulationStepAlphaRect(inner_origin, inner_size, 0,
+				NULL, NULL);
+
+	    if( _BC[0][0] == FLAG_GHOST_LAYER  ) {
+	      MPI_Status stat_recv;
+	      MPI_CHECK_ERROR(MPI_Wait( req_recv_x0, &stat_recv));
+	      setDataAlpha(MPI_COMM_DIRECTION_X_0);
+	    }
+
+	    if( _BC[0][1] == FLAG_GHOST_LAYER) {
+	      MPI_Status stat_recv;
+	      MPI_CHECK_ERROR(MPI_Wait( req_recv_x1, &stat_recv));
+	      setDataAlpha(MPI_COMM_DIRECTION_X_1);
+	    }
+
+	    if( _BC[1][0] == FLAG_GHOST_LAYER  ) {
+	      MPI_Status stat_recv;
+	      MPI_CHECK_ERROR(MPI_Wait( req_recv_y0, &stat_recv));
+	      setDataAlpha(MPI_COMM_DIRECTION_Y_0);
+	    }
+
+	    if( _BC[1][1] == FLAG_GHOST_LAYER) {
+	      MPI_Status stat_recv;
+	      MPI_CHECK_ERROR(MPI_Wait( req_recv_y1, &stat_recv));
+	      setDataAlpha(MPI_COMM_DIRECTION_Y_1);
+	    }
+
+			// --> Communication z boundary
+	    if( _BC[2][0] == FLAG_GHOST_LAYER  ) {
+	      MPI_Status stat_recv;
+	      MPI_CHECK_ERROR(MPI_Wait( req_recv_z0, &stat_recv));
+	      setDataAlpha(MPI_COMM_DIRECTION_Z_0);
+	    }
+
+	    if( _BC[2][1] == FLAG_GHOST_LAYER) {
+	      MPI_Status stat_recv;
+	      MPI_CHECK_ERROR(MPI_Wait( req_recv_z1, &stat_recv));
+	      setDataAlpha(MPI_COMM_DIRECTION_Z_1);
+	    }
+
+	    if( _BC[0][0] == FLAG_GHOST_LAYER  ) {
+	      MPI_Status stat_send;
+	      MPI_CHECK_ERROR(MPI_Wait( req_send_x0, &stat_send));
+	    }
+
+	    if( _BC[0][1] == FLAG_GHOST_LAYER) {
+	      MPI_Status stat_send;
+	      MPI_CHECK_ERROR(MPI_Wait( req_send_x1, &stat_send));
+	    }
+
+	    if( _BC[1][0] == FLAG_GHOST_LAYER  ) {
+	      MPI_Status stat_send;
+	      MPI_CHECK_ERROR(MPI_Wait( req_send_y0, &stat_send));
+	    }
+
+	    if( _BC[1][1] == FLAG_GHOST_LAYER) {
+	      MPI_Status stat_send;
+	      MPI_CHECK_ERROR(MPI_Wait( req_send_y1, &stat_send));
+	    }
+
+			// --> Communication z boundary
+	    if( _BC[2][0] == FLAG_GHOST_LAYER  ) {
+	      MPI_Status stat_send;
+	      MPI_CHECK_ERROR(MPI_Wait( req_send_z0, &stat_send));
+	    }
+
+	    if( _BC[2][1] == FLAG_GHOST_LAYER) {
+	      MPI_Status stat_send;
+	      MPI_CHECK_ERROR(MPI_Wait( req_send_z1, &stat_send));
+	    }
+	    cLbmPtr->wait();
+	    delete req_send_x0;
+	    delete req_recv_x0;
+	    delete req_send_x1;
+	    delete req_recv_x1;
+	    delete req_send_y0;
+	    delete req_recv_y0;
+	    delete req_send_y1;
+	    delete req_recv_y1;
+	    delete req_send_z0;
+	    delete req_recv_z0;
+	    delete req_send_z1;
+	    delete req_recv_z1;
+	}
+
+	void simulationStepBetaBoundary() {
+#if DEBUG
+		DEBUGPRINT("###### Simulation Step BETA boundary method ######\n" );
+#endif
+
+		cLbmPtr->simulationStepBetaBoundaries(0, NULL, NULL);
+		cLbmPtr->wait();
+
+	    MPI_Request* req_send_x0 = NULL;
+	    MPI_Request* req_recv_x0 = NULL;
+	    MPI_Request* req_send_x1 = NULL;
+	    MPI_Request* req_recv_x1 = NULL;
+	    MPI_Request* req_send_y0 = NULL;
+	    MPI_Request* req_recv_y0 = NULL;
+	    MPI_Request* req_send_y1 = NULL;
+	    MPI_Request* req_recv_y1 = NULL;
+	    MPI_Request* req_send_z0 = NULL;
+	    MPI_Request* req_recv_z0 = NULL;
+	    MPI_Request* req_send_z1 = NULL;
+	    MPI_Request* req_recv_z1 = NULL;
+
+		if (_BC[0][0] == FLAG_GHOST_LAYER) {
+			storeDataBeta(MPI_COMM_DIRECTION_X_0);
+			syncBeta(MPI_COMM_DIRECTION_X_0, &req_send_x0, &req_recv_x0);
+		}
+
+		if (_BC[0][1] == FLAG_GHOST_LAYER) {
+			storeDataBeta(MPI_COMM_DIRECTION_X_1);
+			syncBeta(MPI_COMM_DIRECTION_X_1, &req_send_x1, &req_recv_x1);
+		}
+
+		if (_BC[1][0] == FLAG_GHOST_LAYER) {
+			storeDataBeta(MPI_COMM_DIRECTION_Y_0);
+			syncBeta(MPI_COMM_DIRECTION_Y_0, &req_send_y0, &req_recv_y0);
+		}
+
+		if (_BC[1][1] == FLAG_GHOST_LAYER) {
+			storeDataBeta(MPI_COMM_DIRECTION_Y_1);
+			syncBeta(MPI_COMM_DIRECTION_Y_1, &req_send_y1, &req_recv_y1);
+		}
+
+		if (_BC[2][0] == FLAG_GHOST_LAYER) {
+			storeDataBeta(MPI_COMM_DIRECTION_Z_0);
+			syncBeta(MPI_COMM_DIRECTION_Z_0, &req_send_z0, &req_recv_z0);
+		}
+
+		if (_BC[2][1] == FLAG_GHOST_LAYER) {
+			storeDataBeta(MPI_COMM_DIRECTION_Z_1);
+			syncBeta(MPI_COMM_DIRECTION_Z_1, &req_send_z1, &req_recv_z1);
+		}
+
+		// --> Computation of inner part
+		CVector<3, int> inner_origin(2, 2, 2);
+		CVector<3, int> inner_size(_domain.getSize()[0] - 4,
+				_domain.getSize()[1] - 4, _domain.getSize()[2] - 4);
+		cLbmPtr->simulationStepBetaRect(inner_origin, inner_size, 0,
+				NULL, NULL);
+
+	    if( _BC[0][0] == FLAG_GHOST_LAYER  ) {
+	      MPI_Status stat_recv;
+	      MPI_CHECK_ERROR(MPI_Wait( req_recv_x0, &stat_recv));
+	      setDataBeta(MPI_COMM_DIRECTION_X_0);
+	    }
+
+	    if( _BC[0][1] == FLAG_GHOST_LAYER) {
+	      MPI_Status stat_recv;
+	      MPI_CHECK_ERROR(MPI_Wait( req_recv_x1, &stat_recv));
+	      setDataBeta(MPI_COMM_DIRECTION_X_1);
+	    }
+
+	    if( _BC[1][0] == FLAG_GHOST_LAYER  ) {
+	      MPI_Status stat_recv;
+	      MPI_CHECK_ERROR(MPI_Wait( req_recv_y0, &stat_recv));
+	      setDataBeta(MPI_COMM_DIRECTION_Y_0);
+	    }
+
+	    if( _BC[1][1] == FLAG_GHOST_LAYER) {
+	      MPI_Status stat_recv;
+	      MPI_CHECK_ERROR(MPI_Wait( req_recv_y1, &stat_recv));
+	      setDataBeta(MPI_COMM_DIRECTION_Y_1);
+	    }
+
+			// --> Communication z boundary
+	    if( _BC[2][0] == FLAG_GHOST_LAYER  ) {
+	      MPI_Status stat_recv;
+	      MPI_CHECK_ERROR(MPI_Wait( req_recv_z0, &stat_recv));
+	      setDataBeta(MPI_COMM_DIRECTION_Z_0);
+	    }
+
+	    if( _BC[2][1] == FLAG_GHOST_LAYER) {
+	      MPI_Status stat_recv;
+	      MPI_CHECK_ERROR(MPI_Wait( req_recv_z1, &stat_recv));
+	      setDataBeta(MPI_COMM_DIRECTION_Z_1);
+	    }
+
+	    if( _BC[0][0] == FLAG_GHOST_LAYER  ) {
+	      MPI_Status stat_send;
+	      MPI_CHECK_ERROR(MPI_Wait( req_send_x0, &stat_send));
+	    }
+
+	    if( _BC[0][1] == FLAG_GHOST_LAYER) {
+	      MPI_Status stat_send;
+	      MPI_CHECK_ERROR(MPI_Wait( req_send_x1, &stat_send));
+	    }
+
+	    if( _BC[1][0] == FLAG_GHOST_LAYER  ) {
+	      MPI_Status stat_send;
+	      MPI_CHECK_ERROR(MPI_Wait( req_send_y0, &stat_send));
+	    }
+
+	    if( _BC[1][1] == FLAG_GHOST_LAYER) {
+	      MPI_Status stat_send;
+	      MPI_CHECK_ERROR(MPI_Wait( req_send_y1, &stat_send));
+	    }
+
+			// --> Communication z boundary
+	    if( _BC[2][0] == FLAG_GHOST_LAYER  ) {
+	      MPI_Status stat_send;
+	      MPI_CHECK_ERROR(MPI_Wait( req_send_z0, &stat_send));
+	    }
+
+	    if( _BC[2][1] == FLAG_GHOST_LAYER) {
+	      MPI_Status stat_send;
+	      MPI_CHECK_ERROR(MPI_Wait( req_send_z1, &stat_send));
+	    }
+	    cLbmPtr->wait();
+	    delete req_send_x0;
+	    delete req_recv_x0;
+	    delete req_send_x1;
+	    delete req_recv_x1;
+	    delete req_send_y0;
+	    delete req_recv_y0;
+	    delete req_send_y1;
+	    delete req_recv_y1;
+	    delete req_send_z0;
+	    delete req_recv_z0;
+	    delete req_send_z1;
+	    delete req_recv_z1;
+	}
+
 	void computeNextStep(){
 #if DEBUG
 	  DEBUGPRINT("LOOP: %d\n", _simulation_step_counter);
 #endif
 		if (_simulation_step_counter & 1)
-			simulationStepAlpha();
+			simulationStepAlphaBoundary();
 		else
-			simulationStepBeta();
+			simulationStepBetaBoundary();
 		cCommandQueue->enqueueBarrier();
 		_simulation_step_counter++;
-
 	}
 /*
  * This function starts the simulation for the particular subdomain corresponded to
