@@ -203,8 +203,13 @@ class CController
 		}
 
 		int dev_nr = 0;
-		if( _UID & 1 )
-		  dev_nr = 1;
+    char processor_name[MPI_MAX_PROCESSOR_NAME]; 
+    int name_len;
+    MPI_Get_processor_name(processor_name, &name_len); 
+    if (strstr(processor_name,"mac-nvd" ) != NULL ) {
+      if( _UID & 1 )
+        dev_nr = 1;
+    }
 
 		cDevice = &((*cDevices)[/* ConfigSingleton::Instance()->device_nrd*/dev_nr]);
 
