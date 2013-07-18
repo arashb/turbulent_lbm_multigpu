@@ -184,7 +184,7 @@ if env['mode'] == 'debug':
 	elif env['compiler'] == 'openmpic++':
 		env.Append(CXXFLAGS=' -O0 -g3 -Wall')
 
-	elif env['compiler'] == 'mpic++':
+	elif env['compiler'] == 'mpicxx':
 		env.Append(CXXFLAGS=' -O0 -g3 -Wall')
 
 
