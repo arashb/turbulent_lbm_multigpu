@@ -184,7 +184,7 @@ if env['mode'] == 'debug':
 	elif env['compiler'] == 'openmpic++':
 		env.Append(CXXFLAGS=' -O0 -g3 -Wall')
 
-	elif env['compiler'] == 'mpic++':
+	elif env['compiler'] == 'mpicxx':
 		env.Append(CXXFLAGS=' -O0 -g3 -Wall')
 
 
@@ -214,6 +214,10 @@ if ARGUMENTS.get('profile', 0):
 
 if ARGUMENTS.get('benchmark', 0):
 	env.Append(CXXFLAGS=' -DBENCHMARK=1')
+
+if ARGUMENTS.get('logtofile', 0):
+	env.Append(CXXFLAGS=' -DLOG_TO_FILE=1')
+
 
 ###################################################################
 # DEPENDENCIES
