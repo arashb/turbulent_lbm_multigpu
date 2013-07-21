@@ -58,7 +58,7 @@ AddOption(	'--compiler',
 
 env['compiler'] = GetOption('compiler')
 
-if (env['compiler'] == None or (env['compiler'] not in ['gnu', 'intel', 'open64', 'openmpic++', 'mpicxx' ])):
+if (env['compiler'] == None or (env['compiler'] not in ['gnu', 'intel', 'open64', 'openmpic++', 'mpicxx', 'mpiCC' ])):
 	env['compiler'] = 'mpicxx'
 
 
@@ -78,6 +78,22 @@ env['mode'] = GetOption('mode')
 if (env['mode'] == None or (env['mode'] not in ['release', 'debug'])):
 	env['mode'] = 'release'
 
+
+
+#
+# profiler (scalasca)
+#
+AddOption(	'--profiler',
+		dest='profiler',
+		type='string',
+		nargs=1,
+		action='store',
+		help='specify profiler to use (gnu/intel), default: gnu')
+
+env['profiler'] = GetOption('profiler')
+
+if ((env['profiler'] not in ['scalasca','manual' ])):
+	env['profiler'] = 'scalasca'
 
 
 ###################################################################
@@ -137,6 +153,10 @@ env.Append(LIBS=['tinyxml2'])
 #
 #env.ParseConfig("pkg-config libxml-2.0 --cflags --libs")
 
+if (env['profiler'] == 'manual'):
+	env.Append(CXXFLAGS=' -DPROFILE=1')
+
+
 if env['compiler'] == 'gnu':
 #	env.Append(LINKFLAGS=' -static-libgcc')
 
@@ -165,10 +185,12 @@ if env['compiler'] == 'openmpic++':
 if env['compiler'] == 'mpicxx':
 	# eclipse specific flag
 	env.Append(CXXFLAGS=' -fmessage-length=0')
-
-	# activate OpenMPI C++ compiler
 	env.Replace(CXX = 'mpicxx')
 
+if env['compiler'] == 'mpiCC':
+	# eclipse specific flag
+	env.Append(CXXFLAGS=' -fmessage-length=0')
+	env.Replace(CXX = 'mpiCC')
 
 
 if env['mode'] == 'debug':
@@ -209,8 +231,10 @@ else:
 	print 'ERROR: mode'
 	Exit(1)
 
-if ARGUMENTS.get('profile', 0):
-	env.Append(CXXFLAGS=' -DPROFILE=1')
+
+if (env['profiler'] == 'scalasca'):
+	#env.Replace(CXX= 'scalasca -instrument -comp=none -mode=MPI '+ env['CXX'])
+	env.Replace(LINK= 'scalasca -instrument -comp=none -mode=MPI '+ env['LINK'])
 
 if ARGUMENTS.get('benchmark', 0):
 	env.Append(CXXFLAGS=' -DBENCHMARK=1')

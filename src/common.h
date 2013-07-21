@@ -24,10 +24,11 @@
 #define FLAG_GHOST_LAYER_BETA (FLAG_GHOST_LAYER | (1 << 4))
 
 //#define HALO_SIZE 0
-#define BENCHMARK_OUTPUT_DIR "benchmarkOutput"
-#define PROFILE_OUTPUT_DIR "profileOutput"
-#define VTK_OUTPUT_DIR "vtkOutput"
-#define LOG_OUTPUT_DIR "output_log"
+#define BENCHMARK_OUTPUT_DIR "output/benchmark"
+#define PROFILE_OUTPUT_DIR "output/profile"
+#define VTK_OUTPUT_DIR "output/vtk"
+#define LOG_OUTPUT_DIR "output/log"
+
 #define LOG_OUTPUT_FILE_PREFIX "log"
 
 extern CVector<3,int> E0 	;
