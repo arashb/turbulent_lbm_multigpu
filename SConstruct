@@ -92,7 +92,7 @@ AddOption(	'--profiler',
 
 env['profiler'] = GetOption('profiler')
 
-if ((env['profiler'] not in ['scalasca','manual' ])):
+if (env['profiler'] != None and (env['profiler'] not in ['scalasca','manual' ])):
 	env['profiler'] = 'scalasca'
 
 
