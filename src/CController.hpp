@@ -175,12 +175,14 @@ class CController
 			return -1;
 		}
 		int dev_nr = 0;
-		if( _UID & 1 )
-		  dev_nr = 1;
-
+    char processor_name[MPI_MAX_PROCESSOR_NAME]; 
+    int name_len;
+    MPI_Get_processor_name(processor_name, &name_len); 
+    if (strstr(processor_name,"mac-nvd" ) != NULL ) {
+      if( _UID & 1 )
+        dev_nr = 1;
+    }
 		cDevice = &((*cDevices)[/* ConfigSingleton::Instance()->device_nrd*/dev_nr]);
-		// cDevice = &((*cDevices)[ConfigSingleton::Instance()->device_nr]);
-		//cDeviceInfo = new CCL::CDeviceInfo(*cDevice);
 
 		// load information about first device - e.g. max_work_group_size
 #if DEBUG
