@@ -14,17 +14,17 @@ env = Environment()
 ###################################################################
 # fix environment vars (not imported by default)
 ###################################################################
+env.Append(ENV=os.environ)
 
+# PATH=''
+# if 'PATH' in os.environ:
+# 	PATH=os.environ['PATH']
 
-PATH=''
-if 'PATH' in os.environ:
-	PATH=os.environ['PATH']
+# LD_LIBRARY_PATH=''
+# if 'LD_LIBRARY_PATH' in os.environ:
+# 	LD_LIBRARY_PATH = os.environ['LD_LIBRARY_PATH']
 
-LD_LIBRARY_PATH=''
-if 'LD_LIBRARY_PATH' in os.environ:
-	LD_LIBRARY_PATH = os.environ['LD_LIBRARY_PATH']
-
-env = Environment(ENV = {'PATH' : PATH, 'LD_LIBRARY_PATH' : LD_LIBRARY_PATH})
+# env = Environment(ENV = {'PATH' : PATH, 'LD_LIBRARY_PATH' : LD_LIBRARY_PATH})
 
 ###################################################################
 # Command line options
