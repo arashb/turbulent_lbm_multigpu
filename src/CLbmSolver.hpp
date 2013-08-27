@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef CLBMOPENCL_HH
 #define CLBMOPENCL_HH
 
@@ -65,22 +64,21 @@
  *
  */
 
-template <typename T>
-class CLbmSolver
-	:	public CLbmSkeleton<T>
+template<typename T>
+class CLbmSolver: public CLbmSkeleton<T>
 {
 public:
-	CVector<4,T> drivenCavityVelocity;
+	CVector<4, T> drivenCavityVelocity;
 	static const size_t SIZE_DD_HOST = 19;
 private:
 	int _UID;
-	static const size_t SIZE_DD_HOST_BYTES = SIZE_DD_HOST*sizeof(T);
-	int _BC[3][2]; 		///< Boundary conditions. First index specifys the dimension and second the upper or the lower boundary.
+	static const size_t SIZE_DD_HOST_BYTES = SIZE_DD_HOST * sizeof(T);
+	int _BC[3][2]; ///< Boundary conditions. First index specifys the dimension and second the upper or the lower boundary.
 	// opencl handlers
 	CCL::CCommandQueue &cCommandQueue;
 	CCL::CContext &cContext;
 	CCL::CDevice &cDevice;
-	CCL::CDeviceInfo cDeviceInfo; 
+	CCL::CDeviceInfo cDeviceInfo;
 	OPENCL_VERSION _cl_version;
 
 	// INITIALIZATION KERNEL
@@ -120,38 +118,41 @@ private:
 	size_t computation_kernel_count;
 	size_t domain_cells_count;
 
-	bool store_velocity;	// store velocity for visualization
+	bool store_velocity; // store velocity for visualization
 	bool store_density;
 private:
 
-	std::vector <std::string> split(const std::string& str, const std::string& delimiter = " ") {
-	    std::vector <std::string> tokens;
+	std::vector<std::string> split(const std::string& str,
+			const std::string& delimiter = " ") {
+		std::vector<std::string> tokens;
 
-	    std::string::size_type lastPos = 0;
-	    std::string::size_type pos = str.find(delimiter, lastPos);
+		std::string::size_type lastPos = 0;
+		std::string::size_type pos = str.find(delimiter, lastPos);
 
-	    while (std::string::npos != pos) {
-	        // Found a token, add it to the vector.
-	        //std::cout << str.substr(lastPos, pos - lastPos) << std::endl;
-	        tokens.push_back(str.substr(lastPos, pos - lastPos));
-	        lastPos = pos + delimiter.size();
-	        pos = str.find(delimiter, lastPos);
-	    }
+		while (std::string::npos != pos) {
+			// Found a token, add it to the vector.
+			//std::cout << str.substr(lastPos, pos - lastPos) << std::endl;
+			tokens.push_back(str.substr(lastPos, pos - lastPos));
+			lastPos = pos + delimiter.size();
+			pos = str.find(delimiter, lastPos);
+		}
 
-	    tokens.push_back(str.substr(lastPos, str.size() - lastPos));
-	    return tokens;
+		tokens.push_back(str.substr(lastPos, str.size() - lastPos));
+		return tokens;
 	}
 
 	OPENCL_VERSION getOpenCLVersion() {
 		OPENCL_VERSION cl_version;
 		// format:
 		// OpenCL<space><major_version.minor_version><space><vendor-specific information>
-		std::string major_minor_version = split(std::string(cDeviceInfo.version))[1];
-		std::vector<std::string> major_minor_vector = split( major_minor_version, ".");
+		std::string major_minor_version = split(
+				std::string(cDeviceInfo.version))[1];
+		std::vector<std::string> major_minor_vector = split(major_minor_version,
+				".");
 		int major_version = atoi(major_minor_vector[0].c_str());
 		int minor_version = atoi(major_minor_vector[1].c_str());
-		int version = major_version*100 + minor_version*10;
-		switch(version){
+		int version = major_version * 100 + minor_version * 10;
+		switch (version) {
 		case OPENCL_VERSION_1_0_0:
 			cl_version = OPENCL_VERSION_1_0_0;
 			break;
@@ -168,17 +169,11 @@ private:
 		return cl_version;
 	}
 
-	inline void enqueueCopyRectKernel(CCL::CMem& src,CCL::CMem& dst,
-									  const int src_offset,
-									  CVector<3,int> src_origin,
-									  CVector<3,int> src_size,
-									  const int dst_offset,
-									  CVector<3,int> dst_origin,
-									  CVector<3,int> dst_size,
-									  CVector<3,int> block_size,
-									  bool withBarrier = true
-		)
-	{
+	inline void enqueueCopyRectKernel(CCL::CMem& src, CCL::CMem& dst,
+			const int src_offset, CVector<3, int> src_origin,
+			CVector<3, int> src_size, const int dst_offset,
+			CVector<3, int> dst_origin, CVector<3, int> dst_size,
+			CVector<3, int> block_size, bool withBarrier = true) {
 		// set kernel args
 		// source args
 		cKernelCopyRect.setArg(0, src);
@@ -197,21 +192,19 @@ private:
 		cKernelCopyRect.setArg(11, dst_origin[1]);
 		cKernelCopyRect.setArg(12, dst_origin[2]);
 		cKernelCopyRect.setArg(13, dst_size[0]);
-		cKernelCopyRect.setArg(14, dst_size[1] );
-		cKernelCopyRect.setArg(15, dst_size[2] );
-		cKernelCopyRect.setArg(16, block_size[0] );
+		cKernelCopyRect.setArg(14, dst_size[1]);
+		cKernelCopyRect.setArg(15, dst_size[2]);
+		cKernelCopyRect.setArg(16, block_size[0]);
 
 		size_t lGlobalSize[2];
 		lGlobalSize[0] = block_size[1];
 		lGlobalSize[1] = block_size[2];
 		// enqueue the CopyRect kernel
-		cCommandQueue.enqueueNDRangeKernel(	cKernelCopyRect,	// kernel
-											2,				// dimensions
-											NULL,			// global work offset
-											lGlobalSize,
-											NULL
-						);
-		if(withBarrier)
+		cCommandQueue.enqueueNDRangeKernel(cKernelCopyRect, // kernel
+				2, // dimensions
+				NULL, // global work offset
+				lGlobalSize, NULL);
+		if (withBarrier)
 			cCommandQueue.enqueueBarrier();
 	}
 
@@ -219,42 +212,29 @@ public:
 	size_t simulation_step_counter;
 	CError error;
 
-	std::list<int> lbm_opencl_number_of_work_items_list;		///< list with number of threads for each successively created kernel
-	std::list<int> lbm_opencl_number_of_registers_list;		///< list with number of registers for each thread threads for each successively created kernel
-
+	std::list<int> lbm_opencl_number_of_work_items_list; ///< list with number of threads for each successively created kernel
+	std::list<int> lbm_opencl_number_of_registers_list; ///< list with number of registers for each thread threads for each successively created kernel
 
 	// viscosity parameters:
 	// http://en.wikipedia.org/wiki/Viscosity
 	//
-	CLbmSolver(	int UID,
-				CCL::CCommandQueue &p_cCommandQueue,
-				CCL::CContext &p_cContext,
-				CCL::CDevice &p_cDevice,
-				int BC[3][2],
-				CDomain<T> &domain,
-				CVector<3,T> &p_d_gravitation,
-				T p_d_viscosity,
-				size_t p_computation_kernel_count,
-				//bool p_debug,
-				bool p_store_velocity,
-				bool p_store_density,
-				T p_d_timestep,
+	CLbmSolver(int UID, CCL::CCommandQueue &p_cCommandQueue,
+			CCL::CContext &p_cContext, CCL::CDevice &p_cDevice, int BC[3][2],
+			CDomain<T> &domain, CVector<3, T> &p_d_gravitation, T p_d_viscosity,
+			size_t p_computation_kernel_count,
+			//bool p_debug,
+			bool p_store_velocity, bool p_store_density, T p_d_timestep,
 
-				std::list<int> &p_lbm_opencl_number_of_work_items_list,		///< list with number of threads for each successively created kernel
-				std::list<int> &p_lbm_opencl_number_of_registers_list		///< list with number of registers for each thread threads for each successively created kernel
-		) :CLbmSkeleton<T>(CDomain<T>(domain)),
-		drivenCavityVelocity(100.0, 0, 0, 1),
-		_UID(UID),
-		cCommandQueue(p_cCommandQueue),
-		cContext(p_cContext),
-		cDevice(p_cDevice),
-		cDeviceInfo(p_cDevice),
-		computation_kernel_count(p_computation_kernel_count),
-		lbm_opencl_number_of_work_items_list(p_lbm_opencl_number_of_work_items_list),
-		lbm_opencl_number_of_registers_list(p_lbm_opencl_number_of_registers_list)
-	{
-		CLbmSkeleton<T>::init(
-				p_d_gravitation, p_d_viscosity, 1.0);
+			std::list<int> &p_lbm_opencl_number_of_work_items_list, ///< list with number of threads for each successively created kernel
+			std::list<int> &p_lbm_opencl_number_of_registers_list ///< list with number of registers for each thread threads for each successively created kernel
+			) :
+			CLbmSkeleton<T>(CDomain<T>(domain)), drivenCavityVelocity(100.0, 0,
+					0, 1), _UID(UID), cCommandQueue(p_cCommandQueue), cContext(
+					p_cContext), cDevice(p_cDevice), cDeviceInfo(p_cDevice), computation_kernel_count(
+					p_computation_kernel_count), lbm_opencl_number_of_work_items_list(
+					p_lbm_opencl_number_of_work_items_list), lbm_opencl_number_of_registers_list(
+					p_lbm_opencl_number_of_registers_list) {
+		CLbmSkeleton<T>::init(p_d_gravitation, p_d_viscosity, 1.0);
 
 		if (CLbmSkeleton<T>::error())
 			error << CLbmSkeleton<T>::error.getString();
@@ -263,25 +243,24 @@ public:
 		store_density = p_store_density;
 		//debug = p_debug;
 
-		_cl_version = OPENCL_VERSION_1_0_0;//getOpenCLVersion();
-		if ( _cl_version == OPENCL_VERSION_UNKNOWN)
+		_cl_version = OPENCL_VERSION_1_0_0; //getOpenCLVersion();
+		if (_cl_version == OPENCL_VERSION_UNKNOWN)
 			throw "OpenCL Version is unknown!";
 
 #if DEBUG
 		std::cout << "CL_VERSION " << _cl_version << std::endl;
 #endif
 		// setting the boundary conditions
-		for(int i = 0; i < 3; i++)
+		for (int i = 0; i < 3; i++)
 			for (int j = 0; j < 2; j++)
 				_BC[i][j] = BC[i][j];
 
 		reload();
 	}
 
-	void addDrivenCavityValue(T value)
-	{
+	void addDrivenCavityValue(T value) {
 		drivenCavityVelocity[0] += value;
-		CVector<4,T> paramDrivenCavityVelocity = drivenCavityVelocity;
+		CVector<4, T> paramDrivenCavityVelocity = drivenCavityVelocity;
 		paramDrivenCavityVelocity *= CLbmSkeleton<T>::d_timestep;
 
 		cKernelInit.setArg(4, paramDrivenCavityVelocity[0]);
@@ -289,8 +268,7 @@ public:
 		cLbmKernelBeta.setArg(8, paramDrivenCavityVelocity[0]);
 	}
 
-	void reload()
-	{
+	void reload() {
 		/**
 		 * WORK GROUP SIZE
 		 *
@@ -322,8 +300,10 @@ public:
 			variable##_MaxRegisters  = 0;								\
 		}
 
-		std::list<int>::iterator it = this->lbm_opencl_number_of_work_items_list.begin();
-		std::list<int>::iterator ir = this->lbm_opencl_number_of_registers_list.begin();
+		std::list<int>::iterator it =
+				this->lbm_opencl_number_of_work_items_list.begin();
+		std::list<int>::iterator ir =
+				this->lbm_opencl_number_of_registers_list.begin();
 
 		INIT_WORK_GROUP_SIZE(cKernelInit);
 		INIT_WORK_GROUP_SIZE(cLbmKernelAlpha);
@@ -337,21 +317,23 @@ public:
 
 		std::ostringstream cl_program_defines;
 
-		cl_program_defines << "#define SIZE_DD_HOST_BYTES (" << SIZE_DD_HOST_BYTES << ")" << std::endl;
+		cl_program_defines << "#define SIZE_DD_HOST_BYTES ("
+				<< SIZE_DD_HOST_BYTES << ")" << std::endl;
 
-		if (typeid(T) == typeid(float))
-		{
+		if (typeid(T) == typeid(float)) {
 			cl_program_defines << "typedef float T;" << std::endl;
 			cl_program_defines << "typedef float2 T2;" << std::endl;
 			cl_program_defines << "typedef float4 T4;" << std::endl;
 			cl_program_defines << "typedef float8 T8;" << std::endl;
 			cl_program_defines << "typedef float16 T16;" << std::endl;
-		}
-		else if (typeid(T) == typeid(double))
-		{
-			cl_program_defines << "#pragma OPENCL EXTENSION cl_khr_fp64 : enable" << std::endl;
+		} else if (typeid(T) == typeid(double)) {
+			cl_program_defines
+					<< "#pragma OPENCL EXTENSION cl_khr_fp64 : enable"
+					<< std::endl;
 			cl_program_defines << "#ifndef cl_khr_fp64" << std::endl;
-			cl_program_defines << "	#error cl_khr_fp64 not supported - please switch to single precision to run the simulation" << std::endl;
+			cl_program_defines
+					<< "	#error cl_khr_fp64 not supported - please switch to single precision to run the simulation"
+					<< std::endl;
 			cl_program_defines << "#endif cl_khr_fp64" << std::endl;
 
 			cl_program_defines << "typedef double T;" << std::endl;
@@ -359,22 +341,29 @@ public:
 			cl_program_defines << "typedef double4 T4;" << std::endl;
 			cl_program_defines << "typedef double8 T8;" << std::endl;
 			cl_program_defines << "typedef double16 T16;" << std::endl;
-		}
-		else
-		{
+		} else {
 			error << "unsupported class type T" << std::endl;
 			return;
 		}
 
-		cl_program_defines << "#define DOMAIN_CELLS_X	(" << this->domain_cells[0] << ")" << std::endl;
-		cl_program_defines << "#define DOMAIN_CELLS_Y	(" << this->domain_cells[1] << ")" << std::endl;
-		cl_program_defines << "#define DOMAIN_CELLS_Z	(" << this->domain_cells[2] << ")" << std::endl;
-		cl_program_defines << "#define GLOBAL_WORK_GROUP_SIZE	(DOMAIN_CELLS_X*DOMAIN_CELLS_Y*DOMAIN_CELLS_Z)" << std::endl;
+		cl_program_defines << "#define DOMAIN_CELLS_X	("
+				<< this->domain_cells[0] << ")" << std::endl;
+		cl_program_defines << "#define DOMAIN_CELLS_Y	("
+				<< this->domain_cells[1] << ")" << std::endl;
+		cl_program_defines << "#define DOMAIN_CELLS_Z	("
+				<< this->domain_cells[2] << ")" << std::endl;
+		cl_program_defines
+				<< "#define GLOBAL_WORK_GROUP_SIZE	(DOMAIN_CELLS_X*DOMAIN_CELLS_Y*DOMAIN_CELLS_Z)"
+				<< std::endl;
 
-		cl_program_defines << "#define FLAG_OBSTACLE	(" << LBM_FLAG_OBSTACLE << ")" << std::endl;
-		cl_program_defines << "#define FLAG_FLUID	(" << LBM_FLAG_FLUID << ")" << std::endl;
-		cl_program_defines << "#define FLAG_VELOCITY_INJECTION	(" << LBM_FLAG_VELOCITY_INJECTION << ")" << std::endl;
-		cl_program_defines << "#define FLAG_GHOST_LAYER	(" << LBM_FLAG_GHOST_LAYER << ")" << std::endl;
+		cl_program_defines << "#define FLAG_OBSTACLE	(" << LBM_FLAG_OBSTACLE
+				<< ")" << std::endl;
+		cl_program_defines << "#define FLAG_FLUID	(" << LBM_FLAG_FLUID << ")"
+				<< std::endl;
+		cl_program_defines << "#define FLAG_VELOCITY_INJECTION	("
+				<< LBM_FLAG_VELOCITY_INJECTION << ")" << std::endl;
+		cl_program_defines << "#define FLAG_GHOST_LAYER	("
+				<< LBM_FLAG_GHOST_LAYER << ")" << std::endl;
 
 		if (store_velocity)
 			cl_program_defines << "#define STORE_VELOCITY 1" << std::endl;
@@ -383,29 +372,34 @@ public:
 			cl_program_defines << "#define STORE_DENSITY 1" << std::endl;
 
 #if DEBUG
-			std::cout << cl_program_defines.str() << std::endl;
+		std::cout << cl_program_defines.str() << std::endl;
 #endif
 		/*
 		 * ALLOCATE BUFFERS
 		 */
-		cMemDensityDistributions.create(cContext, CL_MEM_READ_WRITE, sizeof(T)*domain_cells_count*SIZE_DD_HOST, NULL);
+		cMemDensityDistributions.create(cContext, CL_MEM_READ_WRITE,
+				sizeof(T) * domain_cells_count * SIZE_DD_HOST, NULL);
 		//cMemCellFlags.create(cContext, CL_MEM_READ_WRITE, sizeof(cl_char)*domain_cells_count, NULL);
-		cMemCellFlags.create(cContext, CL_MEM_READ_WRITE, sizeof(cl_int)*domain_cells_count, NULL);
-		cMemVelocity.create(cContext, CL_MEM_READ_WRITE, sizeof(T)*domain_cells_count*3, NULL);
-		cMemDensity.create(cContext, CL_MEM_READ_WRITE, sizeof(T)*domain_cells_count, NULL);
+		cMemCellFlags.create(cContext, CL_MEM_READ_WRITE,
+				sizeof(cl_int) * domain_cells_count, NULL);
+		cMemVelocity.create(cContext, CL_MEM_READ_WRITE,
+				sizeof(T) * domain_cells_count * 3, NULL);
+		cMemDensity.create(cContext, CL_MEM_READ_WRITE,
+				sizeof(T) * domain_cells_count, NULL);
 
 		int bc_linear[6];
-		for(int i = 0; i < 3; i++)
-			for(int j = 0; j < 2; j++)
-				bc_linear[i*2+j] = _BC[i][j];
+		for (int i = 0; i < 3; i++)
+			for (int j = 0; j < 2; j++)
+				bc_linear[i * 2 + j] = _BC[i][j];
 
 #if DEBUG
-			std::cout << "BOUNDARY CONDITION: "<< std::endl;
-			for(int i = 0; i < 6; i++)
-				std::cout << " " << bc_linear[i];
-			std::cout << std::endl;
+		std::cout << "BOUNDARY CONDITION: "<< std::endl;
+		for(int i = 0; i < 6; i++)
+		std::cout << " " << bc_linear[i];
+		std::cout << std::endl;
 #endif
-		cMemBC.create(cContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR , sizeof(cl_int)*6, bc_linear);
+		cMemBC.create(cContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+				sizeof(cl_int) * 6, bc_linear);
 
 		/**
 		 * prepare INIT KERNEL DATA
@@ -421,15 +415,14 @@ public:
 		/*
 		 * INIT kernel
 		 */
-		sprintf(charbuf, "%i", (int)cKernelInit_WorkGroupSize);
+		sprintf(charbuf, "%i", (int) cKernelInit_WorkGroupSize);
 		cProgramDefinesPostfixString = "#define LOCAL_WORK_GROUP_SIZE	(";
 		cProgramDefinesPostfixString += charbuf;
-		cProgramDefinesPostfixString +=  ")";
+		cProgramDefinesPostfixString += ")";
 
 		/*cProgramCompileOptionsString = "-Werror -I./";*/
 		cProgramCompileOptionsString = "-I./";
-		if (cKernelInit_MaxRegisters != 0)
-		{
+		if (cKernelInit_MaxRegisters != 0) {
 			/* TODO: check for cl_nv_compiler_options extension */
 			cProgramCompileOptionsString += " -cl-nv-maxrregcount=";
 			cProgramCompileOptionsString += cKernelInit_MaxRegisters;
@@ -437,80 +430,91 @@ public:
 
 		cKernelInit_GlobalWorkGroupSize = domain_cells_count;
 		if (cKernelInit_GlobalWorkGroupSize % cKernelInit_WorkGroupSize != 0)
-			cKernelInit_GlobalWorkGroupSize = (cKernelInit_GlobalWorkGroupSize / cKernelInit_WorkGroupSize + 1) * cKernelInit_WorkGroupSize;
+			cKernelInit_GlobalWorkGroupSize = (cKernelInit_GlobalWorkGroupSize
+					/ cKernelInit_WorkGroupSize + 1)
+					* cKernelInit_WorkGroupSize;
 
 		CCL::CProgram cProgramInit;
-		cProgramInit.load(cContext, cl_program_defines.str()+cProgramDefinesPostfixString, "src/cl_programs/lbm_init.cl");
+		cProgramInit.load(cContext,
+				cl_program_defines.str() + cProgramDefinesPostfixString,
+				"src/cl_programs/lbm_init.cl");
 		cProgramInit.build(cDevice, cProgramCompileOptionsString.c_str());
-		if (cProgramInit.error())
-		{
+		if (cProgramInit.error()) {
 			error << "failed to compile lbm_init.cl" << CError::endl;
 			error << cProgramInit.error.getString() << CError::endl;
 			return;
 		}
 #if DEBUG
-			std::cout << "KernelInit:	local_work_group_size: " << cKernelInit_WorkGroupSize << "		max_registers: " << cKernelInit_MaxRegisters << std::endl;
+		std::cout << "KernelInit:	local_work_group_size: " << cKernelInit_WorkGroupSize << "		max_registers: " << cKernelInit_MaxRegisters << std::endl;
 #endif
 
 		/*
 		 * ALPHA
 		 */
-		sprintf(charbuf, "%i", (int)cLbmKernelAlpha_WorkGroupSize);
+		sprintf(charbuf, "%i", (int) cLbmKernelAlpha_WorkGroupSize);
 		cProgramDefinesPostfixString = "#define LOCAL_WORK_GROUP_SIZE	(";
 		cProgramDefinesPostfixString += charbuf;
-		cProgramDefinesPostfixString +=  ")";
+		cProgramDefinesPostfixString += ")";
 
 		// cProgramCompileOptionsString = "-Werror -I./";
 		cProgramCompileOptionsString = "-I./";
-		if (cLbmKernelAlpha_MaxRegisters != 0)
-		{
+		if (cLbmKernelAlpha_MaxRegisters != 0) {
 			/* TODO: check for cl_nv_compiler_options extension */
 			cProgramCompileOptionsString += " -cl-nv-maxrregcount=";
 			cProgramCompileOptionsString += cLbmKernelAlpha_MaxRegisters;
 		}
 
 		cLbmKernelAlpha_GlobalWorkGroupSize = domain_cells_count;
-		if (cLbmKernelAlpha_GlobalWorkGroupSize % cLbmKernelAlpha_WorkGroupSize != 0)
-			cLbmKernelAlpha_GlobalWorkGroupSize = (cKernelInit_GlobalWorkGroupSize / cLbmKernelAlpha_WorkGroupSize + 1) * cLbmKernelAlpha_WorkGroupSize;
+		if (cLbmKernelAlpha_GlobalWorkGroupSize % cLbmKernelAlpha_WorkGroupSize
+				!= 0)
+			cLbmKernelAlpha_GlobalWorkGroupSize =
+					(cKernelInit_GlobalWorkGroupSize
+							/ cLbmKernelAlpha_WorkGroupSize + 1)
+							* cLbmKernelAlpha_WorkGroupSize;
 
 		CCL::CProgram cProgramAlpha;
-		cProgramAlpha.load(cContext, cl_program_defines.str()+cProgramDefinesPostfixString, "src/cl_programs/lbm_alpha.cl");
+		cProgramAlpha.load(cContext,
+				cl_program_defines.str() + cProgramDefinesPostfixString,
+				"src/cl_programs/lbm_alpha.cl");
 		cProgramAlpha.build(cDevice, cProgramCompileOptionsString.c_str());
-		if (cProgramAlpha.error())
-		{
+		if (cProgramAlpha.error()) {
 			error << "failed to compile lbm_alpha.cl" << CError::endl;
 			error << cProgramAlpha.error.getString() << CError::endl;
 			return;
 		}
 #if DEBUG
-			std::cout << "KernelAlpha:	local_work_group_size: " << cLbmKernelAlpha_WorkGroupSize << "		max_registers: " << cLbmKernelAlpha_MaxRegisters << std::endl;
+		std::cout << "KernelAlpha:	local_work_group_size: " << cLbmKernelAlpha_WorkGroupSize << "		max_registers: " << cLbmKernelAlpha_MaxRegisters << std::endl;
 #endif
 		/*
 		 * BETA
 		 */
-		sprintf(charbuf, "%i", (int)cLbmKernelBeta_WorkGroupSize);
+		sprintf(charbuf, "%i", (int) cLbmKernelBeta_WorkGroupSize);
 		cProgramDefinesPostfixString = "#define LOCAL_WORK_GROUP_SIZE	(";
 		cProgramDefinesPostfixString += charbuf;
-		cProgramDefinesPostfixString +=  ")";
+		cProgramDefinesPostfixString += ")";
 
 		//cProgramCompileOptionsString = "-Werror -I./";
 		cProgramCompileOptionsString = "-I./";
-		if (cLbmKernelBeta_MaxRegisters != 0)
-		{
+		if (cLbmKernelBeta_MaxRegisters != 0) {
 			/* TODO: check for cl_nv_compiler_options extension */
 			cProgramCompileOptionsString += " -cl-nv-maxrregcount=";
 			cProgramCompileOptionsString += cLbmKernelBeta_MaxRegisters;
 		}
 
 		cLbmKernelBeta_GlobalWorkGroupSize = domain_cells_count;
-		if (cLbmKernelBeta_GlobalWorkGroupSize % cLbmKernelBeta_WorkGroupSize != 0)
-			cLbmKernelBeta_GlobalWorkGroupSize = (cKernelInit_GlobalWorkGroupSize / cLbmKernelBeta_WorkGroupSize + 1) * cLbmKernelBeta_WorkGroupSize;
+		if (cLbmKernelBeta_GlobalWorkGroupSize % cLbmKernelBeta_WorkGroupSize
+				!= 0)
+			cLbmKernelBeta_GlobalWorkGroupSize =
+					(cKernelInit_GlobalWorkGroupSize
+							/ cLbmKernelBeta_WorkGroupSize + 1)
+							* cLbmKernelBeta_WorkGroupSize;
 
 		CCL::CProgram cProgramBeta;
-		cProgramBeta.load(cContext, cl_program_defines.str()+cProgramDefinesPostfixString, "src/cl_programs/lbm_beta.cl");
+		cProgramBeta.load(cContext,
+				cl_program_defines.str() + cProgramDefinesPostfixString,
+				"src/cl_programs/lbm_beta.cl");
 		cProgramBeta.build(cDevice, cProgramCompileOptionsString.c_str());
-		if (cProgramBeta.error())
-		{
+		if (cProgramBeta.error()) {
 			error << "failed to compile lbm_beta.cl" << CError::endl;
 			error << cProgramBeta.error.getString() << CError::endl;
 
@@ -523,15 +527,14 @@ public:
 		/*
 		 * INIT CopyBufferRect
 		 */
-		sprintf(charbuf, "%i", (int)cKernelCopyRect_WorkGroupSize);
+		sprintf(charbuf, "%i", (int) cKernelCopyRect_WorkGroupSize);
 		cProgramDefinesPostfixString = "#define LOCAL_WORK_GROUP_SIZE	(";
 		cProgramDefinesPostfixString += charbuf;
-		cProgramDefinesPostfixString +=  ")";
+		cProgramDefinesPostfixString += ")";
 
 		cProgramCompileOptionsString = "-Werror -I./";
 		//cProgramCompileOptionsString = "-I./";
-		if (cKernelCopyRect_MaxRegisters != 0)
-		{
+		if (cKernelCopyRect_MaxRegisters != 0) {
 			/* TODO: check for cl_nv_compiler_options extension */
 			cProgramCompileOptionsString += " -cl-nv-maxrregcount=";
 			cProgramCompileOptionsString += cKernelCopyRect_MaxRegisters;
@@ -539,25 +542,28 @@ public:
 
 		cKernelCopyRect_GlobalWorkGroupSize = domain_cells_count;
 		if (cKernelInit_GlobalWorkGroupSize % cKernelInit_WorkGroupSize != 0)
-			cKernelInit_GlobalWorkGroupSize = (cKernelInit_GlobalWorkGroupSize / cKernelInit_WorkGroupSize + 1) * cKernelInit_WorkGroupSize;
+			cKernelInit_GlobalWorkGroupSize = (cKernelInit_GlobalWorkGroupSize
+					/ cKernelInit_WorkGroupSize + 1)
+					* cKernelInit_WorkGroupSize;
 
 		CCL::CProgram cProgramCopyRect;
-		cProgramCopyRect.load(cContext, cl_program_defines.str()+cProgramDefinesPostfixString, "src/cl_programs/copy_buffer_rect.cl");
+		cProgramCopyRect.load(cContext,
+				cl_program_defines.str() + cProgramDefinesPostfixString,
+				"src/cl_programs/copy_buffer_rect.cl");
 		cProgramCopyRect.build(cDevice, cProgramCompileOptionsString.c_str());
-		if (cProgramCopyRect.error())
-		{
+		if (cProgramCopyRect.error()) {
 			error << "failed to compile copy_buffer_rect.cl" << CError::endl;
 			error << cProgramCopyRect.error.getString() << CError::endl;
 			return;
 		}
 #if DEBUG
-			std::cout << "KernelCopyRect:	local_work_group_size: " << cKernelCopyRect_WorkGroupSize << "		max_registers: " << cKernelCopyRect_MaxRegisters << std::endl;
+		std::cout << "KernelCopyRect:	local_work_group_size: " << cKernelCopyRect_WorkGroupSize << "		max_registers: " << cKernelCopyRect_MaxRegisters << std::endl;
 #endif
 
 		/**
 		 * create kernels and setup arguments
 		 */
-		CVector<4,T> paramDrivenCavityVelocity = drivenCavityVelocity;
+		CVector<4, T> paramDrivenCavityVelocity = drivenCavityVelocity;
 		paramDrivenCavityVelocity *= CLbmSkeleton<T>::d_timestep;
 
 #if DEBUG
@@ -608,24 +614,21 @@ public:
 		reset();
 	}
 
-	void reset()
-	{
+	void reset() {
 		simulation_step_counter = 0;
 
 #if DEBUG
-			std::cout << "Init Simulation: " << std::flush;
+		std::cout << "Init Simulation: " << std::flush;
 #endif
-		cCommandQueue.enqueueNDRangeKernel(	cKernelInit,	// kernel
-											1,				// dimensions
-											NULL,			// global work offset
-											&cKernelInit_GlobalWorkGroupSize,
-											&cKernelInit_WorkGroupSize
-						);
+		cCommandQueue.enqueueNDRangeKernel(cKernelInit, // kernel
+				1, // dimensions
+				NULL, // global work offset
+				&cKernelInit_GlobalWorkGroupSize, &cKernelInit_WorkGroupSize);
 
 		cCommandQueue.enqueueBarrier();
 
 #if DEBUG
-			std::cout << "OK" << std::endl;
+		std::cout << "OK" << std::endl;
 #endif
 	}
 
@@ -633,40 +636,36 @@ public:
 #if DEBUG
 		std::cout << "--> Running Alpha kernel" << std::endl;
 #endif
-		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelAlpha,	// kernel
-				1,						// dimensions
-				NULL,					// global work offset
+		cCommandQueue.enqueueNDRangeKernel(
+				cLbmKernelAlpha, // kernel
+				1, // dimensions
+				NULL, // global work offset
 				&cLbmKernelAlpha_GlobalWorkGroupSize,
-				&cLbmKernelAlpha_WorkGroupSize
-		);
+				&cLbmKernelAlpha_WorkGroupSize);
 	}
 
 	void simulationStepBeta() {
 #if DEBUG
-			std::cout << "--> Running BETA kernel" << std::endl;
+		std::cout << "--> Running BETA kernel" << std::endl;
 #endif
-		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelBeta,	// kernel
-				1,						// dimensions
-				NULL,					// global work offset
+		cCommandQueue.enqueueNDRangeKernel(
+				cLbmKernelBeta, // kernel
+				1, // dimensions
+				NULL, // global work offset
 				&cLbmKernelBeta_GlobalWorkGroupSize,
-				&cLbmKernelBeta_WorkGroupSize
-		);
+				&cLbmKernelBeta_WorkGroupSize);
 	}
 
 	/**
 	 * start one simulation step (enqueue kernels)
 	 */
-	void simulationStep()
-	{
+	void simulationStep() {
 		/*
 		 * collision kernels are inserted as 1d kernels because they work cell wise without neighboring information
 		 */
-		if (simulation_step_counter & 1)
-		{
+		if (simulation_step_counter & 1) {
 			simulationStepAlpha();
-		}
-		else
-		{
+		} else {
 			simulationStepBeta();
 		}
 		cCommandQueue.enqueueBarrier();
@@ -677,218 +676,81 @@ public:
 	/**
 	 * wait until all kernels have finished
 	 */
-	void wait()
-	{
+	void wait() {
 		cCommandQueue.finish();
 	}
 
 	/**
 	 * store density distribution values to host memory
 	 */
-	void storeDensityDistribution(T *dst)
-	{
+	void storeDensityDistribution(T *dst) {
 		size_t byte_size = cMemDensityDistributions.getSize();
 
-		cCommandQueue.enqueueReadBuffer(	cMemDensityDistributions,
-							CL_TRUE,	// sync reading
-							0,
-							byte_size,
-							dst);
+		cCommandQueue.enqueueReadBuffer(cMemDensityDistributions, CL_TRUE, // sync reading
+				0, byte_size, dst);
 	}
 
-	void storeDensityDistribution(T *dst, CVector<3,int> &origin, CVector<3,int> &size)
-	{
+	void storeDensityDistribution(T *dst, CVector<3, int> &origin,
+			CVector<3, int> &size) {
 		CCL::CMem cBuffer;
-		cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(T)*size.elements()*SIZE_DD_HOST, NULL);
+		cBuffer.create(cContext, CL_MEM_READ_WRITE,
+				sizeof(T) * size.elements() * SIZE_DD_HOST, NULL);
 
-		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) // OpenCL 1.1 and later
-		{
+		if (_cl_version >= OPENCL_VERSION_1_1_0) // OpenCL 1.1 and later
+				{
 			// TODO: implement the clEnqueueReadBufferRect
-		}
-		else if ( _cl_version >= OPENCL_VERSION_1_0_0) // OpenCL 1.0 and later
-		{
-#if DEBUG
-			std::cout << "Runnig the CopyBufferRectKernel(setDensityDistribution)" << std::endl;
-#endif
+		} else if (_cl_version >= OPENCL_VERSION_1_0_0) // OpenCL 1.0 and later
+				{
 			for (int f = 0; f < SIZE_DD_HOST; f++) {
-				enqueueCopyRectKernel(
-										cMemDensityDistributions,
-										cBuffer,
-										f*this->domain_cells_count,
-										origin,
-										this->domain_cells,
-										f*size.elements(),
-										CVector<3,int>(0,0,0),
-										size,
-										size,
-										false
-										);
+				enqueueCopyRectKernel(cMemDensityDistributions, cBuffer,
+						f * this->domain_cells_count, origin,
+						this->domain_cells, f * size.elements(),
+						CVector<3, int>(0, 0, 0), size, size, false);
 			}
 			cCommandQueue.enqueueBarrier();
-		}
-		else {	// if nothing in this world works for you then use this method since it is very slow
-
-			const int NUM_CELLS_X = this->domain_cells[0];
-			const int NUM_CELLS_Y = this->domain_cells[1];
-			const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-
-			const int total_el = this->domain_cells_count;
-			const int total_block_el = size.elements();
-
-			size_t byte_size = size[0]*sizeof(T);
-			size_t current_src_offset;
-			size_t current_dst_offset = 0;
-			for (int k = 0 ; k < size[2]; k++ ) {
-				for (int j = 0; j < size[1]; j++ )
-				{
-					// cube position -> linear position
-					// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-					current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
-					for (int i = 0; i < SIZE_DD_HOST; i++) {
-						// copying fi components
-						cCommandQueue.enqueueCopyBuffer(cMemDensityDistributions,
-								cBuffer,
-								(current_src_offset + i * total_el)*sizeof(T),
-								(current_dst_offset + i * total_block_el)*sizeof(T),
-								byte_size
-						);
-					}
-					current_dst_offset += size[0];
-				}
-			}
-
 		}
 		clEnqueueBarrier(cCommandQueue.command_queue);
-		cCommandQueue.enqueueReadBuffer(	cBuffer,
-				CL_TRUE,	// sync reading
-				0,
-				cBuffer.getSize(),
-				dst);
+		cCommandQueue.enqueueReadBuffer(cBuffer, CL_TRUE, // sync reading
+				0, cBuffer.getSize(), dst);
 	}
 
-	void setDensityDistribution(T *src, CVector<3,int> &origin, CVector<3,int> &size)
-	{
+	void setDensityDistribution(T *src, CVector<3, int> &origin,
+			CVector<3, int> &size) {
 		CCL::CMem cBuffer;
-		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(T)*size.elements()*SIZE_DD_HOST, src);
+		cBuffer.create(cContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+				sizeof(T) * size.elements() * SIZE_DD_HOST, src);
 
-		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
+		if (_cl_version >= OPENCL_VERSION_1_1_0) {
 			// TODO: implement the clEnqueueWriteBufferRect
-		}
-		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
-		{
-#if DEBUG
-			std::cout << "Runnig the CopyBufferRectKernel(setDensityDistribution)" << std::endl;
-#endif
+		} else if (_cl_version >= OPENCL_VERSION_1_0_0) {
 			for (int f = 0; f < SIZE_DD_HOST; f++) {
-				enqueueCopyRectKernel(  cBuffer,
-										cMemDensityDistributions,
-										f*size.elements(),
-										CVector<3,int>(0,0,0),
-										size,
-										f*this->domain_cells_count,
-										origin,
-										this->domain_cells,
-										size,
-										false
-										);
+				enqueueCopyRectKernel(cBuffer, cMemDensityDistributions,
+						f * size.elements(), CVector<3, int>(0, 0, 0), size,
+						f * this->domain_cells_count, origin,
+						this->domain_cells, size, false);
 			}
 			cCommandQueue.enqueueBarrier();
 		}
-		else {	// if nothing in this world works for you then use this method since it is very slow
-			const int NUM_CELLS_X = this->domain_cells[0];
-			const int NUM_CELLS_Y = this->domain_cells[1];
-			const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-
-			const int total_el = this->domain_cells_count;
-			const int total_block_el = size.elements();
-
-			size_t byte_size = size[0]*sizeof(T);
-			size_t current_src_offset;
-			size_t current_dst_offset = 0;
-			for (int k = 0 ; k < size[2]; k++ ) {
-				for (int j = 0; j < size[1]; j++ )
-				{
-					// cube position -> linear position
-					// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-					current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
-					for (int i = 0; i < SIZE_DD_HOST; i++) {
-						// copying fi components
-						cCommandQueue.enqueueCopyBuffer(cBuffer,
-								cMemDensityDistributions,
-								(current_dst_offset + i * total_block_el)*sizeof(T),
-								(current_src_offset + i * total_el)*sizeof(T),
-								byte_size
-						);
-					}
-					current_dst_offset += size[0];
-				}
-			}
-			clEnqueueBarrier(cCommandQueue.command_queue);
-		}
 	}
 
-	void setDensityDistribution(T *src, CVector<3,int> &origin, CVector<3,int> &size, CVector<3,int> norm)
-	{
+	void setDensityDistribution(T *src, CVector<3, int> &origin,
+			CVector<3, int> &size, CVector<3, int> norm) {
 		CCL::CMem cBuffer;
-		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(T)*size.elements()*SIZE_DD_HOST, src);
+		cBuffer.create(cContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+				sizeof(T) * size.elements() * SIZE_DD_HOST, src);
 
-		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
+		if (_cl_version >= OPENCL_VERSION_1_1_0) {
 			// TODO: implement the clEnqueueWriteBufferRect
-		}
-		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
-		{
-#if DEBUG
-			std::cout << "Runnig the CopyBufferRectKernel(setDensityDistributionWithNorm)" << std::endl;
-#endif
+		} else if (_cl_version >= OPENCL_VERSION_1_0_0) {
 			for (int f = 0; f < SIZE_DD_HOST; f++) {
-				if( norm.dotProd(lbm_units[f]) > 0 ) {
-					enqueueCopyRectKernel(  cBuffer,
-											cMemDensityDistributions,
-											f*size.elements(),
-											CVector<3,int>(0,0,0),
-											size,
-											f*this->domain_cells_count,
-											origin,
-											this->domain_cells,
-											size,
-											false
-											);
+				if (norm.dotProd(lbm_units[f]) > 0) {
+					enqueueCopyRectKernel(cBuffer, cMemDensityDistributions,
+							f * size.elements(), CVector<3, int>(0, 0, 0), size,
+							f * this->domain_cells_count, origin,
+							this->domain_cells, size, false);
 				}
 			}
 			cCommandQueue.enqueueBarrier();
-		}
-		else {
-			const int NUM_CELLS_X = this->domain_cells[0];
-			const int NUM_CELLS_Y = this->domain_cells[1];
-			const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-
-			const int total_el = this->domain_cells_count;
-			const int total_block_el = size.elements();
-
-			size_t byte_size = size[0]*sizeof(T);
-			size_t current_src_offset;
-			size_t current_dst_offset = 0;
-			for (int k = 0 ; k < size[2]; k++ ) {
-				for (int j = 0; j < size[1]; j++ )
-				{
-					// cube position -> linear position
-					// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-					current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
-					for (int i = 0; i < SIZE_DD_HOST; i++) {
-						// copying fi components
-						if( norm.dotProd(lbm_units[i]) > 0 ) {
-							cCommandQueue.enqueueCopyBuffer(cBuffer,
-									cMemDensityDistributions,
-									(current_dst_offset + i * total_block_el)*sizeof(T),
-									(current_src_offset + i * total_el)*sizeof(T),
-									byte_size
-							);
-						}
-					}
-					current_dst_offset += size[0];
-				}
-			}
-			clEnqueueBarrier(cCommandQueue.command_queue);
 		}
 	}
 	/**
@@ -897,14 +759,10 @@ public:
 	 *
 	 * @param dst The buffer that will contain the return values
 	 */
-	void storeVelocity(T *dst)
-	{
+	void storeVelocity(T *dst) {
 		size_t byte_size = cMemVelocity.getSize();
-		cCommandQueue.enqueueReadBuffer(	cMemVelocity,
-							CL_TRUE,	// sync reading
-							0,
-							byte_size,
-							dst);
+		cCommandQueue.enqueueReadBuffer(cMemVelocity, CL_TRUE, // sync reading
+				0, byte_size, dst);
 	}
 
 	/**
@@ -914,82 +772,24 @@ public:
 	 * @param origin The origin point of data block
 	 * @param size The size of data block
 	 */
-	void storeVelocity(T* dst, CVector<3,int> &origin, CVector<3,int> &size ) {
+	void storeVelocity(T* dst, CVector<3, int> &origin, CVector<3, int> &size) {
 		CCL::CMem cBuffer;
-		cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(T)*size.elements()*3, NULL);
+		cBuffer.create(cContext, CL_MEM_READ_WRITE,
+				sizeof(T) * size.elements() * 3, NULL);
 
-		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
+		if (_cl_version >= OPENCL_VERSION_1_1_0) {
 			// TODO: implement the clEnqueueWriteBufferRect
-		}
-		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
-		{
-#if DEBUG
-			std::cout << "Running the CopyBufferRectKernel(storeVelocity)" << std::endl;
-#endif
+		} else if (_cl_version >= OPENCL_VERSION_1_0_0) {
 			for (int dim = 0; dim < 3; dim++) {
-				enqueueCopyRectKernel(  cMemVelocity,
-										cBuffer,
-										dim*this->domain_cells_count,
-										origin,
-										this->domain_cells,
-										dim*size.elements(),
-										CVector<3,int>(0,0,0),
-										size,
-										size,
-										false
-										);
+				enqueueCopyRectKernel(cMemVelocity, cBuffer,
+						dim * this->domain_cells_count, origin,
+						this->domain_cells, dim * size.elements(),
+						CVector<3, int>(0, 0, 0), size, size, false);
 			}
 			cCommandQueue.enqueueBarrier();
 		}
-		else {	// if nothing in this world works for you then use this method since it is very slow
-			const int NUM_CELLS_X = this->domain_cells[0];
-			const int NUM_CELLS_Y = this->domain_cells[1];
-			const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-
-			const int total_el = this->domain_cells_count;
-			const int total_block_el = size.elements();
-
-			size_t byte_size = size[0]*sizeof(T);
-			size_t current_src_offset;
-			size_t current_dst_offset = 0;
-			for (int k = 0 ; k < size[2]; k++ ) {
-				for (int j = 0; j < size[1]; j++ )
-				{
-					// cube position -> linear position
-					// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-					current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
-					// reading x components
-					cCommandQueue.enqueueCopyBuffer(cMemVelocity,
-							cBuffer,
-							current_src_offset*sizeof(T),
-							current_dst_offset*sizeof(T),
-							byte_size
-					);
-					// reading y components
-					cCommandQueue.enqueueCopyBuffer(cMemVelocity,
-							cBuffer,
-							(current_src_offset + total_el)*sizeof(T),
-							(current_dst_offset + total_block_el)*sizeof(T),
-							byte_size
-					);
-					// reading z components
-					cCommandQueue.enqueueCopyBuffer(cMemVelocity,
-							cBuffer,
-							(current_src_offset + 2*total_el)*sizeof(T),
-							(current_dst_offset + 2*total_block_el)*sizeof(T),
-							byte_size
-					);
-					current_dst_offset += size[0];
-				}
-
-			}
-			clEnqueueBarrier(cCommandQueue.command_queue);
-		}
-		cCommandQueue.enqueueReadBuffer(	cBuffer,
-				CL_TRUE,	// sync reading
-				0,
-				cBuffer.getSize(),
-				dst);
+		cCommandQueue.enqueueReadBuffer(cBuffer, CL_TRUE, // sync reading
+				0, cBuffer.getSize(), dst);
 	}
 
 	/**
@@ -999,77 +799,22 @@ public:
 	 * @param origin The origin point of data block
 	 * @param size The size of data block
 	 */
-	void setVelocity(T* src, CVector<3,int> &origin, CVector<3,int> &size ) {
+	void setVelocity(T* src, CVector<3, int> &origin, CVector<3, int> &size) {
 		CCL::CMem cBuffer;
-		cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(T)*size.elements()*3, src);
+		cBuffer.create(cContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+				sizeof(T) * size.elements() * 3, src);
 
-		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
+		if (_cl_version >= OPENCL_VERSION_1_1_0) {
 			// TODO: implement the clEnqueueWriteBufferRect
 
-		}
-		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
-		{
-#if DEBUG
-			std::cout << "Runnig the CopyBufferRectKernel(setVelocity)" << std::endl;
-#endif
-
+		} else if (_cl_version >= OPENCL_VERSION_1_0_0) {
 			for (int dim = 0; dim < 3; dim++) {
-				enqueueCopyRectKernel(  cBuffer,
-										cMemVelocity,
-										dim*size.elements(),
-										CVector<3,int>(0,0,0),
-										size,
-										dim*this->domain_cells_count,
-										origin,
-										this->domain_cells,
-										size,
-										false
-										);
+				enqueueCopyRectKernel(cBuffer, cMemVelocity,
+						dim * size.elements(), CVector<3, int>(0, 0, 0), size,
+						dim * this->domain_cells_count, origin,
+						this->domain_cells, size, false);
 			}
 			cCommandQueue.enqueueBarrier();
-		}
-		else {	// if nothing in this world works for you then use this method since it is very slow
-			const int NUM_CELLS_X = this->domain_cells[0];
-			const int NUM_CELLS_Y = this->domain_cells[1];
-			const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-
-			const int total_el = this->domain_cells_count;
-			const int total_block_el = size.elements();
-
-			size_t byte_size = size[0]*sizeof(T);
-			size_t current_src_offset;
-			size_t current_dst_offset = 0;
-			for (int k = 0 ; k < size[2]; k++ ) {
-				for (int j = 0; j < size[1]; j++ )
-				{
-					// cube position -> linear position
-					// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-					current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
-					// reading x components
-					cCommandQueue.enqueueCopyBuffer(cBuffer,
-							cMemVelocity,
-							current_dst_offset*sizeof(T),
-							current_src_offset*sizeof(T),
-							byte_size
-					);
-					// reading y components
-					cCommandQueue.enqueueCopyBuffer(cBuffer,
-							cMemVelocity,
-							(current_dst_offset + total_block_el)*sizeof(T),
-							(current_src_offset + total_el)*sizeof(T),
-							byte_size
-					);
-					// reading z components
-					cCommandQueue.enqueueCopyBuffer(cBuffer,
-							cMemVelocity,
-							(current_dst_offset + 2*total_block_el)*sizeof(T),
-							(current_src_offset + 2*total_el)*sizeof(T),
-							byte_size
-					);
-					current_dst_offset += size[0];
-				}
-			}
-			clEnqueueBarrier(cCommandQueue.command_queue);
 		}
 	}
 	/**
@@ -1077,15 +822,11 @@ public:
 	 *
 	 * @param dst The buffer that will contain the return values
 	 */
-	void storeDensity(T *dst)
-	{
+	void storeDensity(T *dst) {
 		size_t byte_size = cMemDensity.getSize();
 
-		cCommandQueue.enqueueReadBuffer(	cMemDensity,
-							CL_TRUE,	// sync reading
-							0,
-							byte_size,
-							dst);
+		cCommandQueue.enqueueReadBuffer(cMemDensity, CL_TRUE, // sync reading
+				0, byte_size, dst);
 	}
 
 	/**
@@ -1095,77 +836,35 @@ public:
 	 * @param origin The origin point of data block
 	 * @param size The size of data block
 	 */
-	void storeDensity(T *dst, CVector<3,int> &origin, CVector<3,int> &size) {
+	void storeDensity(T *dst, CVector<3, int> &origin, CVector<3, int> &size) {
 		CCL::CMem cBuffer;
-		cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(T)*size.elements(), NULL);
+		cBuffer.create(cContext, CL_MEM_READ_WRITE, sizeof(T) * size.elements(),
+				NULL);
 
-		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
-			// TODO: test this part
-			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
-			size_t host_origin[3] = {0,0,0};
-			size_t region[3] = {size[0], size[1], size[2]};
-			cCommandQueue.enqueueReadBufferRect(
-					cMemDensity,
-					CL_TRUE,
-					buffer_origin,
-					host_origin,
-					region,
-					this->domain_cells[0],
-					this->domain_cells[0]*this->domain_cells[1],
-					0,
-					0,
-					dst
-			);
+		if (_cl_version >= OPENCL_VERSION_1_1_0) {
+//			// TODO: test this part
+//			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
+//			size_t host_origin[3] = {0,0,0};
+//			size_t region[3] = {size[0], size[1], size[2]};
+//			cCommandQueue.enqueueReadBufferRect(
+//					cMemDensity,
+//					CL_TRUE,
+//					buffer_origin,
+//					host_origin,
+//					region,
+//					this->domain_cells[0],
+//					this->domain_cells[0]*this->domain_cells[1],
+//					0,
+//					0,
+//					dst
+//			);
+		} else if (_cl_version >= OPENCL_VERSION_1_0_0) {
+			enqueueCopyRectKernel(cMemDensity, cBuffer, 0, origin,
+					this->domain_cells, 0, CVector<3, int>(0, 0, 0), size,
+					size);
 		}
-		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
-		{
-#if DEBUG
-			std::cout << "Runnig the CopyBufferRectKernel(storeFlags)" << std::endl;
-#endif
-			enqueueCopyRectKernel(  cMemDensity,
-									cBuffer,
-									0,
-									origin,
-									this->domain_cells,
-									0,
-									CVector<3,int>(0,0,0),
-									size,
-									size
-									);
-		}
-		else {	// if nothing in this world works for you then use this method since it is very slow
-			const int NUM_CELLS_X = this->domain_cells[0];
-			const int NUM_CELLS_Y = this->domain_cells[1];
-
-			// cube position -> linear position
-			// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-
-			const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-
-			size_t byte_size = size[0]*sizeof(T);
-			size_t current_src_offset;
-			size_t current_dst_offset = 0;
-			for (int k = 0 ; k < size[2]; k++ ) {
-				for (int j = 0; j < size[1]; j++ )
-				{
-					current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
-					cCommandQueue.enqueueCopyBuffer(cMemDensity,
-							cBuffer,
-							current_src_offset*sizeof(T),
-							current_dst_offset*sizeof(T),
-							byte_size);
-
-					current_dst_offset += size[0];
-				}
-			}
-			clEnqueueBarrier(cCommandQueue.command_queue);
-
-		}
-		cCommandQueue.enqueueReadBuffer(	cBuffer,
-				CL_TRUE,	// sync reading
-				0,
-				cBuffer.getSize(),
-				dst);
+		cCommandQueue.enqueueReadBuffer(cBuffer, CL_TRUE, // sync reading
+				0, cBuffer.getSize(), dst);
 	}
 
 	/**
@@ -1175,273 +874,144 @@ public:
 	 * @param origin The origin point of data block
 	 * @param size The size of data block
 	 */
-	void setDensity(T *src, CVector<3,int> &origin, CVector<3,int> &size) {
-		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
-			// TODO: test this part
-			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
-			size_t host_origin[3] = {0,0,0};
-			size_t region[3] = {size[0], size[1], size[2]};
-			cCommandQueue.enqueueWriteBufferRect(
-					cMemDensity,
-					CL_TRUE,
-					buffer_origin,
-					host_origin,
-					region,
-					this->domain_cells[0],
-					this->domain_cells[0]*this->domain_cells[1],
-					0,
-					0,
-					src
-			);
-		}
-		else {
+	void setDensity(T *src, CVector<3, int> &origin, CVector<3, int> &size) {
+		if (_cl_version >= OPENCL_VERSION_1_1_0) {
+//			// TODO: test this part
+//			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
+//			size_t host_origin[3] = {0,0,0};
+//			size_t region[3] = {size[0], size[1], size[2]};
+//			cCommandQueue.enqueueWriteBufferRect(
+//					cMemDensity,
+//					CL_TRUE,
+//					buffer_origin,
+//					host_origin,
+//					region,
+//					this->domain_cells[0],
+//					this->domain_cells[0]*this->domain_cells[1],
+//					0,
+//					0,
+//					src
+//			);
+		} else if (_cl_version >= OPENCL_VERSION_1_0_0) {
 			CCL::CMem cBuffer;
-			cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR ,sizeof(T)*size.elements(), src);
-
-			if ( _cl_version >= OPENCL_VERSION_1_0_0)
-			{
-#if DEBUG
-				std::cout << "Runnig the CopyBufferRectKernel(setDensity)" << std::endl;
-#endif
-
-				enqueueCopyRectKernel(  cBuffer,
-						cMemDensity,
-						0,
-						CVector<3,int>(0,0,0),
-						size,
-						0,
-						origin,
-						this->domain_cells,
-						size
-				);
-			}
-			else {	// if nothing in this world works for you then use this method since it is very slow
-				const int NUM_CELLS_X = this->domain_cells[0];
-				const int NUM_CELLS_Y = this->domain_cells[1];
-				const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-
-				// cube position -> linear position
-				// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-
-				size_t byte_size = size[0]*sizeof(T);
-				size_t current_src_offset;
-				size_t current_dst_offset = 0;
-				for (int k = 0 ; k < size[2]; k++ ) {
-					for (int j = 0; j < size[1]; j++ )
-					{
-						current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
-						cCommandQueue.enqueueCopyBuffer(cBuffer,
-								cMemDensity,
-								current_dst_offset*sizeof(T),
-								current_src_offset*sizeof(T),
-								byte_size);
-
-						current_dst_offset += size[0];
-					}
-				}
-				clEnqueueBarrier(cCommandQueue.command_queue);
-			}
+			cBuffer.create(cContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+					sizeof(T) * size.elements(), src);
+			enqueueCopyRectKernel(cBuffer, cMemDensity, 0,
+					CVector<3, int>(0, 0, 0), size, 0, origin,
+					this->domain_cells, size);
 		}
 	}
-	void storeFlags(int *dst)
-	{
+
+	void storeFlags(int *dst) {
 		size_t byte_size = cMemDensity.getSize();
 
-		cCommandQueue.enqueueReadBuffer(	cMemCellFlags,
-							CL_TRUE,	// sync reading
-							0,
-							byte_size,
-							dst);
+		cCommandQueue.enqueueReadBuffer(cMemCellFlags, CL_TRUE, // sync reading
+				0, byte_size, dst);
 	}
 
-	void storeFlags(int *dst, CVector<3,int> &origin, CVector<3,int> &size ) {
-		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
-			// TODO: test this part
-			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
-			size_t host_origin[3] = {0,0,0};
-			size_t region[3] = {size[0], size[1], size[2]};
-			cCommandQueue.enqueueReadBufferRect(
-					cMemCellFlags,
-					CL_TRUE,
-					buffer_origin,
-					host_origin,
-					region,
-					this->domain_cells[0],
-					this->domain_cells[0]*this->domain_cells[1],
-					0,
-					0,
-					dst
-			);
-		}
-		else
-		{
+	void storeFlags(int *dst, CVector<3, int> &origin, CVector<3, int> &size) {
+		if (_cl_version >= OPENCL_VERSION_1_1_0) {
+//			// TODO: test this part
+//			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
+//			size_t host_origin[3] = {0,0,0};
+//			size_t region[3] = {size[0], size[1], size[2]};
+//			cCommandQueue.enqueueReadBufferRect(
+//					cMemCellFlags,
+//					CL_TRUE,
+//					buffer_origin,
+//					host_origin,
+//					region,
+//					this->domain_cells[0],
+//					this->domain_cells[0]*this->domain_cells[1],
+//					0,
+//					0,
+//					dst
+//			);
+		} else {
 			CCL::CMem cBuffer;
-			cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(int)*size.elements(), NULL);
+			cBuffer.create(cContext, CL_MEM_READ_WRITE,
+					sizeof(int) * size.elements(), NULL);
 
-			if ( _cl_version >= OPENCL_VERSION_1_0_0)
-			{
-#if DEBUG
-				std::cout << "Runnig the CopyBufferRectKernel(storeFlags)" << std::endl;
-#endif
-				enqueueCopyRectKernel(  cMemCellFlags,
-						cBuffer,
-						0,
-						origin,
-						this->domain_cells,
-						0,
-						CVector<3,int>(0,0,0),
-						size,
-						size
-				);
+			if (_cl_version >= OPENCL_VERSION_1_0_0) {
+				enqueueCopyRectKernel(cMemCellFlags, cBuffer, 0, origin,
+						this->domain_cells, 0, CVector<3, int>(0, 0, 0), size,
+						size);
 			}
-			else {	// if nothing in this world works for you then use this method since it is very slow
-				const int NUM_CELLS_X = this->domain_cells[0];
-				const int NUM_CELLS_Y = this->domain_cells[1];
-				const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-				size_t byte_size = size[0]*sizeof(int);
-				size_t current_src_offset;
-				size_t current_dst_offset = 0;
-				for (int k = 0 ; k < size[2]; k++ ) {
-					for (int j = 0; j < size[1]; j++ )
-					{
-						// cube position -> linear position
-						// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-						current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
-						cCommandQueue.enqueueCopyBuffer(cMemCellFlags,
-								cBuffer,
-								current_src_offset*sizeof(int),
-								current_dst_offset*sizeof(int),
-								byte_size);
-						current_dst_offset += size[0];
-					}
-				}
-				clEnqueueBarrier(cCommandQueue.command_queue);
-			}
-			cCommandQueue.enqueueReadBuffer(	cBuffer,
-					CL_TRUE,	// sync reading
-					0,
-					cBuffer.getSize(),
-					dst);
+			cCommandQueue.enqueueReadBuffer(cBuffer, CL_TRUE, // sync reading
+					0, cBuffer.getSize(), dst);
 		}
 	}
 
-	void setFlags(int *src, CVector<3,int> &origin, CVector<3,int> &size ) {
-		if ( _cl_version >= OPENCL_VERSION_1_1_0 )  // OpenCL 1.2 and later
-		{
-			// TODO: test this part
-			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
-			size_t host_origin[3] = {0,0,0};
-			size_t region[3] = {size[0], size[1], size[2]};
-			cCommandQueue.enqueueWriteBufferRect(
-					cMemCellFlags,
-					CL_TRUE,
-					buffer_origin,
-					host_origin,
-					region,
-					this->domain_cells[0],
-					this->domain_cells[0]*this->domain_cells[1],
-					0,
-					0,
-					src
-			);
-		}
-		else {
+	void setFlags(int *src, CVector<3, int> &origin, CVector<3, int> &size) {
+		if (_cl_version >= OPENCL_VERSION_1_1_0) // OpenCL 1.2 and later
+				{
+//			// TODO: test this part
+//			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
+//			size_t host_origin[3] = {0,0,0};
+//			size_t region[3] = {size[0], size[1], size[2]};
+//			cCommandQueue.enqueueWriteBufferRect(
+//					cMemCellFlags,
+//					CL_TRUE,
+//					buffer_origin,
+//					host_origin,
+//					region,
+//					this->domain_cells[0],
+//					this->domain_cells[0]*this->domain_cells[1],
+//					0,
+//					0,
+//					src
+//			);
+		} else {
 			CCL::CMem cBuffer;
-			cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(int)*size.elements(), src);
+			cBuffer.create(cContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+					sizeof(int) * size.elements(), src);
 
-			if ( _cl_version >= OPENCL_VERSION_1_0_0) // OpenCL 1.0 and later
-			{
-#if DEBUG
-				std::cout << "Runnig the CopyBufferRectKernel(setFlags)" << std::endl;
-#endif
-
-				enqueueCopyRectKernel(  cBuffer,
-						cMemCellFlags,
-						0,
-						CVector<3,int>(0,0,0),
-						size,
-						0,
-						origin,
-						this->domain_cells,
-						size
-				);
-			}
-			else {	// if nothing in this world works for you then use this method since it is very slow
-				const int NUM_CELLS_X = this->domain_cells[0];
-				const int NUM_CELLS_Y = this->domain_cells[1];
-				const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-				size_t byte_size = size[0]*sizeof(int);
-				size_t current_src_offset;
-				size_t current_dst_offset = 0;
-				for (int k = 0 ; k < size[2]; k++ ) {
-					for (int j = 0; j < size[1]; j++ )
+			if (_cl_version >= OPENCL_VERSION_1_0_0) // OpenCL 1.0 and later
 					{
-						// cube position -> linear position
-						// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-						current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
-						cCommandQueue.enqueueCopyBuffer(cBuffer,
-								cMemCellFlags,
-								current_dst_offset*sizeof(int),
-								current_src_offset*sizeof(int),
-								byte_size);
-						current_dst_offset += size[0];
-					}
-				}
-				clEnqueueBarrier(cCommandQueue.command_queue);
+				enqueueCopyRectKernel(cBuffer, cMemCellFlags, 0,
+						CVector<3, int>(0, 0, 0), size, 0, origin,
+						this->domain_cells, size);
 			}
 		}
 	}
 
 private:
-	void debugChar(CCL::CMem &cMem, size_t wrap_size = 20)
-	{
+	void debugChar(CCL::CMem &cMem, size_t wrap_size = 20) {
 		size_t char_size = cMem.getSize();
 		char *buffer = new char[char_size];
 
-		cCommandQueue.enqueueReadBuffer(	cMem,
-							CL_TRUE,	// sync reading
-							0,
-							char_size,
-							buffer);
+		cCommandQueue.enqueueReadBuffer(cMem, CL_TRUE, // sync reading
+				0, char_size, buffer);
 
-
-		for (size_t i = 0; i < char_size; i++)
-		{
-			if (i % wrap_size == 0)
-			{
+		for (size_t i = 0; i < char_size; i++) {
+			if (i % wrap_size == 0) {
 				std::cout << std::endl;
-				std::cout << (i/wrap_size) << ": ";
+				std::cout << (i / wrap_size) << ": ";
 			}
 
-			std::cout << (int)buffer[i] << " ";
+			std::cout << (int) buffer[i] << " ";
 		}
 
-		delete [] buffer;
+		delete[] buffer;
 	}
 
-	void debugFloat(CCL::CMem &cMem, size_t wrap_size = 20)
-	{
+	void debugFloat(CCL::CMem &cMem, size_t wrap_size = 20) {
 		size_t byte_size = cMem.getSize();
 		size_t T_size = byte_size / sizeof(T);
 
 		T *buffer = new T[T_size];
 
-		cCommandQueue.enqueueReadBuffer(	cMem,
-							CL_TRUE,	// sync reading
-							0,
-							byte_size,
-							buffer);
+		cCommandQueue.enqueueReadBuffer(cMem, CL_TRUE, // sync reading
+				0, byte_size, buffer);
 
 		std::streamsize ss = std::cout.precision();
 		std::cout.precision(4);
-		std::cout.setf(std::ios::fixed,std::ios::floatfield);
+		std::cout.setf(std::ios::fixed, std::ios::floatfield);
 
-		for (size_t i = 0; i < T_size; i++)
-		{
-			if (i % wrap_size == 0)
-			{
+		for (size_t i = 0; i < T_size; i++) {
+			if (i % wrap_size == 0) {
 				std::cout << std::endl;
-				std::cout << (i/wrap_size) << ": ";
+				std::cout << (i / wrap_size) << ": ";
 			}
 
 			std::cout << buffer[i] << " ";
@@ -1450,15 +1020,14 @@ private:
 		std::cout.precision(ss);
 		std::cout << std::resetiosflags(std::ios::fixed);
 
-		delete [] buffer;
+		delete[] buffer;
 	}
 
 	/**
 	 * debug handler to output some useful information
 	 */
 public:
-	void debug_print()
-	{
+	void debug_print() {
 		// read out DensityDistributions
 		std::cout << "DENSITY DISTRIBUTIONS:";
 		//debugFloat(cMemDensityDistributions, SIZE_DD_HOST);
@@ -1468,7 +1037,7 @@ public:
 		// read out Velocity
 		std::cout << std::endl;
 		std::cout << "VELOCITY:";
-		debugFloat(cMemVelocity, 4*3);
+		debugFloat(cMemVelocity, 4 * 3);
 		std::cout << std::endl;
 
 		// read out VelocityDensity
@@ -1480,7 +1049,7 @@ public:
 		// read out Flags
 		std::cout << std::endl;
 		std::cout << "FLAGS:";
-		debugChar(cMemCellFlags, 4*4);
+		debugChar(cMemCellFlags, 4 * 4);
 		std::cout << std::endl;
 	}
 
@@ -1488,8 +1057,8 @@ public:
 	 * debug density distributions (works only in linear mode!)
 	 * \param	dd_id	specifies the dd number
 	 */
-	void debugDD(size_t dd_id = 0, size_t wrap_size = 16, size_t empty_line = 16)
-	{
+	void debugDD(size_t dd_id = 0, size_t wrap_size = 16,
+			size_t empty_line = 16) {
 		CCL::CMem &cMem = cMemDensityDistributions;
 
 		size_t byte_size = cMem.getSize();
@@ -1497,34 +1066,27 @@ public:
 
 		T *buffer = new T[T_size];
 
-		cCommandQueue.enqueueReadBuffer(	cMem,
-							CL_TRUE,	// sync reading
-							0,
-							byte_size,
-							buffer);
+		cCommandQueue.enqueueReadBuffer(cMem, CL_TRUE, // sync reading
+				0, byte_size, buffer);
 
 		std::streamsize ss = std::cout.precision();
 		std::cout.precision(4);
-		std::cout.setf(std::ios::fixed,std::ios::floatfield);
+		std::cout.setf(std::ios::fixed, std::ios::floatfield);
 
-		size_t start = this->domain_cells.elements()*dd_id;
-		size_t end = this->domain_cells.elements()*(dd_id+1);
+		size_t start = this->domain_cells.elements() * dd_id;
+		size_t end = this->domain_cells.elements() * (dd_id + 1);
 
-		for (size_t i = start; i < end; i++)
-		{
+		for (size_t i = start; i < end; i++) {
 			if (empty_line != wrap_size)
-				if (i % empty_line == 0 && i != start)
-				{
+				if (i % empty_line == 0 && i != start) {
 					std::cout << std::endl;
 				}
 
-			if (i % wrap_size == 0)
-			{
+			if (i % wrap_size == 0) {
 				if (i != start)
 					std::cout << std::endl;
-				std::cout << (i/wrap_size) << ": ";
+				std::cout << (i / wrap_size) << ": ";
 			}
-
 
 			std::cout << buffer[i] << " ";
 		}
@@ -1533,29 +1095,27 @@ public:
 		std::cout << std::resetiosflags(std::ios::fixed);
 		std::cout << std::endl;
 
-		delete [] buffer;
+		delete[] buffer;
 	}
 
-
-	float getVelocityChecksum()
-	{
-		T *velocity = new T[this->domain_cells.elements()*3];
-		int *flags = new int[this->domain_cells.elements()*3];
+	float getVelocityChecksum() {
+		T *velocity = new T[this->domain_cells.elements() * 3];
+		int *flags = new int[this->domain_cells.elements() * 3];
 
 		storeVelocity(velocity);
 		storeFlags(flags);
 
 		T *velx = velocity;
-		T *vely = velocity+this->domain_cells.elements();
-		T *velz = velocity+this->domain_cells.elements()*2;
+		T *vely = velocity + this->domain_cells.elements();
+		T *velz = velocity + this->domain_cells.elements() * 2;
 
 		float checksum = 0;
 		for (int a = 0; a < this->domain_cells.elements(); a++)
 			if (flags[a] == LBM_FLAG_FLUID)
 				checksum += velx[a] + vely[a] + velz[a];
 
-		delete [] flags;
-		delete [] velocity;
+		delete[] flags;
+		delete[] velocity;
 
 		return checksum;
 	}

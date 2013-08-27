@@ -14,39 +14,24 @@ typedef float T;
  *
  */
 
-template <typename T>
+template<typename T>
 class CDomain {
-	int _UID; 					///< Unique id of the sub/domain
-	CVector<3,int> _size; 		///< Size of the domain
-	CVector<3,int> _origin_cell;		///< Origin of the domain points if it is part of a bigger domain
-	CVector<3,T> _length;		///< Length of the domain in each direction
+	int _UID; ///< Unique id of the sub/domain
+	CVector<3, int> _size; ///< Size of the domain
+	CVector<3, int> _origin_cell; ///< Origin of the domain points if it is part of a bigger domain
+	CVector<3, T> _length; ///< Length of the domain in each direction
 
 public:
-	CDomain(int UID, CVector<3,int> size, CVector<3,int> origin_cell, CVector<3,T> length ):
-				_UID(UID),
-				_size(size),
-				_origin_cell(origin_cell),
-				_length(length)
-	{
+	CDomain(int UID, CVector<3, int> size, CVector<3, int> origin_cell,
+			CVector<3, T> length) :
+			_UID(UID), _size(size), _origin_cell(origin_cell), _length(length) {
 
 	}
-	CDomain(int UID, CVector<3,int> size ):
-					_UID(UID),
-					_size(size)
-		{
-			_origin_cell = CVector<3,int>(0,0,0);
-			_length = CVector<3,T>(0.05,0.05,0.05);
-		}
-	// halo domain
-//	CDomain( CDomain &domain, int halo_size )
-//	{
-//		_UID = domain.getUid();
-//		_size[0] = domain.getSize()[0] + 2*halo_size;
-//		_size[1] = domain.getSize()[1] + 2*halo_size;
-//		_size[2] = domain.getSize()[2] + 2*halo_size;
-//		_origin_cell = domain.getOrigin();
-//		_length = domain.getLength();
-//	}
+	CDomain(int UID, CVector<3, int> size) :
+			_UID(UID), _size(size) {
+		_origin_cell = CVector<3, int>(0, 0, 0);
+		_length = CVector<3, T>(0.05, 0.05, 0.05);
+	}
 
 	~CDomain() {
 
