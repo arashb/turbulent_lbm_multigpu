@@ -1446,7 +1446,7 @@ public:
 
 	void computeNextStep(){
 #if DEBUG
-	  DEBUGPRINT("LOOP: %d\n", _simulation_step_counter);
+	  DEBUGPRINT("LOOP: %zd\n", _simulation_step_counter);
 #endif
 		if (_simulation_step_counter & 1)
 			simulationStepAlphaBoundary();

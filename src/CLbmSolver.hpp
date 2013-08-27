@@ -883,7 +883,7 @@ public:
 	  ss << "--> Running Alpha Rect kernel\t";
 	  ss << "ORIGIN: " << origin << "\tSIZE: " << size << std::endl; 
 	  std::string str = ss.str();
-	  DEBUGPRINT(str.c_str());
+	  DEBUGPRINT("%s",str.c_str());
 #endif
 		cLbmKernelAlphaRect.setArg(9, origin[0]);
 		cLbmKernelAlphaRect.setArg(10, origin[1]);
@@ -911,7 +911,7 @@ public:
 	  ss << "--> Running Alpha Rect kernel\t";
 	  ss << "ORIGIN: " << origin << "\tSIZE: " << size << std::endl; 
 	  std::string str = ss.str();
-	  DEBUGPRINT(str.c_str());
+	  DEBUGPRINT("%s",str.c_str());
 #endif
 		cLbmKernelAlphaRect.setArg(9, origin[0]);
 		cLbmKernelAlphaRect.setArg(10, origin[1]);
@@ -968,7 +968,7 @@ public:
 	  ss << "--> Running Beta Rect kernel\t";
 	  ss << "ORIGIN: " << origin << "\tSIZE: " << size << std::endl; 
 	  std::string str = ss.str();
-	  DEBUGPRINT(str.c_str());
+	  DEBUGPRINT("%s",str.c_str());
 #endif
 			cLbmKernelBetaRect.setArg(9, origin[0]);
 			cLbmKernelBetaRect.setArg(10, origin[1]);
@@ -996,7 +996,7 @@ public:
 	  ss << "--> Running Beta Rect kernel\t";
 	  ss << "ORIGIN: " << origin << "\tSIZE: " << size << std::endl; 
 	  std::string str = ss.str();
-	  DEBUGPRINT(str.c_str());
+	  DEBUGPRINT("%s",str.c_str());
 
 #endif
 			cLbmKernelBetaRect.setArg(9, origin[0]);
