@@ -920,7 +920,6 @@ public:
 		lGlobalSize[0] = size[0];
 		lGlobalSize[1] = size[1];
 		lGlobalSize[2] = size[2];
-		// TODO: think about finding the optimized local work group size
 		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelAlphaRect,	// kernel
                                         3,						// dimensions
                                         NULL,					// global work offset
@@ -1006,7 +1005,6 @@ public:
 			lGlobalSize[0] = size[0];
 			lGlobalSize[1] = size[1];
 			lGlobalSize[2] = size[2];
-			// TODO: think about finding the optimized local work group size
 		cCommandQueue.enqueueNDRangeKernel(	cLbmKernelBetaRect,	// kernel
 				3,						// dimensions
 				NULL,					// global work offset
@@ -1067,38 +1065,6 @@ public:
 			}
 			cCommandQueue.enqueueBarrier();
 		}
-		else {	// if nothing in this world works for you then use this method since it is very slow
-
-			const int NUM_CELLS_X = this->domain_cells[0];
-			const int NUM_CELLS_Y = this->domain_cells[1];
-			const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-
-			const int total_el = this->domain_cells_count;
-			const int total_block_el = size.elements();
-
-			size_t byte_size = size[0]*sizeof(T);
-			size_t current_src_offset;
-			size_t current_dst_offset = 0;
-			for (int k = 0 ; k < size[2]; k++ ) {
-				for (int j = 0; j < size[1]; j++ )
-				{
-					// cube position -> linear position
-					// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-					current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
-					for (int i = 0; i < SIZE_DD_HOST; i++) {
-						// copying fi components
-						cCommandQueue.enqueueCopyBuffer(cMemDensityDistributions,
-								cBuffer,
-								(current_src_offset + i * total_el)*sizeof(T),
-								(current_dst_offset + i * total_block_el)*sizeof(T),
-								byte_size
-						);
-					}
-					current_dst_offset += size[0];
-				}
-			}
-
-		}
 		clEnqueueBarrier(cCommandQueue.command_queue);
 		cCommandQueue.enqueueReadBuffer(	cBuffer,
                                       CL_TRUE,	// sync reading
@@ -1110,8 +1076,7 @@ public:
 void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size,
                               cl_uint num_events_in_wait_list,
                               const cl_event *event_wait_list,
-                              cl_event *event
-)
+                              cl_event *event)
 	{
 		CCL::CMem cBuffer;
 		cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(T)*size.elements()*SIZE_DD_HOST, NULL);
@@ -1292,50 +1257,6 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 			}
 			cCommandQueue.enqueueBarrier();
 		}
-		else {	// if nothing in this world works for you then use this method since it is very slow
-			const int NUM_CELLS_X = this->domain_cells[0];
-			const int NUM_CELLS_Y = this->domain_cells[1];
-			const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-
-			const int total_el = this->domain_cells_count;
-			const int total_block_el = size.elements();
-
-			size_t byte_size = size[0]*sizeof(T);
-			size_t current_src_offset;
-			size_t current_dst_offset = 0;
-			for (int k = 0 ; k < size[2]; k++ ) {
-				for (int j = 0; j < size[1]; j++ )
-				{
-					// cube position -> linear position
-					// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-					current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
-					// reading x components
-					cCommandQueue.enqueueCopyBuffer(cMemVelocity,
-							cBuffer,
-							current_src_offset*sizeof(T),
-							current_dst_offset*sizeof(T),
-							byte_size
-					);
-					// reading y components
-					cCommandQueue.enqueueCopyBuffer(cMemVelocity,
-							cBuffer,
-							(current_src_offset + total_el)*sizeof(T),
-							(current_dst_offset + total_block_el)*sizeof(T),
-							byte_size
-					);
-					// reading z components
-					cCommandQueue.enqueueCopyBuffer(cMemVelocity,
-							cBuffer,
-							(current_src_offset + 2*total_el)*sizeof(T),
-							(current_dst_offset + 2*total_block_el)*sizeof(T),
-							byte_size
-					);
-					current_dst_offset += size[0];
-				}
-
-			}
-			clEnqueueBarrier(cCommandQueue.command_queue);
-		}
 		cCommandQueue.enqueueReadBuffer(	cBuffer,
 				CL_TRUE,	// sync reading
 				0,
@@ -1374,49 +1295,6 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 										);
 			}
 			cCommandQueue.enqueueBarrier();
-		}
-		else {	// if nothing in this world works for you then use this method since it is very slow
-			const int NUM_CELLS_X = this->domain_cells[0];
-			const int NUM_CELLS_Y = this->domain_cells[1];
-			const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-
-			const int total_el = this->domain_cells_count;
-			const int total_block_el = size.elements();
-
-			size_t byte_size = size[0]*sizeof(T);
-			size_t current_src_offset;
-			size_t current_dst_offset = 0;
-			for (int k = 0 ; k < size[2]; k++ ) {
-				for (int j = 0; j < size[1]; j++ )
-				{
-					// cube position -> linear position
-					// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-					current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z;
-					// reading x components
-					cCommandQueue.enqueueCopyBuffer(cBuffer,
-							cMemVelocity,
-							current_dst_offset*sizeof(T),
-							current_src_offset*sizeof(T),
-							byte_size
-					);
-					// reading y components
-					cCommandQueue.enqueueCopyBuffer(cBuffer,
-							cMemVelocity,
-							(current_dst_offset + total_block_el)*sizeof(T),
-							(current_src_offset + total_el)*sizeof(T),
-							byte_size
-					);
-					// reading z components
-					cCommandQueue.enqueueCopyBuffer(cBuffer,
-							cMemVelocity,
-							(current_dst_offset + 2*total_block_el)*sizeof(T),
-							(current_src_offset + 2*total_el)*sizeof(T),
-							byte_size
-					);
-					current_dst_offset += size[0];
-				}
-			}
-			clEnqueueBarrier(cCommandQueue.command_queue);
 		}
 	}
 	/**
@@ -1477,34 +1355,6 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 									size
 									);
 		}
-		else {	// if nothing in this world works for you then use this method since it is very slow
-			const int NUM_CELLS_X = this->domain_cells[0];
-			const int NUM_CELLS_Y = this->domain_cells[1];
-
-			// cube position -> linear position
-			// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-
-			const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-
-			size_t byte_size = size[0]*sizeof(T);
-			size_t current_src_offset;
-			size_t current_dst_offset = 0;
-			for (int k = 0 ; k < size[2]; k++ ) {
-				for (int j = 0; j < size[1]; j++ )
-				{
-					current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
-					cCommandQueue.enqueueCopyBuffer(cMemDensity,
-							cBuffer,
-							current_src_offset*sizeof(T),
-							current_dst_offset*sizeof(T),
-							byte_size);
-
-					current_dst_offset += size[0];
-				}
-			}
-			clEnqueueBarrier(cCommandQueue.command_queue);
-
-		}
 		cCommandQueue.enqueueReadBuffer(	cBuffer,
 				CL_TRUE,	// sync reading
 				0,
@@ -1522,67 +1372,38 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 	void setDensity(T *src, CVector<3,int> origin, CVector<3,int> size) {
 		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
 			// TODO: test this part
-			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
-			size_t host_origin[3] = {0,0,0};
-			size_t region[3] = {size[0], size[1], size[2]};
-			cCommandQueue.enqueueWriteBufferRect(
-					cMemDensity,
-					CL_TRUE,
-					buffer_origin,
-					host_origin,
-					region,
-					this->domain_cells[0],
-					this->domain_cells[0]*this->domain_cells[1],
-					0,
-					0,
-					src
-			);
+//			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
+//			size_t host_origin[3] = {0,0,0};
+//			size_t region[3] = {size[0], size[1], size[2]};
+//			cCommandQueue.enqueueWriteBufferRect(
+//					cMemDensity,
+//					CL_TRUE,
+//					buffer_origin,
+//					host_origin,
+//					region,
+//					this->domain_cells[0],
+//					this->domain_cells[0]*this->domain_cells[1],
+//					0,
+//					0,
+//					src
+//			);
 		}
-		else {
+		else if ( _cl_version >= OPENCL_VERSION_1_0_0) {
 			CCL::CMem cBuffer;
 			cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR ,sizeof(T)*size.elements(), src);
-
-			if ( _cl_version >= OPENCL_VERSION_1_0_0)
-			{
-				enqueueCopyRectKernel(  cBuffer,
-						cMemDensity,
-						0,
-						CVector<3,int>(0,0,0),
-						size,
-						0,
-						origin,
-						this->domain_cells,
-						size
-				);
-			}
-			else {	// if nothing in this world works for you then use this method since it is very slow
-				const int NUM_CELLS_X = this->domain_cells[0];
-				const int NUM_CELLS_Y = this->domain_cells[1];
-				const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-
-				// cube position -> linear position
-				// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-
-				size_t byte_size = size[0]*sizeof(T);
-				size_t current_src_offset;
-				size_t current_dst_offset = 0;
-				for (int k = 0 ; k < size[2]; k++ ) {
-					for (int j = 0; j < size[1]; j++ )
-					{
-						current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
-						cCommandQueue.enqueueCopyBuffer(cBuffer,
-								cMemDensity,
-								current_dst_offset*sizeof(T),
-								current_src_offset*sizeof(T),
-								byte_size);
-
-						current_dst_offset += size[0];
-					}
-				}
-				clEnqueueBarrier(cCommandQueue.command_queue);
-			}
+			enqueueCopyRectKernel(  cBuffer,
+					cMemDensity,
+					0,
+					CVector<3,int>(0,0,0),
+					size,
+					0,
+					origin,
+					this->domain_cells,
+					size
+			);
 		}
 	}
+
 	void storeFlags(int *dst)
 	{
 		size_t byte_size = cMemDensity.getSize();
@@ -1597,63 +1418,37 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 	void storeFlags(int *dst, CVector<3,int> origin, CVector<3,int> size ) {
 		if ( _cl_version >= OPENCL_VERSION_1_1_0 ) {
 			// TODO: test this part
-			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
-			size_t host_origin[3] = {0,0,0};
-			size_t region[3] = {size[0], size[1], size[2]};
-			cCommandQueue.enqueueReadBufferRect(
-					cMemCellFlags,
-					CL_TRUE,
-					buffer_origin,
-					host_origin,
-					region,
-					this->domain_cells[0],
-					this->domain_cells[0]*this->domain_cells[1],
-					0,
-					0,
-					dst
-			);
+//			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
+//			size_t host_origin[3] = {0,0,0};
+//			size_t region[3] = {size[0], size[1], size[2]};
+//			cCommandQueue.enqueueReadBufferRect(
+//					cMemCellFlags,
+//					CL_TRUE,
+//					buffer_origin,
+//					host_origin,
+//					region,
+//					this->domain_cells[0],
+//					this->domain_cells[0]*this->domain_cells[1],
+//					0,
+//					0,
+//					dst
+//			);
 		}
-		else
+		else if ( _cl_version >= OPENCL_VERSION_1_0_0)
 		{
 			CCL::CMem cBuffer;
 			cBuffer.create(cContext,CL_MEM_READ_WRITE,sizeof(int)*size.elements(), NULL);
+			enqueueCopyRectKernel(  cMemCellFlags,
+					cBuffer,
+					0,
+					origin,
+					this->domain_cells,
+					0,
+					CVector<3,int>(0,0,0),
+					size,
+					size
+			);
 
-			if ( _cl_version >= OPENCL_VERSION_1_0_0)
-			{
-				enqueueCopyRectKernel(  cMemCellFlags,
-						cBuffer,
-						0,
-						origin,
-						this->domain_cells,
-						0,
-						CVector<3,int>(0,0,0),
-						size,
-						size
-				);
-			}
-			else {	// if nothing in this world works for you then use this method since it is very slow
-				const int NUM_CELLS_X = this->domain_cells[0];
-				const int NUM_CELLS_Y = this->domain_cells[1];
-				const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-				size_t byte_size = size[0]*sizeof(int);
-				size_t current_src_offset;
-				size_t current_dst_offset = 0;
-				for (int k = 0 ; k < size[2]; k++ ) {
-					for (int j = 0; j < size[1]; j++ )
-					{
-						// cube position -> linear position
-						// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-						current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
-						cCommandQueue.enqueueCopyBuffer(cMemCellFlags,
-								cBuffer,
-								current_src_offset*sizeof(int),
-								current_dst_offset*sizeof(int),
-								byte_size);
-						current_dst_offset += size[0];
-					}
-				}
-				clEnqueueBarrier(cCommandQueue.command_queue);
-			}
 			cCommandQueue.enqueueReadBuffer(	cBuffer,
 					CL_TRUE,	// sync reading
 					0,
@@ -1665,63 +1460,37 @@ void storeDensityDistribution(T *dst, CVector<3,int> origin, CVector<3,int> size
 	void setFlags(int *src, CVector<3,int> origin, CVector<3,int> size ) {
 		if ( _cl_version >= OPENCL_VERSION_1_1_0 )  // OpenCL 1.2 and later
 		{
-			// TODO: test this part
-			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
-			size_t host_origin[3] = {0,0,0};
-			size_t region[3] = {size[0], size[1], size[2]};
-			cCommandQueue.enqueueWriteBufferRect(
-					cMemCellFlags,
-					CL_TRUE,
-					buffer_origin,
-					host_origin,
-					region,
-					this->domain_cells[0],
-					this->domain_cells[0]*this->domain_cells[1],
-					0,
-					0,
-					src
-			);
+//			// TODO: test this part
+//			size_t buffer_origin[3] = {origin[0], origin[1], origin[2]};
+//			size_t host_origin[3] = {0,0,0};
+//			size_t region[3] = {size[0], size[1], size[2]};
+//			cCommandQueue.enqueueWriteBufferRect(
+//					cMemCellFlags,
+//					CL_TRUE,
+//					buffer_origin,
+//					host_origin,
+//					region,
+//					this->domain_cells[0],
+//					this->domain_cells[0]*this->domain_cells[1],
+//					0,
+//					0,
+//					src
+//			);
 		}
-		else {
+		else if ( _cl_version >= OPENCL_VERSION_1_0_0)  { // OpenCL 1.0 and later
 			CCL::CMem cBuffer;
 			cBuffer.create(cContext,CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,sizeof(int)*size.elements(), src);
 
-			if ( _cl_version >= OPENCL_VERSION_1_0_0) // OpenCL 1.0 and later
-			{
-				enqueueCopyRectKernel(  cBuffer,
-						cMemCellFlags,
-						0,
-						CVector<3,int>(0,0,0),
-						size,
-						0,
-						origin,
-						this->domain_cells,
-						size
-				);
-			}
-			else {	// if nothing in this world works for you then use this method since it is very slow
-				const int NUM_CELLS_X = this->domain_cells[0];
-				const int NUM_CELLS_Y = this->domain_cells[1];
-				const int NUM_CELLS_SLICE_Z = NUM_CELLS_X*NUM_CELLS_Y;
-				size_t byte_size = size[0]*sizeof(int);
-				size_t current_src_offset;
-				size_t current_dst_offset = 0;
-				for (int k = 0 ; k < size[2]; k++ ) {
-					for (int j = 0; j < size[1]; j++ )
-					{
-						// cube position -> linear position
-						// origin_offest = x + y*DOMIAN_CELLS_X + z*(DOMAIN_CELLS_X*DOMAIN_CELLS_Y)
-						current_src_offset = origin[0] + (origin[1] + j)*NUM_CELLS_X + (origin[2] + k )*NUM_CELLS_SLICE_Z ;
-						cCommandQueue.enqueueCopyBuffer(cBuffer,
-								cMemCellFlags,
-								current_dst_offset*sizeof(int),
-								current_src_offset*sizeof(int),
-								byte_size);
-						current_dst_offset += size[0];
-					}
-				}
-				clEnqueueBarrier(cCommandQueue.command_queue);
-			}
+			enqueueCopyRectKernel(  cBuffer,
+					cMemCellFlags,
+					0,
+					CVector<3,int>(0,0,0),
+					size,
+					0,
+					origin,
+					this->domain_cells,
+					size
+			);
 		}
 	}
 

@@ -41,7 +41,6 @@ public:
 	int loops;
 	bool do_validate;
 
-	// TODO: lbm_opencl_number_of_registers_list, lbm_opencl_number_of_threads_list
 	std::list<int> lbm_opencl_number_of_registers_list;
 	std::list<int> lbm_opencl_number_of_threads_list;
 

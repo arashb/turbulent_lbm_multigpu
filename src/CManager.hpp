@@ -128,7 +128,6 @@ public:
 		_lbm_controller = new CController<T>(id,*subdomain,BC);
 
 		// Initializing the Controller's communication classes based on the already computed boundary conditions
-		// TODO: add the halo region size to send/recv sizes
 		if (BC[0][0] == FLAG_GHOST_LAYER) {
 			int comm_destination = id - 1;
 			CVector<3,int> send_size(1,_subdomain_size[1],_subdomain_size[2]);
@@ -183,11 +182,10 @@ public:
 			CVector<3,int> comm_direction(0,0,-1);
 			_lbm_controller->addCommunication(MPI_COMM_DIRECTION_Z_1, new CComm<T>(comm_destination,send_size,recv_size,send_origin,recv_origin,comm_direction));
 		}
-		// TODO: this geometry is hard coded right now. reimplement it in general form.
+
 		if ( ny == _subdomain_nums[1] - 1) {
 			_lbm_controller->setGeometry();
 		}
-
 	}
 
 	void startSimulation() {
