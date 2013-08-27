@@ -172,7 +172,6 @@ public:
 
 			std::cout << "-------------------------------------------" << std::endl;
 
-//			std::cout << "viscocity: " << viscosity << std::endl;
 			std::cout << "tau: " << tau << std::endl;
 			std::cout << "inv_trt_tau: " << inv_trt_tau << std::endl;
 			std::cout << "inv_tau: " << inv_tau << std::endl;

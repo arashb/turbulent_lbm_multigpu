@@ -144,13 +144,14 @@ const char* get_string_direction(MPI_COMM_DIRECTION direction) {
 
 
 
-static const char * mpiGetErrorString(cl_int errorNum)
-{
-	switch(errorNum)
-	{
-		case MPI_SUCCESS:		  return "CL_SUCCESS";
-    case MPI_ERR_REQUEST: return "MPI_ERR_REQUEST";
-    case MPI_ERR_ARG:     return "MPI_ERR_ARG";
+static const char * mpiGetErrorString(cl_int errorNum) {
+	switch (errorNum) {
+	case MPI_SUCCESS:
+		return "CL_SUCCESS";
+	case MPI_ERR_REQUEST:
+		return "MPI_ERR_REQUEST";
+	case MPI_ERR_ARG:
+		return "MPI_ERR_ARG";
 	}
 	return "UNKNOWN";
 }
