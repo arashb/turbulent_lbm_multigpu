@@ -1,0 +1,626 @@
+#include "src/cl_programs/lbm_header.h"
+
+#define GRAVITATION	0
+
+
+/**
+ * COLLISION AND PROPAGATION KERNEL - ALPHA type
+ *
+ * \param dd	density distributions
+ * \param flags	flags of cells
+ */
+__kernel void lbm_kernel_alpha(
+			__global T *global_dd,		// density distributions
+			__global const int *flag_array,	// flags
+			__global T *velocity,		// velocities
+			__global T *density,		// densities
+			__const T inv_tau,
+			__const T gravitation_x,
+			__const T gravitation_y,
+			__const T gravitation_z,
+			__const T drivenCavityVelocity			// velocity parameters for modification of density distributions
+		)
+{
+	const size_t gid = get_global_id(0);
+
+	if (gid >= GLOBAL_WORK_GROUP_SIZE)
+		return;
+
+	// load cell type flag
+	int flag = flag_array[gid];
+	if 	(flag == FLAG_GHOST_LAYER)
+		return;
+	/**
+	 * we use a pointer instead of accessing the array directly
+	 * first this reduces the number of use registers (according to profiling information)
+	 * secondly the program runs faster and we can use more threads
+	 */
+
+	// pointer to density distributions
+	__global T *current_dds = &global_dd[gid];
+
+	// velocity
+	T velocity_x, velocity_y, velocity_z;
+
+	// density distributions
+	T dd0, dd1, dd2, dd3, dd4, dd5, dd6, dd7, dd8, dd9, dd10, dd11, dd12, dd13, dd14, dd15, dd16, dd17, dd18;
+
+	// density
+	T rho;
+
+	/*
+	 * we have to sum the densities up in a specific order.
+	 * otherwise it seems that we run into numerical errors.
+	 */
+
+	// +++++++++++
+	// +++ DD0 +++
+	// +++++++++++
+	//
+	// 0-3: f(1,0,0), f(-1,0,0),  f(0,1,0),  f(0,-1,0)
+	dd0 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho = dd0;
+	velocity_x = dd0;
+	dd1 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd1;
+	velocity_x -= dd1;
+
+	dd2 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd2;
+	velocity_y = dd2;
+	dd3 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd3;
+	velocity_y -= dd3;
+
+	// +++++++++++
+	// +++ DD1 +++
+	// +++++++++++
+	//
+	// 4-7: f(1,1,0), f(-1,-1,0), f(1,-1,0), f(-1,1,0)
+	dd4 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd4;
+	velocity_x += dd4;
+	velocity_y += dd4;
+	dd5 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd5;
+	velocity_x -= dd5;
+	velocity_y -= dd5;
+
+	dd6 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd6;
+	velocity_x += dd6;
+	velocity_y -= dd6;
+	dd7 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd7;
+	velocity_x -= dd7;
+	velocity_y += dd7;
+
+	// +++++++++++
+	// +++ DD2 +++
+	// +++++++++++
+	//
+	// 8-11: f(1,0,1), f(-1,0,-1), f(1,0,-1), f(-1,0,1)
+	dd8 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd8;
+	velocity_x += dd8;
+	velocity_z = dd8;
+	dd9 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd9;
+	velocity_x -= dd9;
+	velocity_z -= dd9;
+
+	dd10 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd10;
+	velocity_x += dd10;
+	velocity_z -= dd10;
+	dd11 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd11;
+	velocity_x -= dd11;
+	velocity_z += dd11;
+
+	// +++++++++++
+	// +++ DD3 +++
+	// +++++++++++
+
+	// dd3: f(0,1,1), f(0,-1,-1), f(0,1,-1), f(0,-1,1)
+	dd12 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd12;
+	velocity_y += dd12;
+	velocity_z += dd12;
+	dd13 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd13;
+	velocity_y -= dd13;
+	velocity_z -= dd13;
+
+	dd14 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd14;
+	velocity_y += dd14;
+	velocity_z -= dd14;
+	dd15 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd15;
+	velocity_y -= dd15;
+	velocity_z += dd15;
+
+	// +++++++++++
+	// +++ DD4 +++
+	// +++++++++++
+	//
+	// dd4: f(0,0,1), f(0,0,-1),  f(0,0,0),  (not used)
+	dd16 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd16;
+	velocity_z += dd16;
+	dd17 = *current_dds;		current_dds += DOMAIN_CELLS;
+	rho += dd17;
+	velocity_z -= dd17;
+	dd18 = *current_dds;
+	rho += dd18;
+
+//	rho *= (float)(flag != FLAG_OBSTACLE);
+
+
+	// to add something to a pointer is faster than subtracting it.
+	// thus we restart here with pointer to dd0
+	current_dds = &global_dd[gid];
+
+	/**
+	 * instead of storing the density distributions after modification,
+	 * we store it during the modifications to hide memory waiting stalls
+	 */
+
+	T vel2;		// vel*vel
+	T vela2;
+	T vela_velb;
+	T tau = 1.0f/inv_tau;
+#define tmp	rho
+
+
+	T dd_param;	// modified rho as temporary variable
+	switch(flag)
+	{
+		case FLAG_FLUID:	// this is the whole collision operator
+			// computing the total relaxation time for BGK-Smagorinsky turbulent model
+
+			vel2 = velocity_x*velocity_x + velocity_y*velocity_y + velocity_z*velocity_z;
+			dd_param = rho - (T)(3.0f/2.0f)*(vel2);
+
+			// f1neq
+			vela2 = velocity_x*velocity_x;
+			T f1neq = (eq_dd_a1(velocity_x, vela2, dd_param) - dd1);
+			// f0neq
+			T f0neq = (eq_dd_a0(velocity_x, vela2, dd_param) - dd0);
+
+			// f3neq
+			vela2 = velocity_y*velocity_y;
+			T f3neq = (eq_dd_a1(velocity_y, vela2, dd_param) - dd3);
+			// f2neq
+			T f2neq = (eq_dd_a0(velocity_y, vela2, dd_param) - dd2);
+
+
+#define vela_velb_2	vela2
+			/***********************
+			 * DD1
+			 ***********************/
+			vela_velb = velocity_x+velocity_y;
+			vela_velb_2 = vela_velb*vela_velb;
+
+			// f5neq
+			T f5neq = (eq_dd5(vela_velb, vela_velb_2, dd_param) - dd5);
+			// f4neq
+			T f4neq = (eq_dd4(vela_velb, vela_velb_2, dd_param) - dd4);
+
+
+			vela_velb = velocity_x-velocity_y;
+			vela_velb_2 = vela_velb*vela_velb;
+
+			// f7neq
+			T f7neq = (eq_dd5(vela_velb, vela_velb_2, dd_param) - dd7);
+			// f6neq
+			T f6neq = (eq_dd4(vela_velb, vela_velb_2, dd_param) - dd6);
+
+
+			vela_velb = velocity_x+velocity_z;
+			vela_velb_2 = vela_velb*vela_velb;
+
+			// f9neq
+			T f9neq = (eq_dd5(vela_velb, vela_velb_2, dd_param) - dd9);
+			// f8neq
+			T f8neq = (eq_dd4(vela_velb, vela_velb_2, dd_param) - dd8);
+
+
+			vela_velb = velocity_x-velocity_z;
+			vela_velb_2 = vela_velb*vela_velb;
+
+			// f11neq
+			T f11neq = (eq_dd5(vela_velb, vela_velb_2, dd_param) - dd11);
+			// f10neq
+			T f10neq = (eq_dd4(vela_velb, vela_velb_2, dd_param) - dd10);
+
+
+			vela_velb = velocity_y+velocity_z;
+			vela_velb_2 = vela_velb*vela_velb;
+
+			// f13neq
+			T f13neq = (eq_dd5(vela_velb, vela_velb_2, dd_param) - dd13);
+			// f12neq
+			T f12neq = (eq_dd4(vela_velb, vela_velb_2, dd_param) - dd12);
+
+
+			vela_velb = velocity_y-velocity_z;
+			vela_velb_2 = vela_velb*vela_velb;
+
+			// f15neq
+			T f15neq = (eq_dd5(vela_velb, vela_velb_2, dd_param) - dd15);
+			// f14neq
+			T f14neq = (eq_dd4(vela_velb, vela_velb_2, dd_param) - dd14);
+
+#undef vela_velb_2
+			vela2 = velocity_z*velocity_z;
+
+			// f17neq
+			T f17neq = (eq_dd_a1(velocity_z, vela2, dd_param) - dd17);
+			// f16neq
+			T f16neq = (eq_dd_a0(velocity_z, vela2, dd_param) - dd16);
+
+			// f18neq
+			T f18neq = (eq_dd18(dd_param) - dd18);
+
+
+
+			T Q11 = -1*(1*f0neq + 1*f1neq + /*0*f2neq + 0*f3neq +*/
+				  1*f4neq + 1*f5neq + 1*f6neq + 1*f7neq +
+				  1*f8neq + 1*f9neq + 1*f10neq + 1*f11neq /*+
+				  0*f12neq + 0*f13neq + 0*f14neq + 0*f15neq +
+				  0*f16neq + 0*f17neq + 0*f18neq*/);
+			T Q12 = -1*(/*0*f0neq + 0*f1neq + 0*f2neq + 0*f3neq +*/
+					1*f4neq + 1*f5neq + (-1)*f6neq + (-1)*f7neq /*+
+					0*f8neq + 0*f9neq + 0*f10neq + 0*f11neq +
+					0*f12neq + 0*f13neq + 0*f14neq + 0*f15neq +
+					0*f16neq + 0*f17neq + 0*f18neq*/);
+			T Q13 = -1*(/*0*f0neq + 0*f1neq + 0*f2neq + 0*f3neq +
+					0*f4neq + 0*f5neq + 0*f6neq + 0*f7neq +*/
+					1*f8neq + 1*f9neq + (-1)*f10neq + (-1)*f11neq /*+
+					0*f12neq + 0*f13neq + 0*f14neq + 0*f15neq +
+					0*f16neq + 0*f17neq + 0*f18neq*/);
+			T Q21 = Q12;
+			T Q22 = -1*(/*0*f0neq + 0*f1neq +*/ 1*f2neq + 1*f3neq +
+					1*f4neq + 1*f5neq + 1*f6neq + 1*f7neq + /*
+					0*f8neq + 0*f9neq + 0*f10neq + 0*f11neq + */
+					1*f12neq + 1*f13neq + 1*f14neq + 1*f15neq /*+
+					0*f16neq + 0*f17neq + 0*f18neq*/);
+			T Q23 = -1*(/*0*f0neq + 0*f1neq + 0*f2neq + 0*f3neq +
+					0*f4neq + 0*f5neq + 0*f6neq + 0*f7neq +
+					0*f8neq + 0*f9neq + 0*f10neq + 0*f11neq + */
+					1*f12neq + 1*f13neq + (-1)*f14neq + (-1)*f15neq /*+
+					0*f16neq + 0*f17neq + 0*f18neq*/);
+			T Q31 = Q13;//f0neq + f1neq + f2neq + f3neq + f4neq + f5neq + f6neq + f7neq + f8neq + f9neq + f10neq + f11neq + f12neq + f13neq + f14neq + f15neq + f16neq + f17neq + f18neq;
+			T Q32 = Q23;//f0neq + f1neq + f2neq + f3neq + f4neq + f5neq + f6neq + f7neq + f8neq + f9neq + f10neq + f11neq + f12neq + f13neq + f14neq + f15neq + f16neq + f17neq + f18neq;
+			T Q33 = -1*(/*0*f0neq + 0*f1neq + 0*f2neq + 0*f3neq +
+					0*f4neq + 0*f5neq + 0*f6neq + 0*f7neq + */
+					1*f8neq + 1*f9neq + 1*f10neq + 1*f11neq +
+					1*f12neq + 1*f13neq + 1*f14neq + 1*f15neq +
+					1*f16neq + 1*f17neq /* + 0*f18neq*/);
+
+			T QQ = Q11*Q11 + Q12*Q12 + Q13*Q13 + Q21*Q21 + Q22*Q22 + Q23*Q23 + Q31*Q31 * Q32*Q32 + Q33*Q33;
+			T tau_total = 0.5f * ( tau + sqrt( tau*tau + (18.0f*1.4142f*SMAGORINSKY_CONST*SMAGORINSKY_CONST*sqrt(QQ))/(1.0f/*rho * dt*dt *c*c*c*c */) ));
+			T inv_tau_total = 1.0f / tau_total;
+
+			// comment this part after testing
+//			vel2 = velocity_x*velocity_x + velocity_y*velocity_y + velocity_z*velocity_z;
+//			dd_param = rho - (T)(3.0f/2.0f)*(vel2);
+
+			tmp = gravitation_x*(T)(1.0f/18.0f)*rho;
+			//vela2 = velocity_x*velocity_x;
+			dd1 += inv_tau_total*f1neq;
+			dd1 -= tmp;
+			*current_dds = dd1;		current_dds += DOMAIN_CELLS;
+
+			dd0 += inv_tau_total*f0neq;
+			dd0 += tmp;
+			*current_dds = dd0;		current_dds += DOMAIN_CELLS;
+
+			tmp = gravitation_y*(T)(-1.0f/18.0f)*rho;
+			//vela2 = velocity_y*velocity_y;
+			dd3 += inv_tau_total*f3neq;
+			dd3 -= tmp;
+			*current_dds = dd3;		current_dds += DOMAIN_CELLS;
+
+			dd2 += inv_tau_total*f2neq;
+			dd2 += tmp;
+			*current_dds = dd2;		current_dds += DOMAIN_CELLS;
+
+//
+//#define vela_velb_2	vela2
+//			/***********************
+//			 * DD1
+//			 ***********************/
+//			vela_velb = velocity_x+velocity_y;
+//			vela_velb_2 = vela_velb*vela_velb;
+
+			tmp = (gravitation_x - gravitation_y)*(T)(1.0f/36.0f)*rho;
+
+			dd5 += inv_tau_total*f5neq;
+			dd5 -= tmp;
+			*current_dds = dd5;		current_dds += DOMAIN_CELLS;
+
+			dd4 += inv_tau_total*f4neq;
+			dd4 += tmp;
+			*current_dds = dd4;		current_dds += DOMAIN_CELLS;
+
+//			vela_velb = velocity_x-velocity_y;
+//			vela_velb_2 = vela_velb*vela_velb;
+			tmp = (gravitation_x + gravitation_y)*(T)(1.0f/36.0f)*rho;
+			dd7 += inv_tau_total*f7neq;
+			dd7 -= tmp;
+			*current_dds = dd7;		current_dds += DOMAIN_CELLS;
+
+			dd6 += inv_tau_total*f6neq;
+			dd6 += tmp;
+			*current_dds = dd6;		current_dds += DOMAIN_CELLS;
+
+//			/***********************
+//			 * DD2
+//			 ***********************/
+//			vela_velb = velocity_x+velocity_z;
+//			vela_velb_2 = vela_velb*vela_velb;
+			tmp = (gravitation_x + gravitation_z)*(T)(1.0f/36.0f)*rho;
+
+			dd9 += inv_tau_total*f9neq;
+			dd9 -= tmp;
+			*current_dds = dd9;		current_dds += DOMAIN_CELLS;
+
+			dd8 += inv_tau_total*f8neq;
+			dd8 += tmp;
+			*current_dds = dd8;		current_dds += DOMAIN_CELLS;
+
+			tmp = (gravitation_x - gravitation_z)*(T)(1.0f/36.0f)*rho;
+//			vela_velb = velocity_x-velocity_z;
+//			vela_velb_2 = vela_velb*vela_velb;
+			dd11 += inv_tau_total*f11neq;
+			dd11 -= tmp;
+			*current_dds = dd11;		current_dds += DOMAIN_CELLS;
+
+			dd10 += inv_tau_total*f10neq;
+			dd10 += tmp;
+			*current_dds = dd10;		current_dds += DOMAIN_CELLS;
+
+			/***********************
+			 * DD3
+			 ***********************/
+//			vela_velb = velocity_y+velocity_z;
+//			vela_velb_2 = vela_velb*vela_velb;
+
+			tmp = (gravitation_z - gravitation_y)*(T)(1.0f/36.0f)*rho;
+			dd13 += inv_tau_total*f13neq;
+			dd13 -= tmp;
+			*current_dds = dd13;		current_dds += DOMAIN_CELLS;
+
+			dd12 += inv_tau_total*f12neq;
+			dd12 += tmp;
+			*current_dds = dd12;		current_dds += DOMAIN_CELLS;
+
+//			vela_velb = velocity_y-velocity_z;
+//			vela_velb_2 = vela_velb*vela_velb;
+			tmp = (gravitation_z + gravitation_y)*(T)(-1.0f/36.0f)*rho;
+
+			dd15 += inv_tau_total*f15neq;
+			dd15 -= tmp;
+			*current_dds = dd15;		current_dds += DOMAIN_CELLS;
+
+			dd14 += inv_tau_total*f14neq;
+			dd14 += tmp;
+			*current_dds = dd14;		current_dds += DOMAIN_CELLS;
+
+//#undef vela_velb_2
+			/***********************
+			 * DD4
+			 ***********************/
+//			vela2 = velocity_z*velocity_z;
+
+			tmp = gravitation_z*(T)(1.0f/18.0f)*rho;
+			dd17 += inv_tau_total*f17neq;
+			dd17 -= tmp;
+			*current_dds = dd17;		current_dds += DOMAIN_CELLS;
+
+			dd16 += inv_tau_total*f16neq;
+			dd16 += tmp;
+			*current_dds = dd16;		current_dds += DOMAIN_CELLS;
+
+			dd18 += inv_tau_total*f18neq;
+			*current_dds = dd18;
+
+			break;
+
+		case FLAG_OBSTACLE:	// in case of an obstacle, we bounce back the values
+
+			/**
+			 * if we are using only bounce back method, it's not necessary to write back the results.
+			 * we even wouldn't need to read the density distribution values.
+			 */
+#if 0
+			// use simple bounce back
+			*current_dds = dd0;		current_dds += DOMAIN_CELLS;
+			*current_dds = dd1;		current_dds += DOMAIN_CELLS;
+			*current_dds = dd2;		current_dds += DOMAIN_CELLS;
+			*current_dds = dd3;		current_dds += DOMAIN_CELLS;
+
+			*current_dds = dd4;		current_dds += DOMAIN_CELLS;
+			*current_dds = dd5;		current_dds += DOMAIN_CELLS;
+			*current_dds = dd6;		current_dds += DOMAIN_CELLS;
+			*current_dds = dd7;		current_dds += DOMAIN_CELLS;
+
+			*current_dds = dd8;		current_dds += DOMAIN_CELLS;
+			*current_dds = dd9;		current_dds += DOMAIN_CELLS;
+			*current_dds = dd10;		current_dds += DOMAIN_CELLS;
+			*current_dds = dd11;		current_dds += DOMAIN_CELLS;
+
+			*current_dds = dd12;		current_dds += DOMAIN_CELLS;
+			*current_dds = dd13;		current_dds += DOMAIN_CELLS;
+			*current_dds = dd14;		current_dds += DOMAIN_CELLS;
+			*current_dds = dd15;		current_dds += DOMAIN_CELLS;
+
+			*current_dds = dd16;		current_dds += DOMAIN_CELLS;
+			*current_dds = dd17;		current_dds += DOMAIN_CELLS;
+			*current_dds = dd18;
+#endif
+
+#if STORE_VELOCITY
+			velocity_x = 0.0f;
+			velocity_y = 0.0f;
+			velocity_z = 0.0f;
+#endif
+			break;
+
+		case FLAG_VELOCITY_INJECTION:	// this flag specifies the injection area of the fluid
+			velocity_x = drivenCavityVelocity;
+			velocity_y = 0;
+			velocity_z = 0;
+
+			rho = 1.0f;
+
+			vel2 = velocity_x*velocity_x + velocity_y*velocity_y + velocity_z*velocity_z;
+			dd_param = rho - (T)(3.0f/2.0f)*(vel2);
+
+			/***********************
+			 * DD0
+			 ***********************/
+			vela2 = velocity_x*velocity_x;
+			tmp = gravitation_x*(T)(1.0f/18.0f)*rho;
+
+			dd1 = eq_dd_a1(velocity_x, vela2, dd_param);
+			dd1 -= tmp;
+			*current_dds = dd1;		current_dds += DOMAIN_CELLS;
+
+			dd0 = eq_dd_a0(velocity_x, vela2, dd_param);
+			dd0 += tmp;
+			*current_dds = dd0;		current_dds += DOMAIN_CELLS;
+
+			vela2 = velocity_y*velocity_y;
+			tmp = gravitation_y*(T)(-1.0f/18.0f)*rho;
+
+			dd3 = eq_dd_a1(velocity_y, vela2, dd_param);
+			dd3 -= tmp;
+			*current_dds = dd3;		current_dds += DOMAIN_CELLS;
+
+			dd2 = eq_dd_a0(velocity_y, vela2, dd_param);
+			dd2 += tmp;
+			*current_dds = dd2;		current_dds += DOMAIN_CELLS;
+
+
+#define vela_velb_2	vela2
+			/***********************
+			 * DD1
+			 ***********************/
+			vela_velb = velocity_x+velocity_y;
+			vela_velb_2 = vela_velb*vela_velb;
+			tmp = (gravitation_x - gravitation_y)*(T)(1.0f/36.0f)*rho;
+
+			dd5 = eq_dd5(vela_velb, vela_velb_2, dd_param);
+			dd5 -= tmp;
+			*current_dds = dd5;		current_dds += DOMAIN_CELLS;
+
+			dd4 = eq_dd4(vela_velb, vela_velb_2, dd_param);
+			dd4 += tmp;
+			*current_dds = dd4;		current_dds += DOMAIN_CELLS;
+
+			vela_velb = velocity_x-velocity_y;
+			vela_velb_2 = vela_velb*vela_velb;
+			tmp = (gravitation_x + gravitation_y)*(T)(1.0f/36.0f)*rho;
+
+			dd7 = eq_dd5(vela_velb, vela_velb_2, dd_param);
+			dd7 -= tmp;
+			*current_dds = dd7;		current_dds += DOMAIN_CELLS;
+
+			dd6 = eq_dd4(vela_velb, vela_velb_2, dd_param);
+			dd6 += tmp;
+			*current_dds = dd6;		current_dds += DOMAIN_CELLS;
+
+			/***********************
+			 * DD2
+			 ***********************/
+			vela_velb = velocity_x+velocity_z;
+			vela_velb_2 = vela_velb*vela_velb;
+			tmp = (gravitation_x + gravitation_z)*(T)(1.0f/36.0f)*rho;
+
+			dd9 = eq_dd5(vela_velb, vela_velb_2, dd_param);
+			dd9 -= tmp;
+			*current_dds = dd9;		current_dds += DOMAIN_CELLS;
+
+			dd8 = eq_dd4(vela_velb, vela_velb_2, dd_param);
+			dd8 += tmp;
+			*current_dds = dd8;		current_dds += DOMAIN_CELLS;
+
+			vela_velb = velocity_x-velocity_z;
+			vela_velb_2 = vela_velb*vela_velb;
+			tmp = (gravitation_x - gravitation_z)*(T)(1.0f/36.0f)*rho;
+
+			dd11 = eq_dd5(vela_velb, vela_velb_2, dd_param);
+			dd11 -= tmp;
+			*current_dds = dd11;		current_dds += DOMAIN_CELLS;
+
+			dd10 = eq_dd4(vela_velb, vela_velb_2, dd_param);
+			dd10 += tmp;
+			*current_dds = dd10;		current_dds += DOMAIN_CELLS;
+
+			/***********************
+			 * DD3
+			 ***********************/
+			vela_velb = velocity_y+velocity_z;
+			vela_velb_2 = vela_velb*vela_velb;
+			tmp = (gravitation_z - gravitation_y)*(T)(1.0f/36.0f)*rho;
+
+			dd13 = eq_dd5(vela_velb, vela_velb_2, dd_param);
+			dd13 -= tmp;
+			*current_dds = dd13;		current_dds += DOMAIN_CELLS;
+
+			dd12 = eq_dd4(vela_velb, vela_velb_2, dd_param);
+			dd12 += tmp;
+			*current_dds = dd12;		current_dds += DOMAIN_CELLS;
+
+			vela_velb = velocity_y-velocity_z;
+			vela_velb_2 = vela_velb*vela_velb;
+			tmp = (gravitation_z + gravitation_y)*(T)(-1.0f/36.0f)*rho;
+
+			dd15 = eq_dd5(vela_velb, vela_velb_2, dd_param);
+			dd15 -= tmp;
+			*current_dds = dd15;		current_dds += DOMAIN_CELLS;
+
+			dd14 = eq_dd4(vela_velb, vela_velb_2, dd_param);
+			dd14 += tmp;
+			*current_dds = dd14;		current_dds += DOMAIN_CELLS;
+#undef vela_velb_2
+
+			/***********************
+			 * DD4
+			 ***********************/
+			vela2 = velocity_z*velocity_z;
+
+			tmp = gravitation_z*(T)(1.0f/18.0f)*rho;
+			dd17 = eq_dd_a1(velocity_z, vela2, dd_param);
+			dd17 -= tmp;
+			*current_dds = dd17;		current_dds += DOMAIN_CELLS;
+
+			dd16 = eq_dd_a0(velocity_z, vela2, dd_param);
+			dd16 += tmp;
+			*current_dds = dd16;		current_dds += DOMAIN_CELLS;
+
+			dd18 = eq_dd18(dd_param);
+			*current_dds = dd18;
+			break;
+
+		case (FLAG_GHOST_LAYER):
+				break;
+	}
+
+#if STORE_VELOCITY
+	// store velocity
+	current_dds = &velocity[gid];
+	*current_dds = velocity_x;	current_dds += DOMAIN_CELLS;
+	*current_dds = velocity_y;	current_dds += DOMAIN_CELLS;
+	*current_dds = velocity_z;
+#endif
+
+#if STORE_DENSITY
+	// store density (not necessary)
+	density[gid] = rho;
+#endif
+}

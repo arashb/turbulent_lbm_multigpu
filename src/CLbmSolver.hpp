@@ -475,10 +475,10 @@ public:
 		CCL::CProgram cProgramAlpha;
 		cProgramAlpha.load(cContext,
 				cl_program_defines.str() + cProgramDefinesPostfixString,
-				"src/cl_programs/lbm_alpha.cl");
+				"src/cl_programs/lbm_alpha_turbulent.cl");
 		cProgramAlpha.build(cDevice, cProgramCompileOptionsString.c_str());
 		if (cProgramAlpha.error()) {
-			error << "failed to compile lbm_alpha.cl" << CError::endl;
+			error << "failed to compile lbm_alpha_turbulent.cl" << CError::endl;
 			error << cProgramAlpha.error.getString() << CError::endl;
 			return;
 		}
@@ -512,10 +512,10 @@ public:
 		CCL::CProgram cProgramBeta;
 		cProgramBeta.load(cContext,
 				cl_program_defines.str() + cProgramDefinesPostfixString,
-				"src/cl_programs/lbm_beta.cl");
+				"src/cl_programs/lbm_beta_turbulent.cl");
 		cProgramBeta.build(cDevice, cProgramCompileOptionsString.c_str());
 		if (cProgramBeta.error()) {
-			error << "failed to compile lbm_beta.cl" << CError::endl;
+			error << "failed to compile lbm_beta_turbulent.cl" << CError::endl;
 			error << cProgramBeta.error.getString() << CError::endl;
 
 			return;

@@ -429,7 +429,7 @@ public:
 		for (int i = 0; i < loops; i++) {
 			computeNextStep();
 			//simulation
-			if (ConfigSingleton::Instance()->do_visualization)
+			if (ConfigSingleton::Instance()->do_visualization && (i % 50 == 0))
 				cLbmVisualization->render(i);
 		}
 		cLbmPtr->wait();

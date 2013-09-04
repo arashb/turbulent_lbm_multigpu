@@ -50,6 +50,8 @@
 #define DELTA_POS_Z		(DOMAIN_SLICE_CELLS)
 #define DELTA_NEG_Z		(DOMAIN_CELLS-DOMAIN_SLICE_CELLS)
 
+#define SMAGORINSKY_CONST	0.1f
+
 #include "src/cl_programs/wrap.h"
 
 /**

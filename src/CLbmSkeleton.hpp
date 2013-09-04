@@ -158,7 +158,7 @@ public:
 
 		updateValues(true);
 
-		if (debug)
+		if (!debug)
 		{
 			std::cout << "-------------------------------------------" << std::endl;
 			std::cout << "dim domain cells: " << domain_cells << std::endl;
