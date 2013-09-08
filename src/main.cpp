@@ -332,7 +332,7 @@ int main(int argc, char** argv)
 				CVector<3,int> local_origin(1,1,1);
 				controller->getSolver()->storeVelocity(local_data, local_origin, local_size_without_halo);
 				MPI_Send(local_size, 3, MPI_INT, num_procs -1, 0, MPI_COMM_WORLD);
-				MPI_Send(local_data, local_size_without_halo.elements(), MPI_FLOAT, num_procs -1, 1, MPI_COMM_WORLD );
+				MPI_Send(local_data, local_size_without_halo.elements()*3, MPI_FLOAT, num_procs -1, 1, MPI_COMM_WORLD );
 				delete[] local_data;
 			}
 
@@ -345,7 +345,7 @@ int main(int argc, char** argv)
 			MPI_Recv(local_size, 3, MPI_INT, VALIDATION_RANK, 0, MPI_COMM_WORLD, &stat1);
 			CVector<3,int> local_size_without_halo(local_size[0], local_size[1], local_size[2]);
 			T* local_data = new T[local_size_without_halo.elements()*3];
-			MPI_Recv(local_data,local_size_without_halo.elements(),MPI_FLOAT, VALIDATION_RANK, 1, MPI_COMM_WORLD, &stat2 );
+			MPI_Recv(local_data,local_size_without_halo.elements()*3,MPI_FLOAT, VALIDATION_RANK, 1, MPI_COMM_WORLD, &stat2 );
 
 			//	until here is correct
 			//	creating the correct domain size for the case that there is only one domain.
@@ -384,7 +384,7 @@ int main(int argc, char** argv)
 
 			std::cout << "PROC. RANK: " << my_rank << " VALIDATION SIZE: " << validation_domain_size << std::endl;
 			// comparing local and global data
-			double tolerance = 1.0e-7;
+			double tolerance = 1.0e-15;
 			int error_counter = 0;
 			for ( int i = 0; i < local_size_without_halo.elements()*3; i++)
 			{
