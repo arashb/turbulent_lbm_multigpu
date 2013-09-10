@@ -211,6 +211,7 @@ class CController
 				ConfigSingleton::Instance()->do_visualization
 						|| ConfigSingleton::Instance()->debug_mode,
 				ConfigSingleton::Instance()->timestep,
+				 ConfigSingleton::Instance()->drivenCavityVelocity,
 				ConfigSingleton::Instance()->lbm_opencl_number_of_threads_list, // p_lbm_opencl_number_of_work_items_list,
 				ConfigSingleton::Instance()->lbm_opencl_number_of_threads_list);
 
@@ -429,7 +430,7 @@ public:
 		for (int i = 0; i < loops; i++) {
 			computeNextStep();
 			//simulation
-			if (ConfigSingleton::Instance()->do_visualization)
+			if (ConfigSingleton::Instance()->do_visualization && (i %  100 == 0))
 				cLbmVisualization->render(i);
 		}
 		cLbmPtr->wait();

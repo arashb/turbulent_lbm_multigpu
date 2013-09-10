@@ -45,7 +45,7 @@ public:
 	CDomain<T> domain;
 	CVector<3,int> domain_cells;	///< available simulation cells in each dimension
 	int domain_cells_count;			///< overall number of simulation cells
-
+	CVector<4, T> d_drivenCavityVelocity;
 //protected:
 	// input values
 	T d_domain_x_length;		/**< domain length in x direction (meters)
@@ -63,12 +63,14 @@ public:
 	T d_cell_length;			///< length of cell
 	T d_timestep;				///< timestep
 
+	T d_reynolds;
 	// simulation values (parametrized dimensionless)
 //	T viscosity;				///< dimensionless viscosity of fluid
 	T tau;						///< dimensionless tau for collision operator
 	T inv_tau;					///< inverse tau
 	T inv_trt_tau;				///< inverse two time relaxation model tau
 
+	CVector<4, T> drivenCavityVelocity;
 	CVector<3,T> gravitation;	///< gravitation vector
 
 	T max_sim_gravitation_length;	///< maximum length of dimensionless gravitation vector to restrict maximum force acting on fluid
@@ -147,6 +149,7 @@ public:
 
 		domain_cells_count = domain_cells.elements();
 
+
 		d_viscosity = p_d_viscosity;
 		mass_exchange_factor = p_mass_exchange_factor;
 
@@ -157,8 +160,10 @@ public:
 		tau = p_tau;
 
 		updateValues(true);
+		drivenCavityVelocity = d_drivenCavityVelocity * d_timestep;// / d_cell_length ;// / d_domain_x_length;
+		d_reynolds = d_domain_x_length*d_drivenCavityVelocity[0] / d_viscosity;
 
-		if (debug)
+#if DEBUG
 		{
 			std::cout << "-------------------------------------------" << std::endl;
 			std::cout << "dim domain cells: " << domain_cells << std::endl;
@@ -169,7 +174,9 @@ public:
 			std::cout << "dim viscocity: " << d_viscosity << std::endl;
 			std::cout << "dim gravitation: " << d_gravitation << std::endl;
 			std::cout << "dim timestep: " << d_timestep << std::endl;
-
+#endif
+			std::cout << "dim reynolds number: " << d_reynolds << std::endl;
+#if DEBUG
 			std::cout << "-------------------------------------------" << std::endl;
 
 //			std::cout << "viscocity: " << viscosity << std::endl;
@@ -179,14 +186,15 @@ public:
 			std::cout << "gravitation: " << gravitation << std::endl;
 			std::cout << "-------------------------------------------" << std::endl;
 		}
+#endif
 	}
 
 	/**
 	 * default constructor: initialize only debug variable, use init(...) for further initialization
 	 */
-	CLbmSkeleton(CDomain<T> _domain, bool p_debug = false): domain(_domain)
-	{
-		debug = p_debug;
+	//CLbmSkeleton(CDomain<T> _domain, bool p_debug = false): domain(_domain)
+	CLbmSkeleton(CDomain<T> _domain, CVector<4, T> _drivenCavityVelocity) :
+			domain(_domain), d_drivenCavityVelocity(_drivenCavityVelocity) {
 	}
 };
 
