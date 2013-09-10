@@ -30,7 +30,7 @@ public:
 	// physics configuration data
 	CVector<3,T> gravitation;		///< Specify the gravitation vector
 	T viscosity;
-
+	CVector<4, T> drivenCavityVelocity;
 	// device configuration data
 	size_t computation_kernel_count;
 	int device_nr;
@@ -83,6 +83,7 @@ public:
 		std::cout <<  "PHYSICS: " << std::endl;
 		std::cout <<  "	    VISCOSITY: " <<  viscosity << std::endl;
 		std::cout <<  "	  GRAVITATION: " <<  gravitation<< std::endl;
+		std::cout <<  "	   CAVITY VEL: " <<  drivenCavityVelocity << std::endl;
 		std::cout <<  "GRID: " << std::endl;
 		std::cout <<  "	  DOMAIN_SIZE: " <<  domain_size << std::endl;
 		std::cout <<  "	SUBDOMIAN_NUM: " <<  subdomain_num<< std::endl;
@@ -113,6 +114,12 @@ private:
 		gravitation[0] = atof(child_one->FirstChildElement( "gravitation" )->FirstChildElement( "x" )->GetText());
 		gravitation[1] = atof(child_one->FirstChildElement( "gravitation" )->FirstChildElement( "y" )->GetText());
 		gravitation[2] = atof(child_one->FirstChildElement( "gravitation" )->FirstChildElement( "z" )->GetText());
+
+		// cavity velocity
+		drivenCavityVelocity[0] = atof(child_one->FirstChildElement( "cavity-velocity" )->FirstChildElement( "x" )->GetText());
+		drivenCavityVelocity[1] = atof(child_one->FirstChildElement( "cavity-velocity" )->FirstChildElement( "y" )->GetText());
+		drivenCavityVelocity[2] = atof(child_one->FirstChildElement( "cavity-velocity" )->FirstChildElement( "z" )->GetText());
+		drivenCavityVelocity[3] = atof(child_one->FirstChildElement( "cavity-velocity" )->FirstChildElement( "w" )->GetText());
 	}
 	void interpret_grid_data(const txml::XMLNode* root) {
 		const txml::XMLNode* child_two = root->FirstChildElement(TAG_NAME_CHILD_TWO);

@@ -224,12 +224,13 @@ public:
 			size_t p_computation_kernel_count,
 			//bool p_debug,
 			bool p_store_velocity, bool p_store_density, T p_d_timestep,
-
+			CVector<4, T>& _drivenCavityVelocity,
 			std::list<int> &p_lbm_opencl_number_of_work_items_list, ///< list with number of threads for each successively created kernel
 			std::list<int> &p_lbm_opencl_number_of_registers_list ///< list with number of registers for each thread threads for each successively created kernel
 			) :
-			CLbmSkeleton<T>(CDomain<T>(domain)), drivenCavityVelocity(100.0, 0,
-					0, 1), _UID(UID), cCommandQueue(p_cCommandQueue), cContext(
+			CLbmSkeleton<T>(CDomain<T>(domain), _drivenCavityVelocity), //drivenCavityVelocity(100.0, 0,0, 1),
+			drivenCavityVelocity(_drivenCavityVelocity),
+			_UID(UID), cCommandQueue(p_cCommandQueue), cContext(
 					p_cContext), cDevice(p_cDevice), cDeviceInfo(p_cDevice), computation_kernel_count(
 					p_computation_kernel_count), lbm_opencl_number_of_work_items_list(
 					p_lbm_opencl_number_of_work_items_list), lbm_opencl_number_of_registers_list(
@@ -563,8 +564,8 @@ public:
 		/**
 		 * create kernels and setup arguments
 		 */
-		CVector<4, T> paramDrivenCavityVelocity = drivenCavityVelocity;
-		paramDrivenCavityVelocity *= CLbmSkeleton<T>::d_timestep;
+		CVector<4, T> paramDrivenCavityVelocity = CLbmSkeleton<T>::drivenCavityVelocity;//drivenCavityVelocity;
+		//paramDrivenCavityVelocity *= CLbmSkeleton<T>::d_timestep;
 
 #if DEBUG
 		{
