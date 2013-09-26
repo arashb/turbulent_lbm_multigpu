@@ -1,9 +1,9 @@
 #!/usr/bin/python
-import os, subprocess, sys, ConfigParser, json
+import os, subprocess, sys, ConfigParser, json, math
 
 keys = ['SECONDS', 'FPS', 'MLUPS', 'BANDWIDTH']
 SECTION_BASE = 'EXP'
-INI_FILE_DIR = "./benchmarkOutput/"
+INI_FILE_DIR = "./output/benchmark/"
 MPI_COMMAND = "mpirun"
 LBM_COMMAND = "./build/lbm_opencl_dc_mpicxx_release"
 
@@ -94,6 +94,29 @@ def strong_scaling_benchmark_2d(max_num, num_exp, loops = 100, grid_size = 128, 
         command_str = MPI_COMMAND + " -n " + str(num_proc)+ " " + LBM_COMMAND 
         command_str += " -x " + str(x_size) +  " -X " +  str(num_increase) 
         command_str += " -y " + str(y_size) +  " -Y " +  str(num_increase) 
+        command_str += " -l " + str(loops)
+        command_str +=  " -n " + str(DOMAIN_LENGTH) + " -m " + str(DOMAIN_LENGTH) + " -p " + str(DOMAIN_LENGTH)
+        ini_filename = INI_FILE_DIR + "benchmark_" + str(num_proc)+ ".ini"
+        # performing the experiments
+        for exp_counter in range(1,num_exp+1):
+            f = open(ini_filename, 'a')
+            f.write("["+SECTION_BASE+str(exp_counter)+"]\n")
+            f.write("NP : " + str(num_proc))
+            f.write("\n")
+            f.close()
+            execute(command_str)
+
+def strong_scaling_benchmark_1d(max_num, num_exp, loops = 100, grid_size = 1024, base_domain_length = 0.1 ):
+    DOMAIN_LENGTH = base_domain_length
+    for num_increase in range(0,max_num+1):
+        num_proc = int(math.pow(2,num_increase))#num_increase*num_increase
+        # computing the grid size for current benchmark
+        x_size = grid_size
+        y_size = grid_size
+        # generating the string of execution command  
+        command_str = MPI_COMMAND + " -n " + str(num_proc)+ " " + LBM_COMMAND 
+        command_str += " -x " + str(x_size) +  " -X " +  str(num_proc) 
+        command_str += " -y " + str(y_size)# +  " -Y " +  str(num_increase) 
         command_str += " -l " + str(loops)
         command_str +=  " -n " + str(DOMAIN_LENGTH) + " -m " + str(DOMAIN_LENGTH) + " -p " + str(DOMAIN_LENGTH)
         ini_filename = INI_FILE_DIR + "benchmark_" + str(num_proc)+ ".ini"
@@ -203,10 +226,10 @@ if __name__ == "__main__":
         BENCHMARK_STRATEGY = str(sys.argv[5])
         print "benchmark strategy: ", BENCHMARK_STRATEGY
         if BENCHMARK_STRATEGY == "weak":
-            benchmark(weak_scaling_benchmark_2d, max_num, num_exp)
-            #benchmark(weak_scaling_benchmark_1d, max_num, num_exp)
+            #benchmark(weak_scaling_benchmark_2d, max_num, num_exp)
+            benchmark(weak_scaling_benchmark_1d, max_num, num_exp)
         elif BENCHMARK_STRATEGY == "strong":
-            benchmark(strong_scaling_benchmark_2d, max_num, num_exp)
+            benchmark(strong_scaling_benchmark_1d, max_num, num_exp)
         else:
             print "Unknown benchmarking strategy!"
             sys.exit(0)
