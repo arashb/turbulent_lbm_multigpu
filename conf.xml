@@ -3,25 +3,32 @@
   <!-- configuration data related to physcis of the simulation -->
   <physics>
     <viscosity>0.001308</viscosity>
+    <!-- <viscosity>0.001</viscosity> -->
     <gravitation>
       <x>0</x>
       <y>-9.81</y>
       <z>0</z>
     </gravitation>
+    <cavity-velocity>
+      <x>100</x>
+      <y>0</y>
+      <z>0</z>
+      <w>1</w>
+    </cavity-velocity>
   </physics>
   <!-- configuration data related to simulation grid -->
   <grid>
-    <!-- grid resolution in x, y and z direction --> 
+    <!-- grid resolution in x, y and z direction -->
     <domain-size>
-      <x>64</x>
-      <y>64</y>
-      <z>64</z>
+      <x>96</x>
+      <y>32</y>
+      <z>32</z>
     </domain-size>
-    <!-- number of subdomains  in x, y and z direction --> 
+    <!-- number of subdomains  in x, y and z direction -->
     <subdomain-num>
-      <x>2</x>
-      <y>2</y>
-      <z>2</z>
+      <x>3</x>
+      <y>1</y>
+      <z>1</z>
     </subdomain-num>
     <domian-length>
       <x>0.1</x>
@@ -35,7 +42,7 @@
     <!-- timestep default: -1 for automatic detection -->
     <timestep>-1.0</timestep>
     <visualization>
-      <VTK>1</VTK>
+      <VTK>0</VTK>
     </visualization>
     <validate>0</validate>
   </simulation>
