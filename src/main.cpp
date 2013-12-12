@@ -102,10 +102,12 @@ int main(int argc, char** argv)
 	CVector<3,T> domain_length(0.1,0.1,0.1);
 
 	CVector<3,T> gravitation(0,-9.81,0);
+	CVector<4, T> drivenCavityVelocity(100,0,0,1);
 	T viscosity = 0.001308;
 	T timestep = -1.0;
 	int loops = -1;
 
+	bool do_validate = false;
 	bool do_visualisation = false;
 	bool take_frame_screenshots = false;
 	bool unit_test = false;
@@ -270,6 +272,8 @@ int main(int argc, char** argv)
 		ConfigSingleton::Instance()->loops = loops;
 		ConfigSingleton::Instance()->lbm_opencl_number_of_registers_list = lbm_opencl_number_of_registers_list;
 		ConfigSingleton::Instance()->lbm_opencl_number_of_threads_list = lbm_opencl_number_of_threads_list;
+		ConfigSingleton::Instance()->do_validate = do_validate;
+		ConfigSingleton::Instance()->drivenCavityVelocity = drivenCavityVelocity;
 	}
 #if DEBUG
 	ConfigSingleton::Instance()->debug_mode = true;
