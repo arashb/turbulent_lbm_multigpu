@@ -58,9 +58,10 @@ AddOption(	'--compiler',
 
 env['compiler'] = GetOption('compiler')
 
-if (env['compiler'] == None or (env['compiler'] not in ['gnu', 'intel', 'open64', 'openmpic++', 'mpicxx', 'mpiCC' ])):
-	env['compiler'] = 'mpicxx'
-
+default_compiler = 'mpicxx'
+if (env['compiler'] == None or (env['compiler'] not in ['gnu', 'intel', 'open64', 'openmpic++', 'mpicxx', 'mpiCC', 'CC' ])):
+	print "Using default compiler: " + default_compiler
+	env['compiler'] = default_compiler
 
 #
 # compile mode (debug/release)
@@ -191,6 +192,8 @@ if env['compiler'] == 'mpiCC':
 	env.Append(CXXFLAGS=' -fmessage-length=0')
 	env.Replace(CXX = 'mpiCC')
 
+if env['compiler'] == 'CC':
+	env.Replace(CXX = 'CC')
 
 if env['mode'] == 'debug':
 	env.Append(CXXFLAGS=' -DDEBUG=1')
