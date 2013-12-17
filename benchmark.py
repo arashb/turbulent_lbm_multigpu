@@ -45,7 +45,7 @@ def weak_scaling_benchmark_2d(max_num, num_exp, loops = 100, grid_size_increase_
         x_size = grid_size_increase_step*num_increase
         y_size = x_size
         # generating the string of execution command  
-        command_str = MPI_COMMAND + " -n " + str(num_proc)+ " " + LBM_COMMAND 
+        command_str = MPI_COMMAND + " -n " + str(num_proc)+ " -N 1 " + LBM_COMMAND 
         command_str += " -x " + str(x_size) +  " -X " +  str(num_increase) 
         command_str += " -y " + str(y_size) +  " -Y " +  str(num_increase) 
         command_str += " -l " + str(loops)
@@ -60,7 +60,6 @@ def weak_scaling_benchmark_2d(max_num, num_exp, loops = 100, grid_size_increase_
             f.close()
             execute(command_str)
 
-# TODO
 def weak_scaling_benchmark_1d(max_num, num_exp, loops = 100, grid_size_increase_step = 1024, base_domain_length = 0.1 ):
     DOMAIN_LENGTH = base_domain_length
     for num_increase in range(1,max_num+1):
@@ -69,7 +68,7 @@ def weak_scaling_benchmark_1d(max_num, num_exp, loops = 100, grid_size_increase_
         x_size = grid_size_increase_step*num_increase
         y_size = 1024
         # generating the string of execution command  
-        command_str = MPI_COMMAND + " -n " + str(num_proc)+ " " + LBM_COMMAND 
+        command_str = MPI_COMMAND + " -n " + str(num_proc)+ " -N 1 " + LBM_COMMAND 
         command_str += " -x " + str(x_size) +  " -X " +  str(num_increase) 
         command_str += " -y " + str(y_size) #+  " -Y " +  str(num_increase) 
         command_str += " -l " + str(loops)
