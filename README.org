@@ -14,21 +14,18 @@
  * limitations under the License.
  */
 
-* Introduction
-TODO:
-* Install
-TODO:
-* Benchmark
-TODO:
-* Release Notes
-| version | description                                                              |
-|---------+--------------------------------------------------------------------------|
-| v1.0    | - support of multi-gpu (no overlapping of communicaiton and computation) |
-|         | - support of arbitrary number of subdomains in each dimension            |
-|---------+--------------------------------------------------------------------------|
-| v1.1    | - automatic benchmarking of code                                         |
-|---------+--------------------------------------------------------------------------|
+* Install & Run
+** MAC Cluster:
+** TOEDI Cluster
+To compile the code on the Toedi Cray Cluster 
+execute the following commands:
+- $ module swap PrgEnv-cray PrgEnv-intel
+- $ module load scons
+- $ module load cudatoolkit
+- $ scons --compiler=CC --mode={release|debug}
 
+* Benchmark
+TODO
 
 
 * LEGACY README
