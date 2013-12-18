@@ -6,7 +6,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --time=04:00:00 
 #======START-BASIC=============================== 
-NGPUs=3
+NGPUs=250
 NEXPs=3
 module swap PrgEnv-cray PrgEnv-intel
 git checkout basic
