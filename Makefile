@@ -22,4 +22,7 @@ cleanlog:
 cleanbuild:
 	rm -rf build/*
 
+cleanresultsoutput:
+	rm -rf output
+
 clean: cleanbuild cleanlog cleanprofile cleanbenchmark cleanvtk 
