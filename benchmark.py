@@ -218,6 +218,8 @@ if __name__ == "__main__":
                 do_benchmark = False
             else:
                 print "wrong input."
+    if not os.path.exists(INI_FILE_DIR):
+        os.makedirs(INI_FILE_DIR)
     if do_benchmark:
         max_num = int(sys.argv[1])
         num_exp = int(sys.argv[2])
