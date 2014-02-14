@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import os, subprocess, sys, ConfigParser, json, math
 
-keys = ['SECONDS', 'FPS', 'MLUPS', 'BANDWIDTH']
+keys = ['CUBE_X', 'CUBE_Y', 'CUBE_Z', 'SECONDS', 'FPS']#, 'MLUPS', 'BANDWIDTH']
 SECTION_BASE = 'EXP'
 INI_FILE_DIR = "./output/benchmark/"
 MPI_COMMAND = "mpirun"
@@ -181,6 +181,7 @@ def visualize(profiling_res):
         for key in keys:
             values = [float(res[key]) for proc, res in sorted(profiling_res.iteritems())]
             print key, ":", values
+        print 'MLUPS: ' , [float(res['MLUPS']) for proc, res in sorted(profiling_res.iteritems())]
 
 if __name__ == "__main__":
     import glob
@@ -237,6 +238,9 @@ if __name__ == "__main__":
             sys.exit(0)
     filenames = glob.glob(INI_FILE_DIR+"*.ini")
     res = analyse(filenames)
+    print "RES"
+    for p in range(1,len(res)+1):
+        res[p]['MLUPS'] = res[p]['CUBE_X'] * res[p]['CUBE_Y'] * res[p]['CUBE_Z'] * res[p]['FPS'] * 0.000001
     # saving the results in json format
     analysation_file_name = INI_FILE_DIR + "results.txt"
     with open(analysation_file_name,'w') as outfile:

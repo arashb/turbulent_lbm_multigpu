@@ -461,7 +461,9 @@ public:
 			if (benchmark_file.is_open())
 			{
 				//benchmark_file << "[RESULTS]" << std::endl;
-				benchmark_file << "CUBE : " << ConfigSingleton::Instance()->domain_size << std::endl;
+				benchmark_file << "CUBE_X : " << ConfigSingleton::Instance()->domain_size[0] << std::endl;
+				benchmark_file << "CUBE_Y : " << ConfigSingleton::Instance()->domain_size[1] << std::endl;
+				benchmark_file << "CUBE_Z : " << ConfigSingleton::Instance()->domain_size[2] << std::endl;
 				benchmark_file << "SECONDS : " << gtime << std::endl;
 				benchmark_file << "FPS : " << gfps << std::endl;
 				benchmark_file << "MLUPS : " << gmlups << std::endl;

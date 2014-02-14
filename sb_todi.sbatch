@@ -1,13 +1,13 @@
 #!/bin/bash -l
 #SBATCH --job-name="multigpu_lbm" 
-#SBATCH --nodes=250
-#SBATCH --ntasks=250
+#SBATCH --nodes=256
+#SBATCH --ntasks=256
 #SBATCH --cpus-per-task=1 
 #SBATCH --ntasks-per-node=1
-#SBATCH --time=04:00:00 
+#SBATCH --time=11:00:00 
 #======START-BASIC=============================== 
-NGPUs=250
-NEXPs=3
+NGPUs=256
+NEXPs=2
 # module swap PrgEnv-cray PrgEnv-intel
 # git checkout basic
 # make clean
